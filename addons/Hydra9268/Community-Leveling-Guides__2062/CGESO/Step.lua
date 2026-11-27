@@ -244,27 +244,49 @@ function Step:GetJumpDestination(jump)
 	end
 end
 
+-- True when |next points at another guide (path), not a step label / +1.
+local function IsGuideJumpNext(n)
+	if type(n) ~= "string" or n == "" or n == "+1" or n == "-1" then
+		return false
+	end
+	if tonumber(n) then
+		return false
+	end
+	-- Guide paths use \ or / (e.g. LEVELING\Auridon, Extras\...\Zone)
+	return n:find("/", 1, true) ~= nil or n:find("\\", 1, true) ~= nil
+end
+
 function Step:GetNext()
 	if self:AreRequirementsMet() then
 		local goals = self.goals
+		local guideNext, labelNext
 
 		for i = 1, #goals do
 			local goal = goals[i]
-
-			if goal.next
-				and goal:IsVisible()
-				and (not goal:IsCompletable() or goal:IsComplete())
-			then
-				StepProto:Debug(
-					"Step:GetNext: step %d goal %d \"%s\" says \"%s\"",
-					self.num,
-					i,
-					goal:GetText(),
-					tostring(goal.next)
-				)
-
-				return goal.next
+			if goal.next and goal:IsVisible() then
+				local n = goal.next
+				-- Guide jumps must win when leaving the step — even if that goal is still
+				-- |future / incomplete. Old logic required the |next goal itself complete,
+				-- so end-of-zone turnins fell through to zone "suggestion" instead of |next.
+				if IsGuideJumpNext(n) then
+					guideNext = guideNext or n
+					StepProto:Debug(
+						"Step:GetNext: step %d goal %d guide-jump \"%s\"",
+						self.num,
+						i,
+						tostring(n)
+					)
+				elseif not goal:IsCompletable() or goal:IsComplete() then
+					labelNext = labelNext or n
+				end
 			end
+		end
+
+		if guideNext then
+			return guideNext
+		end
+		if labelNext then
+			return labelNext
 		end
 	end
 
@@ -294,14 +316,9 @@ function Step:GetNextStep(nextlabel)
 		end
 		return stepobj
 	else
-		local gu = CGV:GetGuideByTitle(guide)
-		if not gu then
-			CGV:Print("|cff4400ERROR!|r Cannot jump from step |cffff88"..self.num.."|r to guide '|cffff88"..tostring(guide).."|r'. This is guide |cffff88"..self.parentGuide.title_short.."|r. Please report this.") --, providing a generated Bug Report.")
-			CGV:Print("Meanwhile, try to open another guide by clicking the dropdown arrow on the addon.")
-			return self
-		end
-
-		return nil,step,guide
+		-- Always hand guide jumps to SkipStep → AdvanceToNextGuide (SetGuide).
+		-- Do not return self on a missing title — that stuck the player and let suggestion win.
+		return nil, step, guide
 	end
 end
 
@@ -316,11 +333,15 @@ function Step:IsTravel()
 	return true
 end
 
--- Auxiliary steps only lead toward quest work (gotos/text/tips), no real objectives.
+-- Auxiliary = tip/text fluff only. Steps with any goto (blue beacon / marker) are NOT aux.
 function Step:IsAuxiliary()
 	local goals = self.goals
+	if not goals or #goals == 0 then return false end
 	for i = 1, #goals do
 		local goal = goals[i]
+		if goal.action == "goto" then
+			return false -- marker/beacon travel must never be treated as aux
+		end
 		if goal.action and not goal:IsAuxiliary() then
 			return false
 		end
@@ -328,9 +349,14 @@ function Step:IsAuxiliary()
 	return true
 end
 
--- True when this aux/travel step can be skipped because a later useful step is already done/impossible.
--- Level is ignored (ESO One Tamriel — quests scale with character).
+-- Skip only tip/text fluff when a later real objective is already done/impossible.
+-- Never skips goto beacon ("reach next marker") steps.
 function Step:IsAuxiliarySkippable()
+	-- Current step must be true aux (no gotos). Beacon travel is never skippable here.
+	if not self:IsAuxiliary() then
+		return false
+	end
+
 	local guide = self.parentGuide
 	if not guide or not guide.steps then return false end
 
@@ -341,7 +367,7 @@ function Step:IsAuxiliarySkippable()
 
 	while step do
 		if step:IsAuxiliary() or not step:AreRequirementsMet() then
-			-- keep looking past fellow aux / unmet-requirement steps
+			-- keep looking past fellow tip/text fluff / unmet-requirement steps
 		else
 			if step == self then
 				return false
@@ -362,11 +388,12 @@ function Step:IsAuxiliarySkippable()
 		count = count + 1
 
 		if travelfor and count > travelfor then
+			-- Only auto-expire travelfor windows for tip/text chains (current step is aux).
 			return true
 		end
 	end
 
-	-- Ran out of steps within travelfor — safe to skip.
+	-- Ran out of steps within travelfor — safe to skip tip/text fluff only.
 	return travelfor and count <= travelfor
 end
 

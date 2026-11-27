@@ -251,14 +251,14 @@
         <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
           <AnchorFill />
         </Backdrop>
-        <Label name="$(parent)Title" font="ZoFontWinH2" text="Keep materials">
+        <Label name="$(parent)Title" font="ZoFontWinH2">
           <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
         </Label>
         <Button name="$(parent)Close" inherits="ZO_CloseButton">
           <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
           <OnClicked>MWC.KeyWindow.Hide()</OnClicked>
         </Button>
-        <Label name="$(parent)Hint" font="ZoFontGameSmall" color="999999" text="Checked materials are never spent: writs that would need them turn orange and are not crafted.">
+        <Label name="$(parent)Hint" font="ZoFontGameSmall" color="999999">
           <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="2" />
         </Label>
         <Control name="$(parent)Tabs">
@@ -293,14 +293,14 @@
         <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
           <AnchorFill />
         </Backdrop>
-        <Label name="$(parent)Title" font="ZoFontWinH2" text="Session Totals">
+        <Label name="$(parent)Title" font="ZoFontWinH2">
           <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
         </Label>
         <Button name="$(parent)Close" inherits="ZO_CloseButton">
           <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
           <OnClicked>MWC.UI.ToggleTotals()</OnClicked>
         </Button>
-        <Label name="$(parent)Hint" font="ZoFontGameSmall" color="999999" text="All materials of the queued writs on the current tab: already spent on crafted items / needed in total.">
+        <Label name="$(parent)Hint" font="ZoFontGameSmall" color="999999">
           <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="2" />
         </Label>
         <Texture name="$(parent)Divider" textureFile="EsoUI/Art/Miscellaneous/horizontalDivider.dds">
@@ -345,16 +345,26 @@
           <Anchor point="TOPRIGHT" offsetX="-12" offsetY="12" />
           <OnClicked>MWC.UI.Hide()</OnClicked>
         </Button>
-        <Button name="$(parent)KeyItems" inherits="ZO_DefaultButton" text="Keep materials">
+
+        <Button name="$(parent)Feedback">
+          <Dimensions x="40" y="40" />
+          <Anchor point="LEFT" relativeTo="$(parent)Title" relativePoint="RIGHT" offsetX="4" />
+          <Textures normal="EsoUI/Art/Mail/mail_tabIcon_compose_up.dds" pressed="EsoUI/Art/Mail/mail_tabIcon_compose_down.dds"
+            mouseOver="EsoUI/Art/Mail/mail_tabIcon_compose_over.dds" />
+          <OnClicked>MWC.UI.ShowFeedbackMenu(self)</OnClicked>
+          <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, BOTTOM, MWC.L.FEEDBACK)</OnMouseEnter>
+          <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
+        </Button>
+        <Button name="$(parent)KeyItems" inherits="ZO_DefaultButton">
           <Dimensions x="160" />
-          <Anchor point="LEFT" relativeTo="$(parent)Title" relativePoint="RIGHT" offsetX="20" />
+          <Anchor point="LEFT" relativeTo="$(parent)Feedback" relativePoint="RIGHT" offsetX="4" />
           <OnClicked>MWC.KeyWindow.Toggle()</OnClicked>
         </Button>
-        <Button name="$(parent)DeselectUnprofitable" inherits="ZO_DefaultButton" text="Deselect kept" hidden="true">
+        <Button name="$(parent)DeselectUnprofitable" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="190" />
           <Anchor point="LEFT" relativeTo="$(parent)KeyItems" relativePoint="RIGHT" offsetX="6" />
           <OnClicked>MWC.UI.DeselectUnprofitable()</OnClicked>
-          <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, BOTTOM, "Dequeue every writ that would spend a material from Keep materials (orange rows), on all tabs.")</OnMouseEnter>
+          <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, BOTTOM, MWC.L.DESELECT_KEPT_TOOLTIP)</OnMouseEnter>
           <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
         </Button>
 
@@ -381,7 +391,7 @@
           <Textures normal="EsoUI/Art/Help/help_tabicon_feedback_up.dds" pressed="EsoUI/Art/Help/help_tabicon_feedback_down.dds" mouseOver="EsoUI/Art/Help/help_tabicon_feedback_over.dds" />
           <TextureCoords left="0.1" top="0.1" right="0.9" bottom="0.9" />
           <OnClicked>MWC.UI.Refresh()</OnClicked>
-          <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, BOTTOM, "Refresh")</OnMouseEnter>
+          <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, BOTTOM, MWC.L.REFRESH)</OnMouseEnter>
           <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
         </Button>
         <Button name="$(parent)IncludeBank" inherits="ZO_CheckButton">
@@ -461,12 +471,12 @@
                   <Anchor point="TOPLEFT" offsetX="16" offsetY="128" />
                 </Label>
                 <!-- A column at the right edge, lined up with the Craft button below the panel. -->
-                <Button name="$(parent)Reset" inherits="ZO_DefaultButton" text="Reset session">
+                <Button name="$(parent)Reset" inherits="ZO_DefaultButton">
                   <Dimensions x="150" />
                   <Anchor point="BOTTOMRIGHT" offsetX="-8" offsetY="-8" />
                   <OnClicked>MWC.Session.ConfirmReset()</OnClicked>
                 </Button>
-                <Button name="$(parent)Totals" inherits="ZO_DefaultButton" text="Session totals">
+                <Button name="$(parent)Totals" inherits="ZO_DefaultButton">
                   <Dimensions x="150" />
                   <Anchor point="BOTTOM" relativeTo="$(parent)Reset" relativePoint="TOP" offsetY="-6" />
                   <OnClicked>MWC.UI.ToggleTotals()</OnClicked>
@@ -486,32 +496,32 @@
                 <Label name="$(parent)Info" font="ZoFontGame" color="999999">
                   <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-10" />
                 </Label>
-                <Button name="$(parent)Withdraw" inherits="ZO_DefaultButton" text="Withdraw ready">
+                <Button name="$(parent)Withdraw" inherits="ZO_DefaultButton">
                   <Dimensions x="190" />
                   <Anchor point="TOPRIGHT" offsetX="-8" offsetY="10" />
                   <OnClicked>MWC.Bank.WithdrawReady()</OnClicked>
-                  <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, LEFT, "At the bank: writs ready to turn in, with their crafted items, mixed across crafts, as many as fit.")</OnMouseEnter>
+                  <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, LEFT, MWC.L.WITHDRAW_READY_TOOLTIP)</OnMouseEnter>
                   <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
                 </Button>
-                <Button name="$(parent)Start" inherits="ZO_DefaultButton" text="Start quests">
+                <Button name="$(parent)Start" inherits="ZO_DefaultButton">
                   <Dimensions x="190" />
                   <Anchor point="TOP" relativeTo="$(parent)Withdraw" relativePoint="BOTTOM" offsetY="6" />
                   <OnClicked>MWC.TurnIn.StartQuests()</OnClicked>
-                  <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, LEFT, "Open one ready writ per craft (one quest per craft is the game's limit).")</OnMouseEnter>
+                  <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, LEFT, MWC.L.START_TOOLTIP)</OnMouseEnter>
                   <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
                 </Button>
-                <Button name="$(parent)Deposit" inherits="ZO_DefaultButton" text="Deposit leftovers">
+                <Button name="$(parent)Deposit" inherits="ZO_DefaultButton">
                   <Dimensions x="190" />
                   <Anchor point="TOP" relativeTo="$(parent)Start" relativePoint="BOTTOM" offsetY="6" />
                   <OnClicked>MWC.Bank.DepositLeftovers()</OnClicked>
-                  <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, LEFT, "At the bank: crafted items in the bag beyond what the queued writs in the bag need.")</OnMouseEnter>
+                  <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, LEFT, MWC.L.DEPOSIT_LEFTOVERS_TOOLTIP)</OnMouseEnter>
                   <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
                 </Button>
-                <Button name="$(parent)Import" inherits="ZO_DefaultButton" text="Import quests">
+                <Button name="$(parent)Import" inherits="ZO_DefaultButton">
                   <Dimensions x="190" />
                   <Anchor point="TOP" relativeTo="$(parent)Deposit" relativePoint="BOTTOM" offsetY="6" />
                   <OnClicked>MWC.UI.ImportQuests()</OnClicked>
-                  <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, LEFT, "Adds writ quests you started by hand to the session: matched by their task against a writ of the same kind that you still have.")</OnMouseEnter>
+                  <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, LEFT, MWC.L.IMPORT_TOOLTIP)</OnMouseEnter>
                   <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
                 </Button>
                 <Button name="$(parent)AutoHandIn" inherits="ZO_CheckButton">
@@ -519,7 +529,7 @@
                 </Button>
                 <!-- Both anchors of each label share one top edge (table and Withdraw start at the same height),
                      so the labels only stretch sideways and the advice wraps below its title. -->
-                <Label name="$(parent)NextTitle" font="ZoFontGameSmall" text="Next step">
+                <Label name="$(parent)NextTitle" font="ZoFontGameSmall">
                   <Anchor point="TOPLEFT" relativeTo="$(parent)Table" relativePoint="TOPRIGHT" offsetX="30" />
                   <Anchor point="TOPRIGHT" relativeTo="$(parent)Withdraw" relativePoint="TOPLEFT" offsetX="-20" />
                 </Label>
@@ -539,7 +549,7 @@
           <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Panel" relativePoint="TOPRIGHT" offsetY="2" />
           <OnMouseDown>MWC.UI.OnSplitterDown(self)</OnMouseDown>
           <OnMouseUp>MWC.UI.OnSplitterUp(self)</OnMouseUp>
-          <OnMouseEnter>self:GetNamedChild("Grip"):SetAlpha(1); ZO_Tooltips_ShowTextTooltip(self, TOP, "Drag to resize")</OnMouseEnter>
+          <OnMouseEnter>self:GetNamedChild("Grip"):SetAlpha(1); ZO_Tooltips_ShowTextTooltip(self, TOP, MWC.L.DRAG_TO_RESIZE)</OnMouseEnter>
           <OnMouseExit>self:GetNamedChild("Grip"):SetAlpha(0.8); ZO_Tooltips_HideTextTooltip()</OnMouseExit>
           <Controls>
             <Texture name="$(parent)Grip" color="D8D3B4" alpha="0.8" layer="OVERLAY">
@@ -549,64 +559,68 @@
           </Controls>
         </Control>
 
-        <Button name="$(parent)MaterialsToggle" inherits="ZO_DefaultButton" text="Materials Used">
+        <Button name="$(parent)MaterialsToggle" inherits="ZO_DefaultButton">
           <Dimensions x="170" />
           <Anchor point="BOTTOMLEFT" offsetX="12" offsetY="-12" />
           <OnClicked>MWC.UI.TogglePanel("Materials")</OnClicked>
         </Button>
-        <Button name="$(parent)StatsToggle" inherits="ZO_DefaultButton" text="Stats">
+        <Button name="$(parent)StatsToggle" inherits="ZO_DefaultButton">
           <Dimensions x="100" />
           <Anchor point="LEFT" relativeTo="$(parent)MaterialsToggle" relativePoint="RIGHT" offsetX="6" />
           <OnClicked>MWC.UI.TogglePanel("Stats")</OnClicked>
         </Button>
-        <Button name="$(parent)TurnInToggle" inherits="ZO_DefaultButton" text="Turn in">
+        <Button name="$(parent)TurnInToggle" inherits="ZO_DefaultButton">
           <Dimensions x="110" />
           <Anchor point="LEFT" relativeTo="$(parent)StatsToggle" relativePoint="RIGHT" offsetX="6" />
           <OnClicked>MWC.UI.TogglePanel("TurnIn")</OnClicked>
         </Button>
-        <Label name="$(parent)Summary" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1" />
+        <Label name="$(parent)Summary" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1" mouseEnabled="true">
+          <OnMouseEnter>MWC.UI.OnSummaryEnter(self)</OnMouseEnter>
+          <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
+          <OnMouseUp>if upInside then MWC.UI.OnSummaryClicked() end</OnMouseUp>
+        </Label>
 
-        <Button name="$(parent)Craft" inherits="ZO_DefaultButton" text="Craft">
+        <Button name="$(parent)Craft" inherits="ZO_DefaultButton">
           <Dimensions x="150" />
           <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-12" />
           <OnClicked>MWC.Craft.Start()</OnClicked>
         </Button>
-        <Button name="$(parent)DepositAll" inherits="ZO_DefaultButton" text="Deposit all" hidden="true">
+        <Button name="$(parent)DepositAll" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="140" />
           <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-12" />
           <OnClicked>MWC.UI.DepositAll()</OnClicked>
         </Button>
-        <Button name="$(parent)WithdrawAll" inherits="ZO_DefaultButton" text="Withdraw all" hidden="true">
+        <Button name="$(parent)WithdrawAll" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="150" />
           <Anchor point="RIGHT" relativeTo="$(parent)DepositAll" relativePoint="LEFT" offsetX="-6" />
           <OnClicked>MWC.UI.WithdrawAll()</OnClicked>
         </Button>
-        <Button name="$(parent)WithdrawMarked" inherits="ZO_DefaultButton" text="Withdraw marked" hidden="true">
+        <Button name="$(parent)WithdrawMarked" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="180" />
           <Anchor point="RIGHT" relativeTo="$(parent)WithdrawAll" relativePoint="LEFT" offsetX="-6" />
           <OnClicked>MWC.Bank.WithdrawExcluded()</OnClicked>
         </Button>
-        <Button name="$(parent)Stop" inherits="ZO_DefaultButton" text="Stop" hidden="true">
+        <Button name="$(parent)Stop" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="140" />
           <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-12" />
           <OnClicked>MWC.Activity.Stop()</OnClicked>
         </Button>
-        <Button name="$(parent)OpenSealed" inherits="ZO_DefaultButton" text="Open sealed" hidden="true">
+        <Button name="$(parent)OpenSealed" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="170" />
           <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-12" />
           <OnClicked>MWC.Sealed.Open()</OnClicked>
         </Button>
-        <Button name="$(parent)DepositWrits" inherits="ZO_DefaultButton" text="Deposit writs" hidden="true">
+        <Button name="$(parent)DepositWrits" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="160" />
           <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-12" />
           <OnClicked>MWC.Bank.DepositWrits()</OnClicked>
         </Button>
-        <Button name="$(parent)WithdrawSealed" inherits="ZO_DefaultButton" text="Withdraw sealed" hidden="true">
+        <Button name="$(parent)WithdrawSealed" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="180" />
           <Anchor point="RIGHT" relativeTo="$(parent)DepositWrits" relativePoint="LEFT" offsetX="-6" />
           <OnClicked>MWC.Bank.WithdrawSealed()</OnClicked>
         </Button>
-        <Button name="$(parent)StoreMarked" inherits="ZO_DefaultButton" text="Store marked" hidden="true">
+        <Button name="$(parent)StoreMarked" inherits="ZO_DefaultButton" hidden="true">
           <Dimensions x="170" />
           <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-12" />
           <OnClicked>MWC.Bank.StoreExcludedInChest()</OnClicked>

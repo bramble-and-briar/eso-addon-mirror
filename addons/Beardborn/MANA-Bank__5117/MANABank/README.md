@@ -53,3 +53,14 @@ Keep a set amount of gold on hand: when the bank opens, the excess is deposited 
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## AI disclosure
+
+The code and translations of this add-on were written with the help of an AI assistant (Claude by Anthropic), based on my design and instructions. I test releases in game and maintain the add-on.
+
+## Credits
+
+- LibAddonMenu-2.0 by Seerah, sirinsidiator and contributors
+- LibCustomMenu by votan
+- FCO ItemSaver API by Baertram
+- Inspired by Bank Manager Revived

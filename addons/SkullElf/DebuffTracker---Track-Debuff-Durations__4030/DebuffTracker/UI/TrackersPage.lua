@@ -8,6 +8,7 @@ local U = DT.Util
 local C = DT.Const
 local S = DT.Schema
 local P = DT.Profiles
+local D_NO_WINDOW = DT.Displays.NO_WINDOW
 local L = DT.L
 local WM = WINDOW_MANAGER
 
@@ -43,6 +44,8 @@ local function TypeSummary(t)
     elseif tr.type == "combatState" then what = L("Combat state")
     elseif tr.type == "tick" then what = L("Resource tick") .. ": " .. C.Label(C.TICK_POWER_TYPES, tr.powerType)
     elseif tr.type == "gcd" then what = L("Global cooldown")
+    elseif tr.type == "group" then what = L("Group members")
+    elseif tr.type == "weave" then what = L("Weaving")
     else what = C.Label(C.POWER_TYPES, tr.powerType) end
     return C.Label(C.DISPLAY_TYPES, t.display.type) .. " - " .. what
 end
@@ -76,6 +79,11 @@ local TEMPLATES = {
     { L("Above heads: my buffs / heals on allies"), 61665, function() return {
         name = L("My buffs on allies"), trigger = { type = "effect", scope = "group", source = "me", effectType = "buff" },
         display = { type = "heads", iconSize = 32, maxShown = 3 } } end },
+    { L("Group frames"), nil, function() return DT.Presets.GroupFrames() end },
+    { L("On group frames: allies missing a buff"), 61771, function() return {
+        name = L("Missing buff (group frames)"), trigger = { type = "effect", scope = "group", mode = "missing", effectType = "buff" },
+        display = { type = "onframes", showTimer = false, maxShown = 2 } } end },
+    { L("Weave strip (light attack weaving)"), nil, function() return DT.Presets.WeaveStrip() end },
     { L("Ability / proc timer"), 38541, function() return {
         name = L("Ability timer"), trigger = { type = "combat", combatSource = "me", duration = 10, showReady = true },
         display = { type = "icons", iconLabelFormat = "{name}" } } end },
@@ -112,6 +120,7 @@ local function ForJSON(t, keepId)
     local c = S.Compact(t)                 -- only what differs from the defaults
     c.id = keepId and t.id or nil
     c.fromCooldowns, c.fromUntaunted, c.fromBTG, c.fromStagger, c.fromExoY, c.fromMeterskull, c.fromMiat, c.fromGcd, c.headsRestore = nil, nil, nil, nil, nil, nil, nil, nil, nil
+    c.fromAltGF, c.framesRestore, c.fromWeaveDelays, c.weaveRestore = nil, nil, nil, nil
     return c
 end
 
@@ -875,7 +884,13 @@ local function HeadsGuard(panel, w)
         if t then t.trigger.type = "effect"; t.trigger.scope = "group"; UI.Changed() end
     end, L("Switch this tracker to look on your group members"))
     fix:SetAnchor(RIGHT, box, RIGHT, -10, 0)
-    return box, 60, function() return DT.Load.HeadsProblem(T()) ~= nil end
+    local HEADS_TEXT = L("Above heads only works on allies: group members, you, or your companion. The game gives addons no position for enemies.")
+    local FRAMES_TEXT = L("On group frames only works on allies: group members, you, or your companion -- a frame is a group member.")
+    return box, 60, function()
+        local problem = DT.Load.HeadsProblem(T()) ~= nil
+        if problem then text:SetText(DS().type == "onframes" and FRAMES_TEXT or HEADS_TEXT) end
+        return problem
+    end
 end
 
 -- Plain-language summary of a tracker's load conditions ("in combat, boss fights only").
@@ -1413,9 +1428,45 @@ local function BuildTriggerTab(panel, w)
     panel:Add(W.Checkbox(panel.content, w, L("Also while it's full"), function() return TR().tickShowFull end, function(v) TR().tickShowFull = v end,
         L("Off: hidden while the resource is full (nothing to wait for).")), 30, isTick)
 
+    -- Weaving (Core/Weave.lua)
+    local function isWeave() return TR().type == "weave" end
+    panel:Add(W.Section(panel.content, w, L("Weaving")), 30, isWeave)
+    panel:Add(W.Note(panel.content, w, L("One entry per skill you cast: the time lost between the end of your previous skill (its cast, or the 1 s global cooldown) and this one, and whether a light attack went in between. Best shown as a Weave strip (Display tab). Texts {delay} (ms), {avgdelay} (the fight's average, s), {weave} (the letter); rules \"Weave delay\", \"Light attack\", \"Bash-cancelled\", \"Average weave delay\". /dt weave hides / shows, /dt weave reset clears."), 64), 64, isWeave)
+    panel:Add(W.Edit(panel.content, w, L("Letter: no light attack pressed"), function() return TR().weaveTextMissed end, function(v) TR().weaveTextMissed = v end), 48, isWeave)
+    panel:Add(W.Edit(panel.content, w, L("Letter: pressed, but it vanished"), function() return TR().weaveTextVanished end, function(v) TR().weaveTextVanished = v end,
+        L("The light attack was pressed but never registered -- usually the skill came too fast after it.")), 48, isWeave)
+    panel:Add(W.Edit(panel.content, w, L("Letter: queued, never landed"), function() return TR().weaveTextQueued end, function(v) TR().weaveTextQueued = v end,
+        L("The game queued the light attack but it didn't hit -- out of range, or the enemy died.")), 48, isWeave)
+    panel:Add(W.Edit(panel.content, w, L("Letter: bash-cancelled"), function() return TR().weaveTextBashed end, function(v) TR().weaveTextBashed = v end), 48, isWeave)
+    panel:Add(W.Checkbox(panel.content, w, L("More latency tolerance"), function() return TR().weaveLatency end, function(v) TR().weaveLatency = v end,
+        L("A light attack counts when it lands within 1.6 s of the press instead of 1 s. For a high ping.")), 26, isWeave)
+    panel:Add(W.Checkbox(panel.content, w, L("Only skills that went off"), function() return TR().weaveConfirm end, function(v) TR().weaveConfirm = v end,
+        L("A skill counts once the game reports it from you (not when the key is pressed): presses that did nothing are left out.")), 26, isWeave)
+    panel:Add(W.Checkbox(panel.content, w, L("A heavy attack between skills isn't delay"), function() return TR().weaveHeavyBreaks end, function(v) TR().weaveHeavyBreaks = v end,
+        L("For heavy-attack builds: after a heavy attack the next skill starts a new count instead of showing the time as lost.")), 26, isWeave)
+
+    -- Group members (Core/Group.lua): shown by the Group frames display, or as bars / icons like any entries
+    local function isGroup() return TR().type == "group" end
+    panel:Add(W.Section(panel.content, w, L("Group members")), 30, isGroup)
+    panel:Add(W.Note(panel.content, w, L("One entry per member of your group -- offline and dead ones too -- with their health, damage shield, trauma, role, class and whether they lead, are dead, being resurrected or out of range. Show them as Group frames (Display tab), or as bars / icons. Rules: \"Unit is dead\", \"Being resurrected\", \"Unit is offline\", \"Group leader\", \"Unit role is\", \"Ally in support range\", \"Resource %\" (health)."), 64), 64, isGroup)
+    panel:Add(W.Dropdown(panel.content, w, L("Order"), C.GROUP_SORTS, function() return TR().groupSort end, function(v) TR().groupSort = v end), 30, isGroup)
+    panel:Add(W.Dropdown(panel.content, w, L("Names"), C.GROUP_NAMES, function() return TR().groupNames end, function(v) TR().groupNames = v end,
+        L("What {unit} shows. {account} is always the @account name.")), 30, isGroup)
+    panel:Add(W.Checkbox(panel.content, w, L("Me too"), function() return TR().groupSelf end, function(v) TR().groupSelf = v end), 26, isGroup)
+    panel:Add(W.Checkbox(panel.content, w, L("Companions"), function() return TR().groupCompanions end, function(v) TR().groupCompanions = v end,
+        L("Group members' companions, after the players (and yours when you're not grouped, with the next option).")), 26, isGroup)
+    panel:Add(W.Checkbox(panel.content, w, L("Show me when not grouped"), function() return TR().groupSolo end, function(v) TR().groupSolo = v end,
+        L("Off: nothing shows while you're solo.")), 26, isGroup)
+    panel:Add(W.Checkbox(panel.content, w, L("Show shields, trauma and can't be healed"), function() return TR().healthVisuals end,
+        function(v) TR().healthVisuals = v end), 26, isGroup)
+
     panel:Add(W.Section(panel.content, w, L("Resource")), 30, isResource)
     panel:Add(W.Dropdown(panel.content, w, L("Unit"), C.RESOURCE_UNITS, function() return TR().unit end, function(v) TR().unit = v end), 30, isResource)
     panel:Add(W.Dropdown(panel.content, w, L("Resource"), C.POWER_TYPES, function() return TR().powerType end, function(v) TR().powerType = v end), 30, isResource)
+    panel:Add(W.Checkbox(panel.content, w, L("Show shields, trauma and can't be healed"), function() return TR().healthVisuals end,
+        function(v) TR().healthVisuals = v end,
+        L("Health only. On bars: a damage shield as a light layer from the empty end, trauma (health that has to be healed away first, shown purple after the health you can use) and a dark tint while the game marks the unit as not healable (the darkened health bar). Texts {shield} and {trauma}; rules \"Damage shield\", \"Trauma\", \"Can't be healed\".")),
+        30, function() return isResource() and TR().powerType == "health" end)
     local opsWithNone = { { "none", L("Always show") } }
     for _, o in ipairs(C.OPERATORS) do opsWithNone[#opsWithNone + 1] = { o[1], L("Only when % <<1>>", o[2]) } end
     panel:Add(W.Dropdown(panel.content, w, L("Show"), opsWithNone, function() return TR().thresholdOp end, function(v) TR().thresholdOp = v end), 30, isResource)
@@ -1464,10 +1515,10 @@ local function BuildDisplayTab(panel, w)
     end, L("Takes size, style, colours, fonts and texts from another tracker (this tracker keeps its title). Several at once: select them in the list, then \"Copy look\".")))
     local function is(kind) return function() return DS().type == kind end end
     local function notAlert() return DS().type ~= "alert" end
-    local function barsOrText() return DS().type == "bars" or DS().type == "text" end
+    local function barsOrText() return DS().type == "bars" or DS().type == "text" or DS().type == "frames" end
     local function heads() return DS().type == "heads" end
-    local function notHeads() return DS().type ~= "heads" end
-    local function windowed() return DS().type ~= "alert" and DS().type ~= "heads" end
+    local function notHeads() return not D_NO_WINDOW[DS().type] end
+    local function windowed() return DS().type ~= "alert" and not D_NO_WINDOW[DS().type] end
 
     panel:Add(W.Section(panel.content, w, L("Display")))
     panel:Add(W.Segmented(panel.content, w, nil, C.DISPLAY_TYPES, function() return DS().type end, function(v)
@@ -1477,14 +1528,34 @@ local function BuildDisplayTab(panel, w)
         -- above heads can't work on enemies: pick the obvious ally scope instead of leaving it broken,
         -- and remember what it was -- trying "Above heads" and going back must not leave a tracker that
         -- watches group members instead of enemies (it then stays empty: player report)
-        if v == "heads" and (tr.type ~= "effect" or not C.HEAD_SCOPES[tr.scope]) then
-            tr.headsRestore = { type = tr.type, scope = tr.scope }
+        local placedOnAllies = v == "heads" or v == "onframes"
+        local wasPlaced = was == "heads" or was == "onframes"
+        if placedOnAllies and DT.Load.HeadsProblem(T()) ~= nil then
+            tr.headsRestore = tr.headsRestore or { type = tr.type, scope = tr.scope }
             tr.type, tr.scope = "effect", "group"
-        elseif was == "heads" and v ~= "heads" and type(tr.headsRestore) == "table" then
+        elseif wasPlaced and not placedOnAllies and type(tr.headsRestore) == "table" then
             if tr.type == "effect" and tr.scope == "group" then
                 tr.type, tr.scope = tr.headsRestore.type or tr.type, tr.headsRestore.scope or tr.scope
             end
             tr.headsRestore = nil
+        end
+        -- the weave strip shows your weaving: switch the trigger to it (and back)
+        if v == "weave" and tr.type ~= "weave" then
+            tr.weaveRestore = { type = tr.type }
+            tr.type = "weave"
+            DS().sort, DS().showHeader = "fixed", false
+        elseif was == "weave" and v ~= "weave" and type(tr.weaveRestore) == "table" then
+            if tr.type == "weave" then tr.type = tr.weaveRestore.type or tr.type end
+            tr.weaveRestore = nil
+        end
+        -- group frames show group members: switch the trigger to them (and back when another display is picked)
+        if v == "frames" and tr.type ~= "group" then
+            tr.framesRestore = { type = tr.type }
+            tr.type = "group"
+            DS().sort, DS().showHeader = "fixed", false
+        elseif was == "frames" and v ~= "frames" and type(tr.framesRestore) == "table" then
+            if tr.type == "group" then tr.type = tr.framesRestore.type or tr.type end
+            tr.framesRestore = nil
         end
     end))
     panel:Add(W.Note(panel.content, w, function()
@@ -1496,7 +1567,92 @@ local function BuildDisplayTab(panel, w)
     panel:Add(guard, guardH, guardVisible)
     panel:Add(W.Note(panel.content, w, L("Each entry floats above the ally it belongs to (group members, you, or your companion). Height, distance and fading are in Settings > Above heads."), 34), 34,
         function() return heads() and not guardVisible() end)
+    local frames, onframes = is("frames"), is("onframes")
+    panel:Add(W.Note(panel.content, w, L("A frame per group member: health coloured by role, damage shields, trauma, the class icon and the leader's mark; dead, resurrecting and offline members say so, far ones fade. Hover for details, right-click for the group menu. Put other trackers on the frames with the \"On group frames\" display."), 48), 48, frames)
+    panel:Add(W.Note(panel.content, w, L("Each entry sits on the group frame of the ally it belongs to (needs a Group frames tracker): icons beside the frame, or a thin bar along it that runs out with the effect."), 34), 34,
+        function() return onframes() and not guardVisible() end)
     panel:Add(W.Segmented(panel.content, w, L("Style"), C.BAR_STYLES, function() return DS().style end, function(v) DS().style = v end), 50, windowed)
+
+    -- Group frames
+    panel:Add(W.Section(panel.content, w, L("Group frames")), 30, frames)
+    panel:Add(W.Segmented(panel.content, w, L("Health colour"), C.FRAME_COLOR_BY, function() return DS().frameColorBy end, function(v) DS().frameColorBy = v end), 50, frames)
+    local function byRole() return frames() and DS().frameColorBy == "role" end
+    panel:Add(W.Color(panel.content, w, L("Tanks"), function() return DS().tankColor end, function(v) DS().tankColor = v end), 30, byRole)
+    panel:Add(W.Color(panel.content, w, L("Healers"), function() return DS().healerColor end, function(v) DS().healerColor = v end), 30, byRole)
+    panel:Add(W.Color(panel.content, w, L("Damage dealers"), function() return DS().dpsColor end, function(v) DS().dpsColor = v end), 30, byRole)
+    panel:Add(W.Color(panel.content, w, L("Companions"), function() return DS().companionColor end, function(v) DS().companionColor = v end), 30, frames)
+    panel:Add(W.Note(panel.content, w, L("No role picked: the Color on the Text & colors tab. \"Health\": the timer colours (Just applied / Half way / About to expire) by health left."), 34), 34, frames)
+    panel:Add(W.Dropdown(panel.content, w, L("Health text"), C.FRAME_HEALTH_TEXT, function() return DS().frameHealthText end, function(v) DS().frameHealthText = v end), 30, frames)
+    panel:Add(W.Checkbox(panel.content, w, L("Damage shield after the health (+6k)"), function() return DS().frameShieldText end, function(v) DS().frameShieldText = v end), 26, frames)
+    panel:Add(W.Checkbox(panel.content, w, L("Class icon"), function() return DS().frameClassIcon end, function(v) DS().frameClassIcon = v end), 26, frames)
+    panel:Add(W.Checkbox(panel.content, w, L("Leader's mark"), function() return DS().frameLeader end, function(v) DS().frameLeader = v end), 26, frames)
+    panel:Add(W.Checkbox(panel.content, w, L("Role icon"), function() return DS().frameRoleIcon end, function(v) DS().frameRoleIcon = v end), 26, frames)
+    panel:Add(W.Slider(panel.content, w, L("Out of support range"), 0.05, 1, 0.05, function() return DS().frameRangeAlpha end, function(v) DS().frameRangeAlpha = v end,
+        function(v) return string.format("%d%%", math.floor(v * 100 + 0.5)) end, L("How visible a member is while too far for heals and buffs to reach.")), 44, frames)
+    panel:Add(W.Checkbox(panel.content, w, L("Tooltip and group menu (right-click)"), function() return DS().frameMouse end, function(v) DS().frameMouse = v end,
+        L("Hover a frame for details; right-click for the game's group menu: whisper, jump to, promote, kick or vote to kick, leave, disband. (Off: clicks go through to the game.)")), 26, frames)
+    local function tips() return frames() and DS().frameMouse end
+    panel:Add(W.Dropdown(panel.content, w, L("Tooltip: effects on them"), C.FRAME_TIP_EFFECTS, function() return DS().frameTipEffects end,
+        function(v) DS().frameTipEffects = v end, L("Timed: buffs and debuffs with a timer, shortest first, debuffs in red. All: also the ones without an end (passives, food, set bonuses).")), 30, tips)
+    panel:Add(W.Checkbox(panel.content, w, L("Tooltip: their gear sets"), function() return DS().frameTipSets end, function(v) DS().frameTipSets = v end,
+        L("Needs LibSetDetection (optional), and the member needs it too: it shares each player's sets with the group.")), 26, tips)
+    panel:Add(W.Checkbox(panel.content, w, L("Hide the game's group frames"), function() return DS().hideGameFrames end, function(v) DS().hideGameFrames = v end,
+        L("While these frames show. The game's come back when this tracker is hidden or turned off. Your target's frame stays.")), 26, frames)
+
+    -- Weave strip
+    local weave = is("weave")
+    panel:Add(W.Section(panel.content, w, L("Weave strip")), 30, weave)
+    panel:Add(W.Note(panel.content, w, L("One column per skill, the newest on the right: its icon, a thin line that grows with the time lost, and the ms -- a green 0 when it's on time -- or a red letter when the light attack didn't make it. A bash-weave puts a blue B on the icon. Nothing is judged for the first moment, until its light attack had the time to land. The fight's average sits in a tile at the end."), 48), 48, weave)
+    panel:Add(W.Slider(panel.content, w, L("Slots per row"), 1, 40, 1, function() return DS().columns end, function(v) DS().columns = v end), 44, weave)
+    panel:Add(W.Slider(panel.content, w, L("Rows"), 1, 10, 1, function() return DS().weaveRows end, function(v) DS().weaveRows = v end), 44, weave)
+    panel:Add(W.Slider(panel.content, w, L("Tile size"), 16, 120, 1, function() return DS().iconSize end, function(v) DS().iconSize = v end), 44, weave)
+    panel:Add(W.Checkbox(panel.content, w, L("Skill icons"), function() return DS().weaveIcons end, function(v) DS().weaveIcons = v end), 26, weave)
+    panel:Add(W.Checkbox(panel.content, w, L("The fight's average delay"), function() return DS().weaveAverage end, function(v) DS().weaveAverage = v end,
+        L("In seconds, in a tile at the end of the strip. Each skill's delay counts up to 1 s; a skill without a light attack counts as 1 s.")), 26, weave)
+    panel:Add(W.Slider(panel.content, w, L("Good up to"), 0, 500, 5, function() return DS().weaveGoodMs end, function(v) DS().weaveGoodMs = math.min(v, DS().weaveSlowMs - 5) end,
+        function(v) return v .. " ms" end), 44, weave)
+    panel:Add(W.Slider(panel.content, w, L("Slow from"), 10, 1000, 5, function() return DS().weaveSlowMs end, function(v) DS().weaveSlowMs = math.max(v, DS().weaveGoodMs + 5) end,
+        function(v) return v .. " ms" end), 44, weave)
+    panel:Add(W.Slider(panel.content, w, L("The line is full at"), 100, 2000, 50, function() return DS().weaveScaleMs end, function(v) DS().weaveScaleMs = v end,
+        function(v) return v .. " ms" end, L("How much time lost fills the line under a skill.")), 44, weave)
+    panel:Add(W.Dropdown(panel.content, w, L("Colours"), function()
+        local opts = { { "", L("(pick a set...)") } }
+        for _, p in ipairs(C.WEAVE_PALETTES) do opts[#opts + 1] = { p[1], p[2] } end
+        return opts
+    end, function() return "" end, function(v)
+        for _, p in ipairs(C.WEAVE_PALETTES) do
+            if p[1] == v then
+                DS().weaveGoodColor, DS().weaveOkColor, DS().weaveSlowColor, DS().weaveMissColor = U.Copy(p[3][1]), U.Copy(p[3][2]), U.Copy(p[3][3]), U.Copy(p[3][4])
+            end
+        end
+    end), 30, weave)
+    panel:Add(W.Color(panel.content, w, L("Good"), function() return DS().weaveGoodColor end, function(v) DS().weaveGoodColor = v end), 30, weave)
+    panel:Add(W.Color(panel.content, w, L("Okay"), function() return DS().weaveOkColor end, function(v) DS().weaveOkColor = v end), 30, weave)
+    panel:Add(W.Color(panel.content, w, L("Slow"), function() return DS().weaveSlowColor end, function(v) DS().weaveSlowColor = v end), 30, weave)
+    panel:Add(W.Color(panel.content, w, L("Letters (no light attack)"), function() return DS().weaveMissColor end, function(v) DS().weaveMissColor = v end), 30, weave)
+
+    -- On group frames
+    panel:Add(W.Section(panel.content, w, L("On group frames")), 30, onframes)
+    panel:Add(W.Segmented(panel.content, w, L("Show as"), C.FRAME_SHOW, function() return DS().frameShow end, function(v)
+        DS().frameShow = v
+        DS().frameSpot = v == "bar" and "bottom" or "right"
+    end), 50, onframes)
+    local function frameIcons() return onframes() and DS().frameShow ~= "bar" end
+    local function frameBar() return onframes() and DS().frameShow == "bar" end
+    panel:Add(W.Dropdown(panel.content, w, L("Where"), C.FRAME_SPOTS, function() return DS().frameSpot end, function(v) DS().frameSpot = v end), 30, frameIcons)
+    panel:Add(W.Dropdown(panel.content, w, L("Where"), C.FRAME_BAR_SPOTS, function() return DS().frameSpot end, function(v) DS().frameSpot = v end), 30, frameBar)
+    panel:Add(W.Slider(panel.content, w, L("Icon size"), 0, 80, 1, function() return DS().frameIconSize end, function(v) DS().frameIconSize = v end,
+        function(v) return v == 0 and L("The frame's height") or (v .. " px") end), 44, frameIcons)
+    panel:Add(W.Slider(panel.content, w, L("Bar thickness"), 1, 20, 1, function() return DS().frameBarSize end, function(v) DS().frameBarSize = v end,
+        function(v) return v .. " px" end), 44, frameBar)
+    panel:Add(W.Slider(panel.content, w, L("Max per member"), 1, 10, 1, function() return math.min(DS().maxShown, 10) end, function(v) DS().maxShown = v end), 44, onframes)
+    panel:Add(W.Dropdown(panel.content, w, L("On which group frames"), function()
+        local opts = { { "", L("The first shown") } }
+        for _, t in ipairs(P.ActiveTrackers()) do
+            if t.display.type == "frames" then opts[#opts + 1] = { t.id, t.name } end
+        end
+        return opts
+    end, function() return DS().framesOf end, function(v) DS().framesOf = v end), 30, onframes)
 
     panel:Add(W.Section(panel.content, w, L("Size")))
     panel:Add(W.Slider(panel.content, w, L("Width"), 80, 700, 5, function() return DS().width end, function(v) DS().width = v end), 44, barsOrText)
@@ -1526,10 +1682,12 @@ local function BuildDisplayTab(panel, w)
     panel:Add(W.Slider(panel.content, w, L("Bars per column"), 0, 24, 1, function() return DS().barRows end, function(v) DS().barRows = v end,
         function(v) return v == 0 and L("One column") or tostring(v) end, L("A new column after this many bars (e.g. 6: a group of 12 in 6 x 2, like BuffTheGroup).")), 44,
         function() return DS().type == "bars" and not DS().vertical end)
+    panel:Add(W.Slider(panel.content, w, L("Frames per column"), 0, 24, 1, function() return DS().barRows end, function(v) DS().barRows = v end,
+        function(v) return v == 0 and L("One column") or tostring(v) end, L("A new column after this many frames (e.g. 6: a trial group in two columns).")), 44, is("frames"))
     panel:Add(W.Slider(panel.content, w, L("Spacing"), 0, 30, 1, function() return DS().spacing end, function(v) DS().spacing = v end), 44,
-        function() return DS().type == "bars" or DS().type == "icons" or DS().type == "heads" end)
+        function() return DS().type == "bars" or DS().type == "icons" or DS().type == "heads" or DS().type == "frames" or DS().type == "onframes" end)
     panel:Add(W.Slider(panel.content, w, L("Scale"), 0.5, 3, 0.05, function() return DS().scale end, function(v) DS().scale = v end,
-        function(v) return string.format("%d%%", math.floor(v * 100 + 0.5)) end), 44, notHeads)
+        function(v) return string.format("%d%%", math.floor(v * 100 + 0.5)) end), 44, function() return notHeads() and DS().type ~= "onframes" end)
 
     -- Meter: number tiles
     local meter = is("meter")
@@ -1585,7 +1743,7 @@ local function BuildDisplayTab(panel, w)
     panel:Add(W.Checkbox(panel.content, w, L("Timer text"), function() return DS().showTimer end, function(v) DS().showTimer = v end), 26,
         function() return DS().type ~= "text" end)
     panel:Add(W.Checkbox(panel.content, w, L("Stack count"), function() return DS().showStacks end, function(v) DS().showStacks = v end), 26,
-        function() return DS().type == "bars" or DS().type == "icons" or DS().type == "heads" end)
+        function() return DS().type == "bars" or DS().type == "icons" or DS().type == "heads" or DS().type == "onframes" end)
     panel:Add(W.Checkbox(panel.content, w, L("Highlight my current target"), function() return DS().highlightTarget end, function(v) DS().highlightTarget = v end), 26, notHeads)
     panel:Add(W.Checkbox(panel.content, w, L("Grey out missing / ready entries"), function() return DS().desaturateInactive end, function(v) DS().desaturateInactive = v end), 26)
     panel:Add(W.Slider(panel.content, w, L("Border thickness"), 0, 12, 1, function() return DS().borderSize end, function(v) DS().borderSize = v end,
@@ -1674,9 +1832,23 @@ local function BuildTextTab(panel, w)
         return tr.type == "procs" or (tr.type == "combat" and tr.cooldown > 0)
     end
     panel:Add(W.Color(panel.content, w, L("Cooldown (ability timers)"), function() return DS().cooldownColor end, function(v) DS().cooldownColor = v end), 30, hasCooldown)
+    local function healthBars()
+        local tr = T().trigger
+        if tr.type == "group" then return tr.healthVisuals and (DS().type == "bars" or DS().type == "frames") end
+        return tr.type == "resource" and tr.powerType == "health" and tr.healthVisuals and DS().type == "bars"
+    end
+    panel:Add(W.Color(panel.content, w, L("Damage shield (health bars)"), function() return DS().shieldColor end, function(v) DS().shieldColor = v end), 30, healthBars)
+    panel:Add(W.Color(panel.content, w, L("Trauma (health bars)"), function() return DS().traumaColor end, function(v) DS().traumaColor = v end), 30, healthBars)
+    panel:Add(W.Color(panel.content, w, L("Can't be healed (health bars)"), function() return DS().noHealColor end, function(v) DS().noHealColor = v end), 30, healthBars)
     panel:Add(W.Checkbox(panel.content, w, L("Grey icon while on cooldown"), function() return DS().cooldownDesaturate end,
         function(v) DS().cooldownDesaturate = v end), 26, hasCooldown)
     panel:Add(W.Color(panel.content, w, L("Window background (the box around them all)"), function() return DS().background end, function(v) DS().background = v end))
+    -- the window's own border (5.24.0; WeaveDelays' frame around its bar)
+    panel:Add(W.Color(panel.content, w, L("Window border"), function() return DS().windowEdge or DT.Style.Look(DS()).windowEdge end,
+        function(v) DS().windowEdge = v end), 30, function() return DS().type ~= "alert" and not D_NO_WINDOW[DS().type] end)
+    panel:Add(W.Slider(panel.content, w, L("Window border thickness"), 0, 10, 1, function() return DS().windowEdgeSize end,
+        function(v) DS().windowEdgeSize = v end, function(v) return v == 0 and L("Style's") or (v .. " px") end), 44,
+        function() return DS().type ~= "alert" and not D_NO_WINDOW[DS().type] end)
     -- the square behind each icon (Geldis: "2 backgrounds (window background and icon background) but they both called
     -- just background" -- this one could only be changed with a rule)
     panel:Add(W.Color(panel.content, w, L("Icon background (behind each icon)"), function() return DS().iconBg end,
@@ -1701,6 +1873,8 @@ local function BuildTextTab(panel, w)
     panel:Add(W.Color(panel.content, w, L("Buff time number (top right)"), function() return DS().procColorInfo end, function(v) DS().procColorInfo = v end), 30, procIcons)
     panel:Add(W.Checkbox(panel.content, w, L("Resource % along the bottom"), function() return DS().procPercent end, function(v) DS().procPercent = v end,
         L("The strip with your resource % on resource sets (Bahsei, Coral, MK, Pearls, Master Architect...). The gauge's colour already tells you the same.")), 26, procIcons)
+    panel:Add(W.Checkbox(panel.content, w, L("Resource gauge inside the icon"), function() return DS().procGauge end, function(v) DS().procGauge = v end,
+        L("The resource filling the icon and its line (where the bonus is full, or where Martial Knowledge / Pearls can proc). Off: the frame's colour still says it -- green while it runs or can proc.")), 26, procIcons)
 
     panel:Add(W.Section(panel.content, w, L("Icon")))
     -- multiplies the icon's colours: grey darkens a too-bright icon, a colour tints it; white = as it is
@@ -1863,15 +2037,17 @@ end
 local function BuildPositionTab(panel, w)
     local function PS() return T().position end
     local function heads() return DS().type == "heads" end
-    local function notHeads() return DS().type ~= "heads" end
+    local function notHeads() return not D_NO_WINDOW[DS().type] end
     panel:Add(W.Section(panel.content, w, L("Position")))
     panel:Add(W.Note(panel.content, w, L("Above-heads trackers follow your allies on screen, so there is nothing to place. Height above the head is in Settings > Above heads."), 34), 34, heads)
+    panel:Add(W.Note(panel.content, w, L("These entries sit on the group frames, so there is nothing to place: move the Group frames tracker."), 34), 34,
+        function() return DS().type == "onframes" end)
     panel:Add(W.Note(panel.content, w, L("Drag windows directly with \"Move windows\" (top right), or attach this tracker to another one so they move together."), 34), 34, notHeads)
     panel:Add(W.Dropdown(panel.content, w, L("Attach to"), function()
         local opts = { { "", L("Nothing (free position)") } }
         local me = UI.Current()
         for _, t in ipairs(P.ActiveTrackers()) do
-            if (not me or t.id ~= me.id) and t.display.type ~= "heads" then opts[#opts + 1] = { t.id, t.name } end
+            if (not me or t.id ~= me.id) and not D_NO_WINDOW[t.display.type] then opts[#opts + 1] = { t.id, t.name } end
         end
         return opts
     end, function() return PS().anchorTo end, function(v) PS().anchorTo = v end), 30, notHeads)

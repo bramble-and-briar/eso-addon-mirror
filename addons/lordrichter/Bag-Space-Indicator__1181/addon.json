@@ -1,18 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/lordrichter/Bag-Space-Indicator__1181",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "lordrichter",
   "canonical_id": "esoui:1181",
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     },
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1181",
@@ -21,7 +22,7 @@
     "BagSpaceIndicator"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1181/",
-  "fingerprint": "e1a3a811a6862347c3bf662f0695afca9b3c74e15d781d326da37a43ed6f9814",
+  "fingerprint": "eb1cc58e82a61d3e467234426476106819f19f67789ee39edca7ccf762b49e61",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw3795.jpg"
   ],
@@ -31,11 +32,11 @@
   "source_id": "1181",
   "source_url": "https://www.esoui.com/downloads/info1181-BagSpaceIndicator.html",
   "stats": {
-    "downloads": 325991,
-    "favorites": 312,
-    "monthly_downloads": 402
+    "downloads": 327622,
+    "favorites": 315,
+    "monthly_downloads": 325
   },
   "title": "Bag Space Indicator",
-  "updated_at": 1773080752000,
-  "version": "3.49"
+  "updated_at": 1795744869000,
+  "version": "3.52"
 }

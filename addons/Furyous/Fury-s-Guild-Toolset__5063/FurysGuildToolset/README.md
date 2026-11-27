@@ -16,7 +16,7 @@
 
 **Requires:** **LibHistoire** (AddOn version 1112 or newer) and **LibAddonMenu-2.0** (version 43 or newer). Both are separate downloads: search for them in Minion, or get them from ESOUI.
 
-**Download:** [ESOUI](https://www.esoui.com/downloads/info5063.html) or Minion, or [FurysGuildToolset-1.33.4.zip](https://github.com/AlbertHoffpauir/FurysGuildToolset/raw/main/downloads/FurysGuildToolset-1.33.4.zip) from GitHub. To install by hand, copy the `FurysGuildToolset` folder to `Documents/Elder Scrolls Online/live/AddOns/`.
+**Download:** [ESOUI](https://www.esoui.com/downloads/info5063.html) or Minion, or [FurysGuildToolset-1.34.0.zip](https://github.com/AlbertHoffpauir/FurysGuildToolset/raw/main/downloads/FurysGuildToolset-1.34.0.zip) from GitHub. To install by hand, copy the `FurysGuildToolset` folder to `Documents/Elder Scrolls Online/live/AddOns/`.
 
 **Contents:** [Getting started](#getting-started) · [Finding your way around](#finding-your-way-around) · [Bank alerts](#bank-alerts) · [Auto-demote and the Auto tab](#auto-demote-and-the-auto-tab) · [Members and Inactive](#members-and-inactive) · [Kick and blacklist mails](#kick-and-blacklist-mails) · [Bank hoppers and watchlist](#bank-hoppers-and-watchlist) · [History](#history) · [Bank space](#bank-space) · [Trader and Member sales](#trader-and-member-sales) · [Guild Crier](#guild-crier) · [Recruiting](#recruiting) · [Raffle](#raffle) · [Events](#events) · [Questions](#questions)
 
@@ -60,6 +60,7 @@
 - `/gtsettings` (or `/gt settings`): open the settings.
 - `/gt tour`: start or stop the recruiting zone tour.
 - `/gt raffle add @name 3 (reason)` and `/gt raffle remove @name 3`: change someone's raffle tickets by hand.
+- `/gt congrats`: put the next member anniversary congratulation in chat.
 - `/fury`: shows or hides the Fury sidebar, a slim bar of icons, one per Fury addon you have installed, that shows whenever your cursor is out. Left-click an icon to open that addon, right-click for its settings; drag its violet line to move it. It starts turned off and also has a key: Controls > Keybindings > Fury's Addons > Show or hide the Fury sidebar.
 - `/fury menu`: the list of your Fury addons, each with an Open and a Settings button, and the sidebar's options: a row or a column, bigger icons, lock in place, hide in combat, stay on screen without the cursor.
 - `/crier`: the Guild Crier menu. `/crier next` posts the next message, `/crier reset` restarts the rotation.
@@ -130,6 +131,14 @@ See your whole roster, and who has been offline too long.
 - On the **Guild rules** page, in each guild's rules, turn on **Inactivity alerts**.
 - Set the limits: officers 30, members 21, recruits 14 days offline to start with. For each rank, pick which limit applies, or no check.
 - Optional, on the main page under **Members and inactivity**: **Alert at login** tells you how many are over the limit.
+
+### Member anniversaries
+
+- Turn on **Member anniversaries** on the main settings page (or on the Start here page) and reload. It starts turned off.
+- When a member of a guild you get alerts from reaches 30, 90 or 365 days in the guild (your own list of days, plus every year after if you like), a congratulation goes in that guild's chat box for you to press Enter. While you're typing you get a [Say congrats] link instead.
+- By default it waits until the member is online, so they see it. Waiting congratulations are on the **Anniversaries** button on the Members tab, and `/gt congrats` (or a keybind) puts the next one in chat.
+- Write your own message: `{member}`, `{guild}`, `{time}` ("30 days" or "1 year") and `{days}` are filled in.
+- Join dates come from roster history (Time in guild on the Members tab), so members who joined before your oldest roster history are left out. A milestone counts on the day or up to 3 days later, and each one is offered once.
 
 ### Inactive tab
 
@@ -240,13 +249,26 @@ Advertise in zones, invite, and welcome new members. Every part is off until you
 ### Set it up
 
 - Open the **Recruiting** settings page (or the button under Recruiting in `/gtsettings`).
-- Pick the guild you recruit for, write a zone ad for each guild (`{guild}` becomes the guild's name), and turn on the parts you want.
+- Pick the guild you recruit for, write up to five zone ads for each guild (`{guild}` becomes the guild's name), and turn on the parts you want.
+
+### Saved ads
+
+- Save up to five zone ads per guild and pick the **Ad in use**. **Switch ad** on the Recruit tab, or its keybind, moves to the next one.
+- **Switch ads by themselves** rotates for you: the next ad after every post, or the next ad each time you start the tour. Empty ads are skipped.
+- Posting any of your saved ads by hand counts as an ad post too.
+
+### Recruit scoreboard
+
+- Turn on **Turn on the recruit scoreboard** on the Recruiting page. It counts your ad posts and the new members they bring in.
+- A join counts for your ad when you posted it in the zone the new member is in, or when you invited or accepted them, within 30 minutes (you can change it). Other joins are counted separately.
+- **Scoreboard** on the Recruit tab lists your ads and zones, best first: posts, joins and how many posts each join took. Right-click an ad to use it. Change an ad's words and the new wording gets its own score, so you can see which one works.
+- The zone list also shows each zone's joins. It covers the last 30 days to start with (up to 90).
 
 ### Zone ads and the zone tour
 
 - **Put ad in chat** (a button on the Recruit tab, or a keybind) puts your ad in zone chat; press Enter. That zone then goes on cooldown (15 minutes to start with, up to 4 hours), and posting there too soon asks first.
 - **Start tour:** each time you press Enter on your ad, you travel to the next ready zone, through a guildmate, a friend or a house you own there, and the ad is waiting when you arrive. Nothing moves until you post. If a jump fails, it tries the next person, then the next zone. If you're in combat, it waits until combat clears and then travels.
-- The **Recruit** tab (`/gt recruit`) lists every zone as ready or on cooldown. Right-click one to travel there, clear its cooldown or leave it out of the tour.
+- The **Recruit** tab (`/gt recruit`) lists every zone as ready or on cooldown. Right-click one to travel there, clear its cooldown or leave it out of the tour. **Reset zone timers** at the bottom of the tab clears the cooldown on every zone at once, after asking.
 
 ### Invites and leads
 
@@ -288,6 +310,7 @@ Sell raffle tickets for gold and draw the winners. Works without a guild too, fo
 ### Draw the winners
 
 - When sales end, click **Draw winners** (or **End and draw now** while sales run). Each draw picks a random ticket.
+- **Draw show** (in the raffle settings, starts turned off): the winners are drawn as usual, then a window counts down, spins through the buyers' names and reveals each winner with a fanfare, one at a time. **Next winner** starts the next one. The report window steps aside during the show so it doesn't give the winners away on stream. **Replay draw show** on the Raffle tab plays it again.
 - **Winners to guild chat** and **Winners for Discord** post the results. Right-click a winner to mail them their prize, or to draw a replacement if they can't take it.
 - **New / other raffles > New raffle** puts the finished raffle away and opens the settings for the next one.
 

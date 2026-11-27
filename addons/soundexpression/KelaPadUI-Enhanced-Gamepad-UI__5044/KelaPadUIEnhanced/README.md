@@ -25,16 +25,22 @@ the features that use them:
 | --- | --- |
 | `Tamriel Trade Centre` (TTC) | TTC price data in tooltips and trading screens. |
 | `Arkadius Trade Tools` (ATT) | ATT sales data, guild statistics, and guild colors. |
+| `Master Merchant` (MM) | MM sales averages in tooltips, the guild store price table, and deal ratings. |
 | `LibCustomMenu` | Player context-menu actions in chat and social lists. |
 | `LibItemLink` | Other-quality price comparison rows in trading tooltips. |
 | `USPF` | The Skill Points row on the dashboard. |
 | `LibDebugLogger` | Optional diagnostic logging. |
-| `PersonalAssistant` | Permanent-junk marking actions in the gamepad inventory. |
-| `LibExtendedJournal` | The gamepad Extended Journal (bundled with Loot Log, Collectibles Tracker, and others). |
+| `PersonalAssistant` | Permanent-junk and banking-rule actions in the gamepad inventory. |
+| `Loot Log` | The Loot Log screen in the KelaPadUI² menu. |
+| `Collectibles Tracker` | The Collectibles Tracker screen in the KelaPadUI² menu. |
+| `Raidificator` | The Raidificator screen in the KelaPadUI² menu. |
+| `LibCombat` (installed with Combat Metrics) | The Fight Stats screen in the KelaPadUI² menu. |
+| `LibFoodDrinkBuff` | Food and drink on the Fight Stats Loadout and Overview pages. |
+| `LibGroupCombatStats` | The Fight Stats Group page: members' DPS, HPS, and class skill lines, when they run an add-on that shares them. |
 | `LibCharacterKnowledge` | The Character Knowledge browser and other characters in Trait Research. |
 
-The trading features need at least one of TTC or ATT. Either provider works
-alone, and both are used together when installed.
+The trading features need at least one of TTC, ATT, or MM. Any provider works
+alone, and they are used together when installed.
 
 ## Installation
 
@@ -63,12 +69,13 @@ imported. Export anything you need from them before deleting those folders.
 
 ### Gamepad item and trading tooltips
 
-- Adds TTC price data and ATT sales data to gamepad tooltips.
+- Adds TTC price data, ATT sales data, and Master Merchant sales averages to
+  gamepad tooltips.
 - Works in the guild store, bank, vendors, and crafting stations.
 - Shows deal ratings, price comparisons, quality rows, production rows, and
   crafting-component rows.
-- Keeps TTC and ATT independent: each provider fills only the rows it supports,
-  and unavailable data is shown as `N/A`.
+- Keeps TTC, ATT, and MM independent: each provider fills only the rows it
+  supports, and unavailable data is shown as `N/A`.
 - Adds a known-item filter and price-effect filter to guild-store searches while
   keeping the normal paginated results.
 - Tracks buying, listing, and removal history, with retention cleanup on load.
@@ -216,25 +223,98 @@ for any character on the server you are playing.
   research line, trait, and countdown. Use the right stick to scroll the right
   pane when its contents do not fit on screen.
 
-### Extended Journal
+### Loot Log, Collectibles Tracker, and Raidificator
 
-- A gamepad screen for Extended Journal, the shared window used by Loot Log,
-  Item Set Browser, Character Knowledge, Collectibles Tracker, Raidificator, and
-  other add-ons. Open it from the KelaPadUI² menu or the end of the gamepad
-  Journal menu.
-- L1 and R1 switch between the journals. Each journal's filters (search
-  first, then dropdowns and checkboxes) are on the left and its table, with
-  the same columns as the keyboard window, fills the right.
+- Three gamepad screens, one for each add-on, in the KelaPadUI² menu. Each
+  appears only while its add-on is installed. L1 and R1 switch between an
+  add-on's pages. The filters (search first) are on the left and the table
+  fills the right.
 - Right on the D-pad moves into the table. Up from the first row selects the
   column headers; A sorts by the selected column, and again reverses it. LT
   and RT jump to the first and last row. B returns to the filters.
 - A runs the entry's action (or lists them when there are several), and R3
   shows or hides the entry's tooltip.
-- Works with any add-on built on Extended Journal, read as it runs, so new
-  journals and changes to them appear without an update. The entries appear
-  only when one is installed.
-- Opening Extended Journal from the keyboard main menu or its keybind still
-  shows the keyboard window, with a Back button added for the controller.
+- Loot Log has Loot History and Materials pages. Filter the history by who
+  looted it (you, others, or one player), category, quality, time range, set
+  items, notable loot, and uncollected items. Materials shows what you looted
+  and how many you own, filtered by type, quality, and stock.
+- Collectibles Tracker has Collectibles and Event Collectibles pages. Filter
+  by source, status (collected, not collected, in progress), category, and
+  whether to show Premium Tome items and manually hidden ones (both off by
+  default); hide or unhide an entry with A, which also hides it in the
+  keyboard window.
+- Raidificator has Achievements and Score History pages. Filter the history by
+  content, account, character, server, and time range, or show only each
+  character's best clear. Filter achievements by category, progress, and the
+  type you are still missing (clear, hard mode, speed run, no death,
+  trifecta); X links a zone's cleared achievements in chat and Y the uncleared ones. Multi-account
+  data is not shown.
+- These read each add-on's own saved data, since none offers an API, and only
+  read it. Opening the add-ons from their keybinds still shows the keyboard
+  window.
+
+### Fight Stats
+
+> **Beta: feedback wanted.** Fight totals (damage, DPS, healing, damage taken)
+> and the group's total damage come straight from LibCombat. Everything else
+> is calculated by KelaPadUI from LibCombat's combat events, the way Combat
+> Metrics calculates it. The game does not say who dealt another player's
+> hits, so other members' own DPS and HPS are what their add-ons share through
+> LibGroupCombatStats. Some figures are new and have no Combat Metrics
+> equivalent to check them against: damage type shares, the gear sets a group
+> member is probably wearing (inferred from their buffs), and a battleground
+> match recorded as one entry. If a number looks wrong, please report it (see
+> [Reporting bugs and requesting features](#reporting-bugs-and-requesting-features)).
+
+- A gamepad screen with your recent fights, from LibCombat (installed with
+  Combat Metrics). Your fights are listed on the left, each with its content
+  type (Battleground, Trial, Dungeon, Arena, Overland, and so on) and zone.
+  L1/R1 switch the pages on the right, and the right stick scrolls:
+  - Summary: one screen with no scrolling. Your damage, DPS, boss or top
+    target damage, healing, damage taken, duration and deaths, how your damage
+    split (direct or over time, single target or area, crit rate) and your top
+    three skills; penetration and critical damage against their caps, active
+    time, weave time and errors, your best ten seconds, ultimates cast, main
+    damage type, and magicka or stamina that ran low; then the group's damage,
+    your share and the top DPS (in a group) or your top targets (solo), how
+    many essential buffs and debuffs were up with the ones missing most named,
+    and your mundus stone, food and potions (red when missing).
+  - Stats: your own fight, for every target or one (X). Your share of the
+    group's damage on it, front and back bar time, damage, casts and weave;
+    offense, rotation, resources, healing and mitigation, ordered by your role;
+    the essential buffs and debuffs with their uptimes (red when missing); how
+    your damage splits by type, direct or over time, single target or area; and
+    damage, healing (with who received it) and damage taken by skill.
+  - Group, when LibGroupCombatStats is installed: Y picks the whole group or one
+    member, and X a target for the whole group. The whole group shows the
+    group's damage and your share, each member's DPS, boss DPS or damage, and
+    HPS as their own add-ons share them, how well the group kept each essential
+    buff up, deaths and revives, the fight over time, and what hurt the group.
+    A target shows the group's damage to it, your part, and its debuffs. A
+    member shows what they share, their damage taken and deaths, the buffs that
+    were on them, their class skill lines and the gear sets their buffs point
+    to (marked as inferred).
+  - Loadout: your character sheet, with race, class, role, attributes, skill
+    lines, skill bars with scribed scripts, mundus, food and potions, armor
+    weights, weapons and sets, every piece with its trait and enchant, and the
+    champion stars you had slotted. Y picks a group member instead, for the
+    skill lines they share and the sets their buffs point to.
+  Fights are remembered between reloads and logins. The right stick deletes
+  the selected fight or all of them, after asking.
+- Weapon and spell versions of a buff count as one, at the higher of the two,
+  as the game counts weapon and spell damage and critical: Major Brutality and
+  Major Sorcery, Major Savagery and Major Prophecy. Debuffs your group puts on
+  an enemy count toward your penetration and critical damage like your own.
+- Buffs and debuffs are recognised in every game language.
+- PvE fights are recorded one by one. A battleground is recorded as one entry
+  when the match ends. Cyrodiil, Imperial City, Vengeance, and Jerall Pass are
+  never recorded, so the game stays smooth there.
+- Fights kept sets how many Fight Stats remembers; Combat Metrics keeps its own
+  history with its own setting. Its help text estimates the memory used. When
+  the list is full, trash pulls make room before boss fights and battleground
+  matches do, so a run of trash never pushes your boss fights out.
+- In the fight list, boss fights are amber, battleground matches blue, and
+  other fights grey.
 
 ### Character Knowledge
 
@@ -248,11 +328,19 @@ for any character on the server you are playing.
   characters know it, and whether the selected character does. Every column
   sorts from its header, and the item's tooltip shows on the right.
 
-### PersonalAssistant junk integration
+### PersonalAssistant integration
 
 - Adds Mark as Permanent Junk and Unmark as Permanent Junk to the gamepad
   inventory actions prompt when PersonalAssistant is installed.
-- Enabled by default when PersonalAssistant is present.
+- Adds Add Banking Rule or Edit Banking Rule beside them. It opens a gamepad
+  dialog for PersonalAssistant's custom banking rule on that item: the bag
+  (backpack, bank, or an unlocked house bank), whether it keeps exactly, at
+  most, or at least the quantity, and the quantity. Editing a rule also offers
+  Delete, after a confirmation. PersonalAssistant's own rule window needs a
+  mouse, so this saves the rule in the same form that window does, and it
+  shows up there too.
+- Each action appears only when that kind of rule is turned on in
+  PersonalAssistant. Enabled by default when PersonalAssistant is present.
 
 ### PS5 button map
 
@@ -272,6 +360,36 @@ for any character on the server you are playing.
   Activity Finder Battleground entry as soon as its data loads. These mirror the
   ZOS fixes expected in U52.
 
+### Account-wide settings
+
+- **Share settings with all characters** - Keeps the game's Camera,
+  Interface, Nameplates, Social, or Combat options the same on every character,
+  with one toggle per panel. Turning a toggle on copies the current character's
+  options; after that, a change on any character reaches the others at their
+  next login. Off by default; applies without a reload.
+- Options the game already keeps for the whole PC (camera inversion and
+  sensitivity, for example) and the text language are left alone.
+
+### Ability bar
+
+- **Stack counts on both rows** - Shows stack counts on the active bar and on
+  the back row, including stacks the game only shows as a glow (Seething Fury
+  on Molten Whip, Crux on Arcanist skills). When those stacks expire, the time
+  left shows as a timer on the skill.
+- **Expiry warning** - The back row's timer turns red a few seconds before an
+  effect ends.
+- **Taller back row** - Raises the back row so more of each skill icon shows.
+  The timer's progress bar and a seconds countdown can each be turned on or
+  off.
+- **Always show back row** - Keeps every skill on your other bar visible, not
+  only the ones with a running effect.
+- **Attribute bar shift** - Moves the Magicka and Stamina bars toward the
+  health bar.
+- **Health bar height** - Raises or lowers the health bar. Both bar settings
+  work with the game's Edit HUD: a bar you moved there keeps its position.
+- Off by default (the shift is 0). The enhancements stay off while Fancy
+  Action Bar+ or Action Duration Reminder is loaded.
+
 ## Settings
 
 All settings live in the KelaPadUI section of the gamepad settings menu. They are
@@ -279,11 +397,19 @@ stored account-wide in `kpuiSavedVariables`.
 
 - Feature toggles for companion info, dungeon finder, chat tools, map rally,
   additional gamepad filters, antiquity lead details, main-menu quick access, the
-  dashboard, Extended Journal, Character Knowledge, PersonalAssistant junk
-  marking, and the PS5 button map.
+  dashboard, PersonalAssistant junk and banking rules, and the PS5 button map.
 - Fixes and Patches toggles for the group menu fix and the U51 battleground
   fixes.
-- Sets interface toggle.
+- Account-wide sharing of the game's Camera, Interface, Nameplates, Social, and
+  Combat options.
+- Ability bar enhancements (stack counts, expiry warning, back row height and
+  timer style) and the attribute bar shift.
+- Journals and Browsers toggles for the sets browser, the trait research
+  matrix, Character Knowledge, Loot Log, Collectibles Tracker, Raidificator, and
+  Fight Stats (with PvE and battleground recording and the number of fights kept).
+- Settings that work with other add-ons list them in their help text, each
+  marked found or not found (or, for add-ons that turn a feature off, loaded or
+  not loaded).
 - Trading master toggle, ATT analysis period, and per-surface tooltip toggles for
   the guild store, bank, vendors, and crafting stations.
 - Guild statistics, ATT price information, listing rows, quality rows,
@@ -306,8 +432,8 @@ and IDs.
 ## Compatibility
 
 - Built for API `101051` and the gamepad UI.
-- TTC-only, ATT-only, both, and neither are supported; trading features stay off
-  without a provider.
+- TTC, ATT, and MM work alone or together, and with none installed the trading
+  features stay off.
 - Optional libraries are guarded, so missing add-ons do not break loading.
 - Languages: English, German, French, Russian, Japanese, Spanish, and
   Simplified Chinese, picked automatically from the game client's language. Other clients fall back to

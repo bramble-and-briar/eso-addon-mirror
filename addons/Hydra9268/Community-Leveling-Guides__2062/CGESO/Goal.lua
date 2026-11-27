@@ -15,6 +15,7 @@ local IsPOIWayshrine = _G.IsPOIWayshrine
 local GetPOIInfo = _G.GetPOIInfo
 local zo_plainstrfind = _G.zo_plainstrfind
 local GetPOIMapInfo = _G.GetPOIMapInfo
+local GetMapPlayerPosition = _G.GetMapPlayerPosition
 local MAP_PIN_TYPE_POI_COMPLETE = _G.MAP_PIN_TYPE_POI_COMPLETE
 local GetLoreBookInfo = _G.GetLoreBookInfo
 local GetAchievementInfo = _G.GetAchievementInfo
@@ -371,49 +372,123 @@ GOALTYPES['wayshrine'] = 	{ parse = function(self,params,_,_)
 								else
 									self.wayshrine = params
 								end
+								-- Guide lines are "wayshrine Rampart Camp" — strip a trailing
+								-- " Wayshrine" so we don't search/display "… Wayshrine Wayshrine".
+								if self.wayshrine then
+									self.wayshrine = tostring(self.wayshrine)
+										:gsub("%s+[Ww]ayshrine%s*$", "")
+										:match("^%s*(.-)%s*$")
+								end
 							end,
 
 							iscomplete = function(self)
 
-							if not self.wayshrine_POIIndex then
+							-- Retry lookup if we never found a POI (0) or timed out.
+							local needSearch = not self.wayshrine_POIIndex
+								or self.wayshrine_POIIndex == 0
+							local now = _G.GetFrameTimeSeconds and _G.GetFrameTimeSeconds()
+							if needSearch and self._wayshrine_next_try and now
+								and now < self._wayshrine_next_try then
+								needSearch = false
+							end
 
-								local zoneid = self.wayshrine_zoneid
+							if needSearch then
+								self.wayshrine_POIIndex = nil
 
-								-- screw it, search them all if there's none given.
-								for zid = (zoneid or 1),(zoneid or 999) do  -- oh whatever, less code is good.
-									for i = 1,GetNumPOIs(zid) do
-										if IsPOIWayshrine(zid,i) or (zid == 488 and i == 9) then   -- West Gash Wayshrine is not a wayshrine. Go figure.
-											local text,_,_,_ = GetPOIInfo(zid,i)
-											local fb,fi = zo_plainstrfind(text,self.wayshrine)
-											if fb and fi == 1 then
+								local function NormalizePOIName(s)
+									s = tostring(s or "")
+										:gsub("|c%x%x%x%x%x%x", "")
+										:gsub("|r", "")
+										:gsub("%s+[Ww]ayshrine%s*$", "")
+										:match("^%s*(.-)%s*$") or ""
+									return s:lower()
+								end
+
+								local want = NormalizePOIName(self.wayshrine)
+								local function NameMatches(poiText)
+									local got = NormalizePOIName(poiText)
+									if got == "" or want == "" then return false end
+									-- Exact, or either side is a prefix (Rampart Camp ↔ Rampart Camp Wayshrine).
+									if got == want then return true end
+									if got:sub(1, #want) == want then return true end
+									if want:sub(1, #got) == got then return true end
+									local fb, fi = zo_plainstrfind(poiText, self.wayshrine)
+									return fb and fi == 1
+								end
+
+								local function TryZone(zid)
+									if not zid or zid <= 0 then return end
+									local num = GetNumPOIs(zid)
+									if not num or num < 1 then return end
+									for i = 1, num do
+										-- Some zones (e.g. Solstice) omit IsPOIWayshrine — accept exact
+										-- name match, or flag/name containing "wayshrine".
+										local text = GetPOIInfo(zid, i)
+										if text and text ~= "" and NameMatches(text) then
+											local flagged = IsPOIWayshrine(zid, i)
+												or tostring(text):lower():find("wayshrine", 1, true)
+											local exact = NormalizePOIName(text) == want
+											if flagged or exact then
 												self.wayshrine_zoneid = zid
 												self.wayshrine_POIIndex = i
 												if CGV.db.profile.debug_wayshrines then
-													CGV:Debug("Found wayshrine '%s' on map id %d. POI %d.", self.wayshrine, self.wayshrine_zoneid, self.wayshrine_POIIndex)
+													CGV:Debug("Found wayshrine '%s' zone %d POI %d (%s).",
+														self.wayshrine, zid, i, text)
 												end
-												break -- out of 2 loops
+												return true
 											end
 										end
 									end
-									if self.wayshrine_POIIndex then break end
 								end
 
-								-- Index wasn't found... okay well we don't want to spam looking through POI's because it isn't efficient. Assign the index to 0 which returns an empty POI (no match) then reset it every 10s to try to match again.
+								-- Prefer the player's current zone index first (correct for Solstice).
+								local curZ = _G.GetCurrentMapZoneIndex and _G.GetCurrentMapZoneIndex()
+								if TryZone(curZ) then
+									-- found
+								elseif self.wayshrine_zoneid and TryZone(self.wayshrine_zoneid) then
+									-- found via explicit id
+								else
+									-- Fallback: scan a reasonable zone-index range (not 1..999 every tick).
+									for zid = 1, 2000 do
+										if zid ~= curZ and zid ~= self.wayshrine_zoneid then
+											if TryZone(zid) then break end
+										end
+									end
+								end
+
 								if not self.wayshrine_POIIndex then
-									--CGV:Debug("Wayshrine '%s' not found, will retry in 10s.", self.wayshrine)
-									CGV:Debug("Wayshrine '%s' not found.", self.wayshrine)
+									CGV:Debug("Wayshrine '%s' not found (will retry).", tostring(self.wayshrine))
 									self.wayshrine_POIIndex = 0
-									-- CGV:ScheduleTimer(function() self.wayshrine_POIIndex = nil end, 10)
+									-- Retry in a few seconds instead of locking forever.
+									if _G.GetFrameTimeSeconds then
+										self._wayshrine_next_try = _G.GetFrameTimeSeconds() + 5
+									end
 								end
 							end
 
-							local _,_,typ,_ = GetPOIMapInfo( self.wayshrine_zoneid, self.wayshrine_POIIndex, true ) --true=truthful call! don't be fooled by our own Pointer.lua and its foglight!
+							if not self.wayshrine_zoneid or not self.wayshrine_POIIndex or self.wayshrine_POIIndex == 0 then
+								return false, false
+							end
+
+							local poiX,poiY,typ,_ = GetPOIMapInfo( self.wayshrine_zoneid, self.wayshrine_POIIndex, true ) --true=truthful call! don't be fooled by our own Pointer.lua and its foglight!
 
 							if typ == MAP_PIN_TYPE_POI_COMPLETE then
 								return true,true
-							else
-								return false,self.wayshrine_POIIndex > 0
 							end
+
+							-- Nearby assist: standing on the matching shrine completes even if pin lag.
+							local nearOn = not (CGV.db and CGV.db.profile and CGV.db.profile.wayshrine_nearby == false)
+							if nearOn and poiX and poiY and GetMapPlayerPosition then
+								local px, py = GetMapPlayerPosition("player")
+								if px and py then
+									local dx, dy = px - poiX, py - poiY
+									if (dx * dx + dy * dy) <= (0.018 * 0.018) then
+										return true, true
+									end
+								end
+							end
+
+							return false,self.wayshrine_POIIndex > 0
 						end,
 						}
 
@@ -541,11 +616,29 @@ GOALTYPES['achieve'] = {
 		end
 	end,
 	iscomplete = function(self,override_achieve_id,override_achieve_crit)
-		local _,_,_,_,isCompleted,_,_ = GetAchievementInfo(override_achieve_id or self.achieve_id)
-		if isCompleted or not (override_achieve_crit or self.achieve_crit) then
+		local aid = override_achieve_id or self.achieve_id
+		local crit = override_achieve_crit or self.achieve_crit
+		-- Skyshards: achievement criteria are account-wide. Prefer character discovery API
+		-- (GetSkyshardDiscoveryStatus) when we can resolve a skyshard id (U52+ helper or skip).
+		local GetAchievementCriterionSkyshardId = _G.GetAchievementCriterionSkyshardId
+		local GetSkyshardDiscoveryStatus = _G.GetSkyshardDiscoveryStatus
+		if crit and GetSkyshardDiscoveryStatus and GetAchievementCriterionSkyshardId then
+			local ok, sid = pcall(GetAchievementCriterionSkyshardId, aid, crit)
+			if ok and sid and sid > 0 then
+				local ok2, status = pcall(GetSkyshardDiscoveryStatus, sid)
+				local und = _G.SKYSHARD_DISCOVERY_STATUS_UNDISCOVERED
+				if ok2 and status and status ~= 0 and (not und or status ~= und) then
+					return true, true
+				end
+				-- This character has not collected it — ignore account-wide criterion.
+				return false, true
+			end
+		end
+		local _,_,_,_,isCompleted,_,_ = GetAchievementInfo(aid)
+		if isCompleted or not crit then
 			return isCompleted , true
 		else
-			local _,numcom,numreq = GetAchievementCriterion(override_achieve_id or self.achieve_id,override_achieve_crit or self.achieve_crit)
+			local _,numcom,numreq = GetAchievementCriterion(aid, crit)
 			return numcom == numreq, true, (numcom/zo_max(1,(numreq or 1)))
 		end
 	end,
@@ -1031,6 +1124,15 @@ function Goal:IsCompleteCheck()
 		giscomplete,gispossible = GOALTYPE.iscomplete(self)
 	end
 
+	-- Door/portal nearby assist (optional): standing at matching POI.
+	-- Use self.text only — never GetText() here (GetText calls IsComplete → stack overflow).
+	if not (giscomplete or iscomplete) and CGV.Features and CGV.Features.IsNearMatchingDoorPOI then
+		local label = self.text or self.wayshrine or ""
+		if label ~= "" and CGV.Features:IsNearMatchingDoorPOI(label) then
+			return true, true
+		end
+	end
+
 	return giscomplete or iscomplete,gispossible or ispossible
 end
 
@@ -1062,9 +1164,10 @@ function Goal:UpdateStatus()
 	return self.status
 end
 
--- Travel-ish goals that only lead toward real quest work (used by aux-step skip).
+-- True fluff only (used by aux-step skip). Never treat goto / beacon "reach next
+-- marker" travel as auxiliary — those are required waypoint steps.
 function Goal:IsAuxiliary()
-	return self.action == "goto" or self.action == "text" or self.action == "tip"
+	return self.action == "text" or self.action == "tip"
 end
 
 function Goal:GetQuest()

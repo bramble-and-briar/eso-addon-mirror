@@ -76,11 +76,6 @@ function kelaReplaceTooltips (tooltip)
 		local finalValue
 		local effectiveValue
 		local valueString = colors.COLOR_WHITE:Colorize(zo_strformat(SI_GAMEPAD_TOOLTIP_ITEM_VALUE_FORMAT, "0", iconGold))
-		local averageGuildPrice = 0
-		local countGuildPrice = 0
-
-		local valueStringAdditionalTTC = nil
-		local valueStringAdditionalATT = nil
 		if(value > 0) then 
 			effectiveValue = GetItemLinkValue(itemLink, CONSIDER_CONDITION) 
 			finalValue = value 
@@ -89,80 +84,17 @@ function kelaReplaceTooltips (tooltip)
 			end 
 			valueString = colors.COLOR_WHITE:Colorize(zo_strformat(SI_GAMEPAD_TOOLTIP_ITEM_VALUE_FORMAT, finalValue, iconGold))
 		end
-		if TamrielTradeCentre and TamrielTradeCentrePrice then
-			local priceInfoTTC = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
-
-			if priceInfoTTC then
-				local valueTTC = nil
-				-- Get one of 2 prices from TTC
-				if priceInfoTTC.SuggestedPrice then
-					valueTTC = priceInfoTTC.SuggestedPrice
-				elseif priceInfoTTC.Avg then
-					valueTTC = priceInfoTTC.Avg
-				end
-				
-				-- Update the valueString
-				valueString = valueString..colors.COLOR_WHITE:Colorize(", ")
-				if valueTTC then
-					averageGuildPrice = averageGuildPrice + (valueTTC * 1.125)
-					local valueTTCStr = KelaLocalizedFormatNumber(valueTTC * 1.125, 0)
-					valueString = valueString..zo_strformat("|c1fcae0TTC: <<1>>|r", valueTTCStr) -- old color: cf23d8e
-					countGuildPrice = countGuildPrice + 1
-				else
-					valueString = valueString..zo_strformat("|c1fcae0TTC: N/A|r")
-				end
-
-				-- Create additional TTC Info Lines
-				valueStringAdditionalTTC = zo_strformat("|c1fcae0TTC - <<1>> Avg / <<3>> min / <<4>> max [<<2>> Listings]|r", 
-					KelaLocalizedFormatNumber(priceInfoTTC.Avg), --TamrielTradeCentre:FormatNumber(priceInfoTTC.Avg), 
-					KelaLocalizedFormatNumber(priceInfoTTC.EntryCount), 
-					KelaLocalizedFormatNumber(priceInfoTTC.Min), 
-					KelaLocalizedFormatNumber(priceInfoTTC.Max))
-				
-			end
-			
-		end
-		if MasterMerchant and MasterMerchant.itemStats then
-			valueString = valueString..colors.COLOR_WHITE:Colorize(", ")
-			local tipStats = MasterMerchant:itemStats(itemLink, false)
-			if tipStats and tipStats.avgPrice then
-				averageGuildPrice = averageGuildPrice + tipStats['avgPrice']
-				local valueMM = KelaLocalizedFormatNumber(tonumber(tipStats['avgPrice']), 0)
-				valueString = valueString..zo_strformat("|c7171d1MM: <<1>>|r", valueMM)
-				countGuildPrice = countGuildPrice + 1
-			else
-				valueString = valueString..zo_strformat("|c7171d1MM: N/A|r")
-			end
-		end
-		if ArkadiusTradeTools ~= nil then 
-			valueString = valueString..colors.COLOR_WHITE:Colorize(", ")
-			local statsATT = KelaGetATTPriceStats(itemLink)
-			if statsATT then -- and averagePrice ~= nil
-				averageGuildPrice = averageGuildPrice + statsATT.Avg
-				local resultValueATT = KelaLocalizedFormatNumber(tonumber(statsATT.Avg), 0)
-				valueString = valueString..zo_strformat("|c1fe095ATT: <<1>>|r", resultValueATT) -- old color: f58585
-				countGuildPrice = countGuildPrice + 1
-
-				-- Create the Additional ATT Info String
-				valueStringAdditionalATT = zo_strformat("|c1fe095ATT - <<1>> Avg / <<3>> min / <<4>> max [<<2>> Sales]|r", 
-					KelaLocalizedFormatNumber(statsATT.Avg), --TamrielTradeCentre:FormatNumber(priceInfoTTC.Avg), 
-					KelaLocalizedFormatNumber(statsATT.Sales), 
-					KelaLocalizedFormatNumber(statsATT.Min or 0), 
-					KelaLocalizedFormatNumber(statsATT.Max))
-			else
-				valueString = valueString..zo_strformat("|c1fe095ATT: N/A|r")
-			end
-
-		end
-		
-		if countGuildPrice > 1 then 
-			local averageGuildValue = KelaLocalizedFormatNumber(averageGuildPrice / countGuildPrice, 2)
-			valueString = valueString..", "..'|t24:24:EsoUI/Art/currency/currency_gold.dds|t'.." "..colors.COLOR_GOLD:Colorize(averageGuildValue)
+		-- The base-game value and the average price share the first line; each
+		-- price source gets a line of its own below.
+		local priceLines, averagePrice = KelaGetPriceSummary(itemLink)
+		if averagePrice then
+			valueString = valueString..colors.COLOR_LIGHT_GREY:Colorize("   |   "..GetString(KELA_TOOLTIP_AVERAGE)..": ")..colors.COLOR_GOLD:Colorize(KelaLocalizedFormatNumber(averagePrice, 0)).." |t24:24:EsoUI/Art/currency/currency_gold.dds|t"
 		end
 
 		kelaLine:AddLine(valueString)
-		if valueStringAdditionalTTC then kelaLine:AddLine(valueStringAdditionalTTC) end
-		if valueStringAdditionalATT then kelaLine:AddLine(valueStringAdditionalATT) end
+		for _, line in ipairs(priceLines) do
+			kelaLine:AddLine(line)
+		end
 		control:AddSection(kelaLine)
 		oldAddItemTitle(control, itemLink, name, ...)
 	end

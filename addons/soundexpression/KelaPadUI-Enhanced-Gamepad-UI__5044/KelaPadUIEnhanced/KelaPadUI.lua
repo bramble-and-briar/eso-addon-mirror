@@ -175,7 +175,7 @@ local function KelaPadUI_OnLoaded(eventType, addonName)
 
 	KELA_SETS_LIST:SetMasterSetsList()
 
-	local hasTradingProvider = TamrielTradeCentre ~= nil or ArkadiusTradeTools ~= nil
+	local hasTradingProvider = TamrielTradeCentre ~= nil or ArkadiusTradeTools ~= nil or MasterMerchant ~= nil
 	if hasTradingProvider and IsFeatureEnabled(KELA_SETTING_PANEL_TRADE_ENABLED) then
 		KelaInitializeTradingHistory()
 		KelaSetupTradingHouse()
@@ -204,10 +204,19 @@ local function KelaPadUI_OnLoaded(eventType, addonName)
 	if IsFeatureEnabled(KELA_SETTING_PANEL_FEATURES_MAIN_MENU_DASHBOARD) then
 		KelaSetupMainMenuDashboard()
 	end
-	-- Always set up: the entries check the setting whenever the menu is built.
-	KelaSetupExtendedJournal()
-	-- Always set up: the menu entry checks the setting whenever it is built.
+	-- Always set up: each menu entry checks its setting whenever the menu is built.
 	KelaSetupCharacterKnowledge()
+	KelaSetupCollectiblesTracker()
+	KelaSetupRaidificator()
+	KelaSetupFightStats()
+	-- Always set up: each category checks its setting, so the toggle needs no reload.
+	KelaSetupAccountSettings()
+	if IsFeatureEnabled(KELA_SETTING_PANEL_ACTIONBAR_ENABLED) then
+		KelaSetupActionBar()
+	end
+	-- Always set up: it does nothing while the shift is 0.
+	KelaSetupResourceBars()
+	KelaSetupHudPreview()
 	if IsFeatureEnabled(KELA_SETTING_PANEL_FEATURES_PA_JUNK) then
 		KelaSetupPAJunk()
 	end

@@ -162,7 +162,102 @@ function Pr.GcdBar()
     }
 end
 
+-- Group frames (5.23.0): DebuffTracker's own -- slim health bars in the tracker look, coloured by role, the class icon
+-- at the left, shields / trauma / can't be healed on the bar, dead and offline members greyed, far ones faded, the
+-- game's group menu on right-click. Near the top left of the screen, where group frames usually are.
+function Pr.GroupFrames(o)
+    o = o or {}
+    local sw = (GuiRoot and GuiRoot.GetWidth and GuiRoot:GetWidth()) or 1920
+    local sh = (GuiRoot and GuiRoot.GetHeight and GuiRoot:GetHeight()) or 1080
+    return {
+        name = L("Group frames"),
+        trigger = { type = "group", groupSort = "role", groupNames = o.names or "character", groupCompanions = o.companions ~= false,
+                    groupSolo = o.solo == true },
+        display = { type = "frames", style = "clean", showHeader = false, width = o.width or 230, height = o.height or 30,
+                    barRows = o.perColumn or 12, spacing = o.spacing or 2, labelFormat = "{unit}",
+                    -- just the frames over the game: no dark panel round them (Yarden: "I hate the black background")
+                    trackColor = { 0, 0, 0, 0.55 }, background = { 0, 0, 0, 0 },
+                    frameClassIcon = o.classIcon ~= false, frameLeader = true, frameRangeAlpha = o.rangeAlpha or 0.4,
+                    hideGameFrames = o.hideGame ~= false, fontSize = o.fontSize or 0, highlightTarget = false, blink = false,
+                    tankColor = o.tank, healerColor = o.healer, dpsColor = o.dps, companionColor = o.companion,
+                    shieldColor = o.shield, traumaColor = o.trauma, noHealColor = o.noHeal },
+        position = { x = math.floor((o.left or 50) - sw / 2), y = math.floor((o.top or 120) - sh / 2) },
+    }
+end
+
+-- The weave strip (Trigger "Weaving"): the last 10 skills you cast as DebuffTracker tiles -- the skill, its border in
+-- the colour of how it went, the time lost in the strip along the bottom, the light attack's letter in the corner -- and
+-- the fight's average above them. Nothing round them. In combat and for 10 s after, under the middle of the screen.
+function Pr.WeaveStrip(o)
+    o = o or {}
+    local slots = o.slots or 10
+    local w = o.size or 40
+    local sw = (GuiRoot and GuiRoot.GetWidth and GuiRoot:GetWidth()) or 1920
+    local sh = (GuiRoot and GuiRoot.GetHeight and GuiRoot:GetHeight()) or 1080
+    local t = {
+        name = L("Weave strip"),
+        trigger = { type = "weave", weaveLatency = o.latency == true, weaveConfirm = o.confirm == true,
+                    weaveTextMissed = o.textMissed, weaveTextVanished = o.textVanished, weaveTextQueued = o.textQueued,
+                    weaveTextBashed = o.textBashed },
+        -- just the tiles over the game: no header, no panel (Yarden: a dark box hides the background, and the player
+        -- knows what the strip is)
+        display = { type = "weave", style = "clean", showHeader = false, background = { 0, 0, 0, 0 }, iconSize = w, columns = slots,
+                    weaveRows = o.rows or 1, spacing = 3, weaveIcons = o.icons ~= false, weaveAverage = o.average ~= false,
+                    showUptime = false, blink = false, fontFace = "BOLD_FONT", fontEffect = "thick-outline" },
+        load = { combat = o.always and "any" or "in", combatLinger = o.always and 0 or (o.linger or 10),
+                 zoneTypes = o.homes and { house = true } or {} },
+    }
+    local p = o.palette
+    if p then
+        -- (the letters take the slow colour: some palettes' "no light attack" colour is black -- unreadable as text)
+        t.display.weaveGoodColor, t.display.weaveOkColor, t.display.weaveSlowColor, t.display.weaveMissColor = p[1], p[2], p[3], p[3]
+    end
+    -- a frame around the whole strip (WeaveDelays' "Frame color" / "frame thickness")
+    if o.border then t.display.windowEdge, t.display.windowEdgeSize = o.border, o.borderSize or 1 end
+    if o.left and o.top then
+        t.position = { x = math.floor(o.left - sw / 2), y = math.floor(o.top - sh / 2) }
+    else
+        local width = slots * (w + 3)
+        t.position = { x = -math.floor(width / 2), y = 160 }
+    end
+    return t
+end
+
 Pr.LIST = {
+    {
+        key = "weave", category = L("Me"), name = L("Weave strip (light attack weaving)"), icon = nil,
+        description = L("How well you weave light attacks between skills: your last 10 skills; under each, a thin line that grows with the time lost (green on time, gold a little late, red late) and the ms -- a green 0 when it's clean -- or a red letter when the light attack didn't make it (M not pressed, X pressed but it vanished -- cast too fast, Q queued but it never landed); a blue B on the icon for a bash-weave. The fight's average in a tile at the end. In combat and 10 s after. /dt weave hides / shows it; /dt weave reset clears it. Replaces WeaveDelays (/dt weavedelays imports its settings)."),
+        build = function() return { Pr.WeaveStrip() } end,
+    },
+    {
+        key = "groupframes", category = L("Group frames"), name = L("Group frames"), icon = nil,
+        description = L("Your group as DebuffTracker frames: tanks, healers, then damage dealers, coloured by role, with the class icon, the leader's mark, the health on the right, damage shields, trauma and \"can't be healed\" on the bar. Dead, being resurrected and offline members say so; members out of support range fade. Hover for details, right-click for the group menu (whisper, jump to, promote, kick). Hides the game's group frames while they show (Display tab). Add other trackers to them with \"On group frames\"."),
+        build = function() return { Pr.GroupFrames() } end,
+    },
+    {
+        key = "framescourage", category = L("Group frames"), name = L("On group frames: missing Major Courage"), icon = nil,
+        description = L("A Major Courage icon beside every member's group frame who doesn't have it. Needs the Group frames tracker. Matches by name (English client)."),
+        build = function()
+            return { {
+                name = L("Courage on group frames"),
+                trigger = { type = "effect", names = { "major courage" }, scope = "group", mode = "missing", effectType = "buff" },
+                display = { type = "onframes", frameShow = "icons", frameSpot = "right", showTimer = false, maxShown = 1 },
+                load = { combat = "in" },
+            } }
+        end,
+    },
+    {
+        key = "framespa", category = L("Group frames"), name = L("On group frames: Powerful Assault time left"), icon = 61771,
+        description = L("A thin bar along the bottom of each member's group frame, running out with their Powerful Assault. Needs the Group frames tracker. Change the buff on the Trigger tab. Matches by name (English client)."),
+        build = function()
+            return { {
+                name = L("Powerful Assault on group frames"),
+                trigger = { type = "effect", names = { "powerful assault" }, scope = "group", mode = "present", effectType = "buff" },
+                display = { type = "onframes", frameShow = "bar", frameSpot = "bottom", frameBarSize = 3, colorMode = "solid",
+                            colorSolid = { 0.95, 0.70, 0.25, 1 }, blink = false },
+            } }
+        end,
+    },
     {
         key = "combatstate", category = L("Me"), name = L("Combat indicator (Combat / No Combat)"), icon = nil,
         description = L("\"No Combat\" in green under your crosshair, \"Combat\" in red while you're fighting -- straight from the game's combat state. Change the words on the Trigger tab; add {elapsed} to the text to see how long the fight has lasted, or a rule \"I'm in combat = yes\" with a sound."),

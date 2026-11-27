@@ -111,6 +111,16 @@ function T.TrackerIcon(tracker)
         local icon = T.NameIcon(n)
         if icon then return icon end
     end
+    -- trackers that aren't about one ability: an icon of their own instead of the game's red "?" (Yarden, the weave strip)
+    local tt = tracker.trigger.type
+    if tt == "weave" then
+        -- your light attack (action bar slot 1: the weapon's own light attack)
+        local la = GetSlotBoundId and GetSlotBoundId(1)
+        local icon = la and la ~= 0 and GetAbilityIcon(la)
+        if icon and icon ~= "" then return icon end
+        return C.TIMER_ICON
+    elseif tt == "group" then return C.GROUP_ICON
+    elseif tt == "gcd" or tt == "tick" then return C.TIMER_ICON end
     return C.DEFAULT_ICON
 end
 
@@ -852,6 +862,10 @@ local function ResourceStates(tracker, c, now, out)
                 value = cur, max = max, pct = pct, isTarget = tag == "reticleover",
                 isBoss = tag:sub(1, 4) == "boss", mine = tag == "player", order = 0,
             }
+            if tr.powerType == "health" and tr.healthVisuals then
+                s.shield, s.trauma, s.noHeal = DT.Resources.HealthVisuals(tag)
+                s.healthVisuals = true
+            end
             if tr.calc ~= "none" then
                 local v = DT.Procs.Calc(tr.calc, pct, { scalar = tr.calcScalar, start = tr.calcStart, cap = tr.calcCap, div = tr.calcDiv })
                 s.calc = v
@@ -1152,6 +1166,10 @@ local function BuildOne(tracker, now, out)
         TickStates(tracker, c, now, out)
     elseif tt == "gcd" then
         GcdStates(tracker, c, now, out)
+    elseif tt == "group" then
+        DT.Group.States(tracker, out)
+    elseif tt == "weave" then
+        DT.Weave.States(tracker, out)
     end
     return out
 end
@@ -1374,7 +1392,7 @@ local function EmptyTrigger(tr)
 end
 
 function T.TestStates(tracker, now)
-    if tracker.display.type == "heads" then
+    if tracker.display.type == "heads" or tracker.display.type == "onframes" then
         return WithExtras(tracker, now, function(t, n, out)
             for _, s in ipairs(TestStatesOne(t, n)) do out[#out + 1] = s end
             return out
@@ -1402,6 +1420,11 @@ end
 TestStatesOne = function(tracker, now)
     local c = Compile(tracker)
     local tr = tracker.trigger
+    if tr.type == "group" then return DT.Group.SampleStates(tracker, now) end
+    if tr.type == "weave" then return DT.Weave.SampleStates(tracker, now) end
+    if (tracker.display.type == "heads" or tracker.display.type == "onframes") and tr.type == "effect" then
+        return HeadTestStates(tracker, c, now)
+    end
     if tracker.display.type == "heads" then return HeadTestStates(tracker, c, now) end
     local out = {}
     local function Timed(key, name, icon, unit, period, offset, extra)
@@ -1469,6 +1492,13 @@ TestStatesOne = function(tracker, now)
             out[#out + 1] = { key = "test" .. i, name = C.Label(C.POWER_TYPES, tr.powerType), unitName = TEST_UNITS[i],
                 icon = c.icon, start = 0, expire = 0, duration = 0, stacks = 0, active = true,
                 value = pct * 300, max = 30000, pct = pct, isTarget = i == 1, isBoss = tr.unit == "boss", order = i }
+            if tr.powerType == "health" and tr.healthVisuals then
+                -- sample: a shield on the first, trauma on the second, can't be healed on the third
+                out[#out].healthVisuals = true
+                out[#out].shield = (i == 1) and 6000 or 0
+                out[#out].trauma = (i == 2 or n == 1) and 4500 or 0
+                out[#out].noHeal = (i == 3)
+            end
             if tr.calc ~= "none" then
                 local v = DT.Procs.Calc(tr.calc, pct, { scalar = tr.calcScalar, start = tr.calcStart, cap = tr.calcCap, div = tr.calcDiv })
                 out[i].calc = v

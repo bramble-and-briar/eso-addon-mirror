@@ -1,7 +1,7 @@
 --[[------------------------------------------------------------------------------------------------
 Title:					Static's Social Features
 Author:					Static_Recharge
-Version:				2.0.1
+Version:				2.0.2
 Description:		Adds specific social featues.
 ------------------------------------------------------------------------------------------------]]--
 
@@ -12,6 +12,7 @@ Libraries and Aliases
 local CS = CHAT_SYSTEM
 local EM = EVENT_MANAGER
 local CR = CHAT_ROUTER
+local LS = LibStatic
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -26,51 +27,51 @@ StaticsSocialFeatures    													- Parent object containing all functions, 
 └─ :Test(...)                                     - For internal add-on testing only.
 ------------------------------------------------------------------------------------------------]]--
 StaticsSocialFeatures = {}
+local SSF = StaticsSocialFeatures
 
+-- Static definitions
+SSF.addonName = "StaticsSocialFeatures"
+SSF.addonVersion = "2.0.2"
+SSF.varsVersion = 2 -- SHOULD BE 2
+SSF.charVarsVersion = 1
+SSF.author = "|CFF0000Static_Recharge|r"
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:Initialize()
+SSF.Initialize()
 Inputs:				None
 Outputs:			None
 Description:	Initializes all of the variables, modules, slash commands, keybinds and main events.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:Initialize()
-	-- Static definitions
-	self.addonName = "StaticsSocialFeatures"
-	self.addonVersion = "2.0.1"
-	self.varsVersion = 2 -- SHOULD BE 2
-	self.charVarsVersion = 1
-	self.author = "|CFF0000Static_Recharge|r"
-
+function SSF.Initialize()
 	-- Paired Lists
-	self.PlayerStatus = LibStatic:PairedListNew(
+	SSF.PlayerStatus = LS.PairedListNew(
 		{"Disabled", "Online", "Away", "Do Not Disturb", "Offline"},
 		{5, PLAYER_STATUS_ONLINE, PLAYER_STATUS_AWAY, PLAYER_STATUS_DO_NOT_DISTURB, PLAYER_STATUS_OFFLINE}
 	)
 
-	self.AllFavNone = LibStatic:PairedListNew(
+	SSF.AllFavNone = LS.PairedListNew(
 		{"All", "Fav", "None"},
 		{1, 2, 3}
 	)
 
-	self.NotificationTypes = LibStatic:PairedListNew(
+	SSF.NotificationTypes = LS.PairedListNew(
 		{"Chat", "Center Screen", "Alert"},
 		{1, 2, 3}
 	)
 
-  self.NotificationSizes = LibStatic:PairedListNew(
+  SSF.NotificationSizes = LS.PairedListNew(
 		{"Small", "Medium", "Large"},
 		{CSA_CATEGORY_SMALL_TEXT, CSA_CATEGORY_MAJOR_TEXT, CSA_CATEGORY_LARGE_TEXT}
 	)
 
-	self.NotificationSounds = LibStatic:PairedListNew(
+	SSF.NotificationSounds = LS.PairedListNew(
 		{"None", "Book", "Default", "Map Open", "Error", "New Notification"},
 		{SOUNDS.NONE, SOUNDS.BOOK_ACQUIRED, SOUNDS.DEFAULT_CLICK, SOUNDS.MAP_WINDOW_OPEN, SOUNDS.GENERAL_ALERT_ERROR, SOUNDS.NEW_NOTIFICATION}
 	)
 
-	self:UpdateGuildList()
+	SSF.UpdateGuildList()
 
-	self.IconTextures = {
+	SSF.IconTextures = {
 		"/esoui/art/compass/target_gold_star.dds",					-- Gold Star
 		"/esoui/art/compass/target_blue_square.dds",				-- Blue Square
 		"/esoui/art/compass/target_green_circle.dds",				-- Green Circle
@@ -88,20 +89,20 @@ function StaticsSocialFeatures:Initialize()
 		"/esoui/art/buttons/featuredot_active.dds",					-- Feature Dot
 	}
 
-	self.Defaults = {
+	SSF.Defaults = {
 		-- Friends List
 		favFriendsTop = true,
-		sharedGuilds = self.AllFavNone.All,
+		sharedGuilds = SSF.AllFavNone.List.All,
 		sharedGuildsGroup = true,
 		favIconSize = 90, -- %
 		favIconInheritColor = false,
-		favIconTexture = self.IconTextures[1],
+		favIconTexture = SSF.IconTextures[1],
 
 		-- Status
-		charOverride = self.PlayerStatus.Disabled,
+		charOverride = SSF.PlayerStatus.List.Disabled,
 		charOverrideLogin = false,
 		charOverrideLogout = false,
-		accountOverride = self.PlayerStatus.Disabled,
+		accountOverride = SSF.PlayerStatus.List.Disabled,
 		accountOverrideLogin = false,
 		accountOverrideLogout = false,
 		accountOverrideEnabled = true,
@@ -110,18 +111,18 @@ function StaticsSocialFeatures:Initialize()
 
 		-- Notifications
 		offlineNotice = true,
-		groupInvite = self.AllFavNone.All,
+		groupInvite = SSF.AllFavNone.List.All,
 		whisperNotice = true,
-		notificationType = self.NotificationTypes["Center Screen"],
-		notificationSize = self.NotificationSizes.Medium,
-		notificationSound = self.NotificationSounds["Book Acquired"],
+		notificationType = SSF.NotificationTypes["Center Screen"],
+		notificationSize = SSF.NotificationSizes.List.Medium,
+		notificationSound = SSF.NotificationSounds["Book Acquired"],
 		afkNotice = true,
 		offlineTimerEnabled = false,
 		offlineTimeout = 10, -- minutes
 		offlineTimerNotice = true,
 		offlineTimerEnd = nil,
 		multiMountNotify = true,
-		friendMsg = self.AllFavNone.All,
+		friendMsg = SSF.AllFavNone.List.All,
 		friendMsgChat = true,
 
 		-- Repped Guild
@@ -139,7 +140,7 @@ function StaticsSocialFeatures:Initialize()
 		settingsChanged = true,
 	}
 
-	self.CharDefaults = {
+	SSF.CharDefaults = {
 		-- Multi Mount
 		multiMountEnable = false,
 		multiMount = nil,
@@ -153,15 +154,15 @@ function StaticsSocialFeatures:Initialize()
 	}
 
 	-- Session variables
-	self.chatRouterEventRedirected = false
-	self.marqueeIndex = 1
-	self.marqueeRunning = false
+	SSF.chatRouterEventRedirected = false
+	SSF.marqueeIndex = 1
+	SSF.marqueeRunning = false
 	
 
 	-- Saved variables initialization
-	self.SV = ZO_SavedVars:NewAccountWide("StaticsSocialFeaturesAccountWideVars", self.varsVersion, nil, self.Defaults, GetWorldName())
-	self.CH = ZO_SavedVars:NewCharacterIdSettings("StaticsSocialFeaturesCharVars", self.charVarsVersion, nil, self.CharDefaults, GetWorldName())
-	--RequestAddOnSavedVariablesPrioritySave(self.addonName)
+	SSF.SV = ZO_SavedVars:NewAccountWide("StaticsSocialFeaturesAccountWideVars", SSF.varsVersion, nil, SSF.Defaults, GetWorldName())
+	SSF.CH = ZO_SavedVars:NewCharacterIdSettings("StaticsSocialFeaturesCharVars", SSF.charVarsVersion, nil, SSF.CharDefaults, GetWorldName())
+	--RequestAddOnSavedVariablesPrioritySave(SSF.addonName)
 
 	-- Update Character list (preserve any settings)
 	local NewData = {}
@@ -171,7 +172,7 @@ function StaticsSocialFeatures:Initialize()
 		local found = false
 		name = zo_strformat("<<1>>", name)
 
-		for index, value in ipairs(self.SV.Characters) do
+		for index, value in ipairs(SSF.SV.Characters) do
 			if value.id == id then
 				NewData[i] = {name = name, id = id, charOverride = value.charOverride, charOverrideLogin = value.charOverrideLogin, charOverrideLogout = value.charOverrideLogout}
 				found = true
@@ -180,98 +181,98 @@ function StaticsSocialFeatures:Initialize()
 		end
 
 		if not found then
-			NewData[i] = {name = name, id = id, charOverride = self.Defaults.charOverride, charOverrideLogin = self.Defaults.charOverrideLogin, charOverrideLogout = self.Defaults.charOverrideLogout}
+			NewData[i] = {name = name, id = id, charOverride = SSF.Defaults.charOverride, charOverrideLogin = SSF.Defaults.charOverrideLogin, charOverrideLogout = SSF.Defaults.charOverrideLogout}
 		end
 	end
 
 	table.sort(NewData, function(a, b) return a.name < b.name end)
-	self.SV.Characters = NewData
+	SSF.SV.Characters = NewData
 
 	-- Library Initializations
 	local Options = {
 		addonIdentifier = "SSF",
 		prefixColor = "FF6600",
 		textColor = "FFFFFF",
-		chatEnabled = self.SV.chatEnabled,
-		debugEnabled = self.SV.debugEnabled,
+		chatEnabled = SSF.SV.chatEnabled,
+		debugEnabled = SSF.SV.debugEnabled,
 	}
-	self.Chat = LibStatic:ChatNew(Options)
+	SSF.Chat = LS.ChatNew(Options)
 
 	-- Module Initializations
-	self.Status:Initialize(self)
-	self.Notifications:Initialize(self)
-	self.Lists:Initialize(self)
-	self.Mounts:Initialize(self)
-	self.Settings:Initialize(self)
+	SSF.Status.Initialize()
+	SSF.Notifications.Initialize()
+	SSF.Lists.Initialize()
+	SSF.Mounts.Initialize()
+	SSF.Settings.Initialize()
 
 	-- Hooks and Events
-	self:LogoutQuitHook()
-	self:FriendMessageHook()
-	EM:RegisterForEvent(self.addonName, EVENT_PLAYER_ACTIVATED, function(_, ...) self:OnPlayerActivated(...) end)
+	SSF.LogoutQuitHook()
+	SSF.FriendMessageHook()
+	EM:RegisterForEvent(SSF.addonName, EVENT_PLAYER_ACTIVATED, SSF.OnPlayerActivated)
 
 	-- Slash Commands
-	--SLASH_COMMANDS["/ssftest"] = function(...) self:Test(...) end
+	--SLASH_COMMANDS["/ssftest"] = function(...) SSF.Test(...) end
 
-	self.initialized = true
+	SSF.initialized = true
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:IsInitialized()
+SSF.IsInitialized()
 Inputs:				None
 Outputs:			initialized                         - bool for object initialized state
 Description:	Returns true if the object has been successfully initialized.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:IsInitialized()
-  return self.initialized
+function SSF.IsInitialized()
+  return SSF.initialized
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:LogoutQuitHook()
+SSF.LogoutQuitHook()
 Inputs:			  None
 Outputs:			None
 Description:	Hooks into the logout and quit function to set character status if needed before actually logging out.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:LogoutQuitHook()
-	function self:OnLogout()
-		self.Chat:Debug("Logout/Quit prehook started.")
-		if self.SV.accountOverrideEnabled and self.SV.accountOverrideLogout then
-			SelectPlayerStatus(self.SV.accountOverride)
-			self.Chat:Debug(zo_strformat("Player status set to <<1>>", self.SV.accountOverride))
+function SSF.LogoutQuitHook()
+	function SSF.OnLogout()
+		SSF.Chat:Debug("Logout/Quit prehook started.")
+		if SSF.SV.accountOverrideEnabled and SSF.SV.accountOverrideLogout then
+			SelectPlayerStatus(SSF.SV.accountOverride)
+			SSF.Chat:Debug(zo_strformat("Player status set to <<1>>", SSF.SV.accountOverride))
 		else
-			local i = self:GetCharacterIndex()
-			if self.SV.Characters[i].charOverride ~= self.PlayerStatus.Disabled and self.SV.Characters[i].charOverrideLogout then
-				SelectPlayerStatus(self.SV.Characters[i].charOverride)
-				self.Chat:Debug(zo_strformat("Player status set to <<1>>", self.SV.Characters[i].charOverride))
+			local i = SSF.GetCharacterIndex()
+			if SSF.SV.Characters[i].charOverride ~= SSF.PlayerStatus.List.Disabled and SSF.SV.Characters[i].charOverrideLogout then
+				SelectPlayerStatus(SSF.SV.Characters[i].charOverride)
+				SSF.Chat:Debug(zo_strformat("Player status set to <<1>>", SSF.SV.Characters[i].charOverride))
 			end
 		end
 	end
-	ZO_PreHook('Logout', function() self:OnLogout() end)
-	ZO_PreHook('Quit', function() self:OnLogout() end)
+	ZO_PreHook('Logout', function() SSF.OnLogout() end)
+	ZO_PreHook('Quit', function() SSF.OnLogout() end)
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:FriendMessageHook()
+SSF.FriendMessageHook()
 Inputs:			  None
 Outputs:			None
 Description:	Hooks into the friends message to allow only showing for fav friends.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:FriendMessageHook()
-	function self:OnFriendStatusChanged(eventCode, displayName, characterName, oldStatus, newStatus)
-		self.Chat:Debug("Friend Message prehook started.")
-		if self.SV.friendMsg == self.AllFavNone.None then return end
-		if self.SV.friendMsg == self.AllFavNone.Fav and self.SV.Favs[displayName] then
-			if not self.SV.friendMsgChat and self.SV.notificationType ~= self.NotificationTypes.Chat then
-				local wasOnline = oldStatus ~= self.PlayerStatus.Offline
-				local isOnline = newStatus ~= self.PlayerStatus.Offline
+function SSF.FriendMessageHook()
+	function SSF.OnFriendStatusChanged(eventCode, displayName, characterName, oldStatus, newStatus)
+		SSF.Chat:Debug("Friend Message prehook started.")
+		if SSF.SV.friendMsg == SSF.AllFavNone.List.None then return end
+		if SSF.SV.friendMsg == SSF.AllFavNone.List.Fav and SSF.SV.Favs[displayName] then
+			if not SSF.SV.friendMsgChat and SSF.SV.notificationType ~= SSF.NotificationTypes.List.Chat then
+				local wasOnline = oldStatus ~= SSF.PlayerStatus.List.Offline
+				local isOnline = newStatus ~= SSF.PlayerStatus.List.Offline
 				if wasOnline ~= isOnline then
 					local text
 					if isOnline then
-						self.Notifications:Notify(zo_strformat(SI_FRIENDS_LIST_FRIEND_CHARACTER_LOGGED_ON, displayName, characterName))
+						SSF.Notifications.Notify(zo_strformat(SI_FRIENDS_LIST_FRIEND_CHARACTER_LOGGED_ON, displayName, characterName))
 					else
-						self.Notifications:Notify(zo_strformat(SI_FRIENDS_LIST_FRIEND_CHARACTER_LOGGED_OFF, displayName, characterName))
+						SSF.Notifications.Notify(zo_strformat(SI_FRIENDS_LIST_FRIEND_CHARACTER_LOGGED_OFF, displayName, characterName))
 					end
 				end
 			else
@@ -279,24 +280,24 @@ function StaticsSocialFeatures:FriendMessageHook()
 			end
 		end
 	end
-	if self.SV.friendMsg ~= self.AllFavNone.All and self.chatRouterEventRedirected == false then
+	if SSF.SV.friendMsg ~= SSF.AllFavNone.List.All and SSF.chatRouterEventRedirected == false then
 		EM:UnregisterForEvent("ChatRouter", EVENT_FRIEND_PLAYER_STATUS_CHANGED)
-		EM:RegisterForEvent("ChatRouter", EVENT_FRIEND_PLAYER_STATUS_CHANGED, function(...) self:OnFriendStatusChanged(...) end)
-		self.chatRouterEventRedirected = true
+		EM:RegisterForEvent("ChatRouter", EVENT_FRIEND_PLAYER_STATUS_CHANGED, SSF.OnFriendStatusChanged)
+		SSF.chatRouterEventRedirected = true
 	end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:GetCharacterIndex()
+SSF.GetCharacterIndex()
 Inputs:			  None
 Outputs:			index 					- The index of the character
 Description:	Returns the index of the curent character from the saved vars table.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:GetCharacterIndex()
+function SSF.GetCharacterIndex()
 	local index
 	local id = GetCurrentCharacterId()
-	for i, v in ipairs(self.SV.Characters) do
+	for i, v in ipairs(SSF.SV.Characters) do
 		if v.id == id then
 			index = i
 			break
@@ -307,29 +308,29 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:OnPlayerActiviated()
+SSF.OnPlayerActiviated()
 Inputs:			  initial 														- (bool) true if first load after login
 Outputs:			None
 Description:	Fires once after load or reload. Performs various on load functions.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:OnPlayerActivated(initial)
+function SSF.OnPlayerActivated(eventCode, initial)
 	-- Repped Guild Update
-	self:ReppedGuildAccountWideUpdate()
-	self:MarqueeUpdate()
+	SSF.ReppedGuildAccountWideUpdate()
+	SSF.MarqueeUpdate()
 
-	EM:UnregisterForEvent(self.addonName, EVENT_PLAYER_ACTIVATED)
+	EM:UnregisterForEvent(SSF.addonName, EVENT_PLAYER_ACTIVATED)
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:ReppedGuildAccountWideUpdate()
+SSF.ReppedGuildAccountWideUpdate()
 Inputs:			  None
 Outputs:			None
 Description:	Updates the repped guild based on account wide setting.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:ReppedGuildAccountWideUpdate()
-	local enabled, marquee = self.CH.reppedGuildAccountEnabled, self.CH.reppedGuildMarqueeEnabled
-	local selection = self.SV.reppedGuildAccountSelection
+function SSF.ReppedGuildAccountWideUpdate()
+	local enabled, marquee = SSF.CH.reppedGuildAccountEnabled, SSF.CH.reppedGuildMarqueeEnabled
+	local selection = SSF.SV.reppedGuildAccountSelection
 	if enabled and not marquee then
 		SetRepresentedGuildId(selection)
 	end
@@ -337,12 +338,12 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:UpdateGuildList()
+SSF.UpdateGuildList()
 Inputs:			  None
 Outputs:			None
 Description:	Updates the internal guild paired list.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:UpdateGuildList()
+function SSF.UpdateGuildList()
 	local guildIds = {0}
 	local guildNames = {"None"}
 	for i=1, GetNumGuilds() do
@@ -351,51 +352,51 @@ function StaticsSocialFeatures:UpdateGuildList()
 		table.insert(guildIds, id)
 	end
 
-	if not self.Guilds then
-		self.Guilds = LibStatic:PairedListNew(guildNames, guildIds)
+	if not SSF.Guilds then
+		SSF.Guilds = LS.PairedListNew(guildNames, guildIds)
 	else
-		self.Guilds:UpdateData(guildNames, guildIds)
+		SSF.Guilds:UpdateData(guildNames, guildIds)
 	end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:MarqueeUpdate()
+SSF.MarqueeUpdate()
 Inputs:			  None
 Outputs:			None
 Description:	Updates the repped guild marquee system. Turns off if not needed.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:MarqueeUpdate()
+function SSF.MarqueeUpdate()
 	local function SetNextMarqueeGuild()
-		local min, max = 1, #self.CH.reppedGuildMarqueeSelections
-		self.marqueeIndex = self.marqueeIndex + 1
-		if self.marqueeIndex > max then self.marqueeIndex = min end
-		SetRepresentedGuildId(self.CH.reppedGuildMarqueeSelections[self.marqueeIndex])
+		local min, max = 1, #SSF.CH.reppedGuildMarqueeSelections
+		SSF.marqueeIndex = SSF.marqueeIndex + 1
+		if SSF.marqueeIndex > max then SSF.marqueeIndex = min end
+		SetRepresentedGuildId(SSF.CH.reppedGuildMarqueeSelections[SSF.marqueeIndex])
 	end
 
-	if self.CH.reppedGuildMarqueeEnabled and #self.CH.reppedGuildMarqueeSelections >= 2 then
-		if self.marqueeRunning then
-			EM:UnregisterForUpdate(self.addonName)
+	if SSF.CH.reppedGuildMarqueeEnabled and #SSF.CH.reppedGuildMarqueeSelections >= 2 then
+		if SSF.marqueeRunning then
+			EM:UnregisterForUpdate(SSF.addonName)
 		end
-		self.marqueeIndex = 1
-		EM:RegisterForUpdate(self.addonName, self.CH.reppedGuildMarqueeInterval * 60 * 1000, SetNextMarqueeGuild)
-		self.marqueeRunning = true
+		SSF.marqueeIndex = 1
+		EM:RegisterForUpdate(SSF.addonName, SSF.CH.reppedGuildMarqueeInterval * 60 * 1000, SetNextMarqueeGuild)
+		SSF.marqueeRunning = true
 	else
-		EM:UnregisterForUpdate(self.addonName)
-		self.marqueeRunning = false
+		EM:UnregisterForUpdate(SSF.addonName)
+		SSF.marqueeRunning = false
 	end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsSocialFeatures:Test(...)
+SSF.Test(...)
 Inputs:				...							- Various test inputs.
 Outputs:			None
 Description:	For internal add-on testing only.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsSocialFeatures:Test(...)
-	--self.Notifications:Notify(...)
-	--self:Chat(...)
+function SSF.Test(...)
+	--SSF.Notifications.Notify(...)
+	--SSF.Chat(...)
 end
 
 
@@ -405,5 +406,5 @@ Main add-on event registration. Creates the global object, StaticsSocialFeatures
 EM:RegisterForEvent("StaticsSocialFeatures", EVENT_ADD_ON_LOADED, function(eventCode, addonName)
 	if addonName ~= "StaticsSocialFeatures" then return end
 	EM:UnregisterForEvent("StaticsSocialFeatures", EVENT_ADD_ON_LOADED)
-	StaticsSocialFeatures:Initialize()
+	SSF.Initialize()
 end)

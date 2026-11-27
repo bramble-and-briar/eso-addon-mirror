@@ -39,6 +39,8 @@ ADDON.defaults = {
     share = true,
     hudGroup = true,
     hudGroupRows = 6,
+    -- Players (heal targets, group members) by PSN-ID instead of character name (Names.lua).
+    showIds = true,
 }
 
 local fights = ADDON.fights
@@ -132,7 +134,10 @@ local function ListenToFight(on)
     local em = EVENT_MANAGER
     local selfNs, outNs, tickNs = ADDON.name .. "FxSelf", ADDON.name .. "FxOut", ADDON.name .. "Tick"
     local bossNs, bossesNs = ADDON.name .. "BossHp", ADDON.name .. "Bosses"
+    local reticleNs = ADDON.name .. "Reticle"
     if on then
+        -- whoever comes under the reticle: the one moment an outside player's account is readable
+        em:RegisterForEvent(reticleNs, EVENT_RETICLE_TARGET_CHANGED, function() ADDON.names:Note("reticleover") end)
         -- bosses' health, filtered the way the client's boss bar does it
         em:RegisterForEvent(bossNs, EVENT_POWER_UPDATE, function(_, unitTag, _, _, value, max)
             ADDON.bosses:PowerUpdate(unitTag, value, max)
@@ -148,6 +153,7 @@ local function ListenToFight(on)
         end
         em:RegisterForUpdate(tickNs, TICK_MS, OnTick)
     else
+        em:UnregisterForEvent(reticleNs, EVENT_RETICLE_TARGET_CHANGED)
         em:UnregisterForEvent(bossNs, EVENT_POWER_UPDATE)
         em:UnregisterForEvent(bossesNs, EVENT_BOSSES_CHANGED)
         em:UnregisterForEvent(selfNs, EVENT_EFFECT_CHANGED)
@@ -158,6 +164,7 @@ end
 
 function ADDON.OnFightOpened()
     ListenToFight(true)
+    ADDON.names:NoteGroup()
     ADDON.hud:Poke()
 end
 
@@ -253,6 +260,8 @@ local function PrintStatus()
         group.why, tostring(can), can and "" or (" (" .. tostring(why) .. ")"), group.sent, group.refused, group.heard,
         group.own, group.mismatched, group:CurrentCount(GetFrameTimeSeconds())))
     Print(string.format("[BS] bosses: scans %d  health updates %d", ADDON.bosses.scans, ADDON.bosses.updates))
+    Print(string.format("[BS] names: PSN-IDs noted %d  known %d  show %s  own %s", ADDON.names.noted, ADDON.names.count,
+        tostring(sv.showIds), ADDON.names.IdOf("player")))
     if group.lastError then
         Print("[BS] group read error: " .. group.lastError)
     end
@@ -319,6 +328,7 @@ end
 local function OnPlayerActivated()
     fights:SetCombat(IsUnitInCombat("player"))
     fights:WornSetsChanged()
+    ADDON.names:NoteGroup()
     if not ADDON.announced then
         ADDON.announced = true
         -- Chat is up by now; a line printed at EVENT_ADD_ON_LOADED is lost.
@@ -352,7 +362,8 @@ local function OnAddOnLoaded(_, addonName)
     local em = EVENT_MANAGER
     Step("group", function()
         ADDON.group:Setup()
-        em:RegisterForEvent(ADDON.name .. "Group", EVENT_GROUP_UPDATE, function() ADDON.group:Prune() end)
+        em:RegisterForEvent(ADDON.name .. "Group", EVENT_GROUP_UPDATE, function() ADDON.group:Prune() ADDON.names:NoteGroup() end)
+        em:RegisterForEvent(ADDON.name .. "GroupJoined", EVENT_GROUP_MEMBER_JOINED, function() ADDON.names:NoteGroup() end)
         em:RegisterForEvent(ADDON.name .. "GroupLeft", EVENT_GROUP_MEMBER_LEFT, function() ADDON.group:Prune() end)
     end)
     Step("hud", function() ADDON.hud:Initialize() end)

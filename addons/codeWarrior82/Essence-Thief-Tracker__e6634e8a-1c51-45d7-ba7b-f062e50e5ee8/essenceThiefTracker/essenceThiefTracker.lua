@@ -1,4 +1,9 @@
 local appName = "essenceThiefTracker"
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 local essenceAbilityID = 67334
 local poolAbilityID = 67324
 local timeRemaining = 0
@@ -21,7 +26,8 @@ essenceThiefTracker.defaults = {
 	notifyStart = true,
 	notifyProc = true,
     yAxisText = 930,
-    xAxisText = 1300
+    xAxisText = 1300,
+	lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -217,8 +223,12 @@ end
 --stop tracking if set is not equipped
 local function stopTrackingAuto()
 
-    if essenceThiefTracker.savedVariables.trackEssence and essenceThiefTracker.savedVariables.autoTrack then
-        printMessage("Essence Thief set not found")
+    if essenceThiefTracker.savedVariables.trackEssence and essenceThiefTracker.savedVariables.autoTrack then   
+		if not notFoundAlreadyChecked then
+            printMessage("Essence Thief set not found")
+        end
+		notFoundAlreadyChecked = true
+        alreadyChecked = false
         unRegisterAlerts()
         ettrack:SetHidden(true)
     end
@@ -226,8 +236,12 @@ end
 
 --start tracking if set is not equipped
 local function startTrackingAuto()
-    if essenceThiefTracker.savedVariables.trackEssence and essenceThiefTracker.savedVariables.autoTrack then
-        printMessage("Found Essence Thief set")
+    if essenceThiefTracker.savedVariables.trackEssence and essenceThiefTracker.savedVariables.autoTrack then 
+		if not alreadyChecked then
+			printMessage("Found Essence Thief set")
+		end
+		alreadyChecked = true
+		notFoundAlreadyChecked = false
         registerAlerts()
     end
 end
@@ -308,7 +322,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return essenceThiefTracker.savedVariables.xAxisText
             end,
@@ -322,7 +336,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return essenceThiefTracker.savedVariables.yAxisText
             end,
@@ -379,6 +393,14 @@ local function createOptions()
     LAM:RegisterOptionControls("Essence Thief Tracker", optionsData)
 end
 
+--notify about update when player activates
+local function activated()
+    if essenceThiefTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        essenceThiefTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end	
+
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -412,11 +434,11 @@ local function onAddOnLoaded(event, name)
     --check if set is equipped
     if not isSetEquiped(setId, setCount) and essenceThiefTracker.savedVariables.autoTrack and essenceThiefTracker.savedVariables.trackEssence then
         --notify set not found
-        zo_callLater(function() printMessage("Essence Thief set not found") end, 600)
+        zo_callLater(function() printMessage("Essence Thief set not found") notFoundAlreadyChecked = true end, 600)
     elseif isSetEquiped(setId, setCount) and essenceThiefTracker.savedVariables.autoTrack and essenceThiefTracker.savedVariables.trackEssence then
         isEquiped = true
         --notify set found
-        zo_callLater(function() printMessage("Found Essence Thief set") end, 600)
+        zo_callLater(function() printMessage("Found Essence Thief set") alreadyChecked = true end, 600)
     end
 
     --double check if set is equipped without autotracking stipulation
@@ -450,6 +472,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+	EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

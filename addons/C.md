@@ -183,6 +183,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Combat Reticle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aetheron/Combat-Reticle__660) | Aetheron | PC / Mac | 2.1.1 |
 | [Combat Reticle (by Aetheron, calia1120) - fix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skawiaw/Combat-Reticle-by-Aetheron-calia1120---fix__3203) | skawiaw | PC / Mac | 2.1.1.1 |
 | [Combat Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yaasshaa/Combat-Tracker__4571) | yaasshaa | PC / Mac | 0.7 |
+| [CombatBar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bucketmore/CombatBar__b220ad35-e9d5-4e43-89b9-7461571a5bef) | Bucketmore | Console | — |
 | [CombatInsights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/necco889/CombatInsights__3730) | necco889 | PC / Mac | 1.2.2 |
 | [CombatState](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/necco889/CombatState__3725) | necco889 | PC / Mac | 1.1.0 |
 | [CombatStatus-Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/The_SkyNomad/CombatStatus-Console__669db721-3682-4957-9a09-a06172f0b3e0) | The_SkyNomad | Console | — |
@@ -192,12 +193,12 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Coming Back Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Coming-Back-Home__1920) | Saleand | PC / Mac | 1.5.1 |
 | [Command Codex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Command-Codex__4871) | brianmit | PC / Mac | 1.0.1 |
 | [Common Works UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lean/Common-Works-UI__4838) | Lean | PC / Mac | 1.0 |
-| [Community Leveling Guides](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hydra9268/Community-Leveling-Guides__2062) | Hydra9268 | PC / Mac | 1185 |
+| [Community Leveling Guides](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hydra9268/Community-Leveling-Guides__2062) | Hydra9268 | PC / Mac | 1225 |
 | [Comp's Pot Swapper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/Comp-s-Pot-Swapper__3634) | Complicative | PC / Mac | 1.1.2 |
 | [Comp's Quickslot Swapper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/Comp-s-Quickslot-Swapper__3635) | Complicative | PC / Mac | 1.0.0 |
 | [Comp's World Boss Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/Comp-s-World-Boss-Timer__3880) | Complicative | PC / Mac | 1.0.2 |
 | [Compact Paper Doll](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haggen/Compact-Paper-Doll__1241) | haggen | PC / Mac | 1.0.0 |
-| [Companion Dashboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/varndsen/Companion-Dashboard__5053) | varndsen | PC / Mac | 1.5.3 |
+| [Companion Dashboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/varndsen/Companion-Dashboard__5053) | varndsen | PC / Mac | 1.5.4 |
 | [Companion Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Companion-Frame__3146) | FlatBadger | PC / Mac | 1.13.0 |
 | [Companion Frame - funhammy edit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/funhammy/Companion-Frame---funhammy-edit__3851) | funhammy | PC / Mac | 1.11.2 |
 | [Companion Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/Companion-Helper__ac31de38-34d3-4d5d-b0a4-282e26e25fa1) | Scribe_Rob | Console | — |
@@ -307,7 +308,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CrownCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/triase/CrownCustomizer__1548) | triase | PC / Mac | 1.0.5 |
 | [CroZone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Obijovi/CroZone__4641) | Obijovi | PC / Mac | 1.1.0 |
 | [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__21f0cc83-5ba3-4776-ac75-a5a266fde574) | Kyzeragon | Console | — |
-| [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__3137) | Kyzeragon | PC / Mac | 2.28.2 |
+| [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__3137) | Kyzeragon | PC / Mac | 2.29.0 |
 | [CrutchAlerts Extensions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts-Extensions__4693) | Kyzeragon | PC / Mac | 0.4.0 |
 | [CrutchAlerts-KR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ricci-Curvature/CrutchAlerts-KR__4517) | Ricci Curvature | PC / Mac | 1.0.0 |
 | [Crux Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Crux-Counter__3639) | g4rr3t | PC / Mac | 1.3.0 |

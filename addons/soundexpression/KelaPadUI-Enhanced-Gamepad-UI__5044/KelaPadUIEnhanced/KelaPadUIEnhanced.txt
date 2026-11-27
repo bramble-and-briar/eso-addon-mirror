@@ -8,13 +8,13 @@
 
 ## APIVersion: 101051
 ## Title: KelaPadUI Enhanced - Gamepad UI
-## Version: 2.9.0
-## AddOnVersion: 20900
+## Version: 3.0.0
+## AddOnVersion: 30000
 ## Author: @slice_o'life
 ## Description: This addon improves the gamepad's UI by adding additional information and features. Maintained successor to KelaPadUI by @rkirgizov; delete the original KelaPadUI folder before installing.
 ## SavedVariables: kpuiSavedVariables
 ## DependsOn: LibSets
-## OptionalDependsOn: TamrielTradeCentre ArkadiusTradeTools LibCustomMenu LibItemLink USPF LibDebugLogger LibCharacterKnowledge PersonalAssistant LibExtendedJournal
+## OptionalDependsOn: TamrielTradeCentre ArkadiusTradeTools MasterMerchant LibCustomMenu LibItemLink USPF LibDebugLogger LibCharacterKnowledge PersonalAssistant LootLog CollectiblesTracker Raidificator LibCombat LibGroupCombatStats LibFoodDrinkBuff
 
 kpui_lang/en.lua
 kpui_lang/$(language).lua
@@ -23,6 +23,7 @@ kpui_core/kpui_constants.lua
 kpui_core/kpui_utils.lua
 kpui_core/kpui_dialogs.lua
 kpui_core/kpui_gamepad_browser.lua
+kpui_core/kpui_gamepad_sheet.lua
 kpui_core/kpui_tooltip_styles.lua
 
 kpui_core/kpui_templates.xml
@@ -52,13 +53,25 @@ kpui_features/tradinghouse/kpui_tradinghouse_controls.lua
 kpui_features/tradinghouse/kpui_tradinghouse_gamepad.xml
 
 kpui_data/kpui_data.lua
+kpui_data/kpui_fight_effects.lua
 kpui_features/kpui_info_tooltip.lua
 kpui_features/mainmenu/kpui_main_menu.lua
 kpui_features/mainmenu/kpui_main_menu_dashboard.xml
 kpui_features/mainmenu/kpui_main_menu_dashboard.lua
 kpui_features/mainmenu/kpui_main_menu_shortcuts.lua
-kpui_features/journals/kpui_extended_journal.lua
 kpui_features/kpui_character_knowledge.lua
+kpui_features/journals/kpui_loot_log.lua
+kpui_features/journals/kpui_collectibles_tracker.lua
+kpui_features/journals/kpui_raidificator.lua
+kpui_features/journals/fightstats/kpui_fight_tally.lua
+kpui_features/journals/fightstats/kpui_fight_records.lua
+kpui_features/journals/fightstats/kpui_fight_effect_match.lua
+kpui_features/journals/fightstats/kpui_fight_ui.lua
+kpui_features/journals/fightstats/kpui_fight_page_summary.lua
+kpui_features/journals/fightstats/kpui_fight_page_stats.lua
+kpui_features/journals/fightstats/kpui_fight_page_group.lua
+kpui_features/journals/fightstats/kpui_fight_page_loadout.lua
+kpui_features/journals/fightstats/kpui_fight_screen.lua
 kpui_features/filters/kpui_reconstruct_search.lua
 kpui_features/filters/kpui_recipe_filters.lua
 kpui_features/filters/kpui_achievement_filters.lua
@@ -70,6 +83,10 @@ kpui_features/kpui_chat_tools.lua
 kpui_features/kpui_map_rally.lua
 kpui_features/fixes/kpui_basegame_fixes.lua
 kpui_features/fixes/kpui_group_menu_fix.lua
+kpui_features/kpui_account_settings.lua
+kpui_features/hud/kpui_action_bar.lua
+kpui_features/hud/kpui_resource_bars.lua
+kpui_features/hud/kpui_hud_preview.lua
 kpui_features/kpui_controller_buttons.lua
 
 KelaPadUI.lua

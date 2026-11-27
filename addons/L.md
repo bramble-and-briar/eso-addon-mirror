@@ -50,7 +50,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ledger - Unofficial Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BSKCorp/Ledger---Unofficial-Patch__2380) | BSKCorp | PC / Mac | 1.3.2 |
 | [Left Right Simple Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sergi4ek/Left-Right-Simple-Addon__3767) | sergi4ek | PC / Mac | 1.2.2 |
 | [Lens Flare Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Lens-Flare-Toggle__1215) | CaptainBlagbird | PC / Mac | 1.0.14 |
-| [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.9 |
+| [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.10 |
 | [Leo's Altholic Standalone Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Standalone-Viewer__5071) | sshogrin | PC / Mac | 1.2.0 |
 | [Leo's Dolmen Runner - LDR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Dolmen-Runner---LDR__2534) | LeandroSilva | PC / Mac | 1.3.1 |
 | [Leo's Dolmen Runner - REDUX (with inviter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kiasmalyn/Leo-s-Dolmen-Runner---REDUX-with-inviter__3629) | Kiasmalyn | PC / Mac | 2.1.5 |
@@ -287,7 +287,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibSort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wobin/LibSort__540) | Wobin | PC / Mac | 2.r1 |
 | [LibSprint](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LibSprint__3827) | Masteroshi430 | PC / Mac | 2026.05.03 |
 | [LibSTARSConnect](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/LibSTARSConnect__40ce0c52-4479-40d1-b9d0-3f8fc4d53c4f) | SugaComa | Console | — |
-| [LibStatic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/LibStatic__4367) | static_recharge | PC / Mac | 2.1.0 |
+| [LibStatic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/LibStatic__4367) | static_recharge | PC / Mac | 3.0.0 |
 | [LibStub](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibStub__44) | sirinsidiator | PC / Mac | 1.0 r7 |
 | [LibSurfaceTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibSurfaceTools__4584) | imPDA | PC / Mac | 9 |
 | [LibTableFunctions-1.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Onigar/LibTableFunctions-1.0__2624) | Onigar | PC / Mac | 1.0.1 |
@@ -368,7 +368,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LootWall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vicodine/LootWall__1010) | Vicodine | PC / Mac | 0.7 |
 | [LootWall Ultimate 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/redgabber/LootWall-Ultimate-2018__1988) | redgabber | PC / Mac | 1.0.8 |
 | [Lore Book Locations](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni42/Lore-Book-Locations__ca0d62e7-58ab-4ea4-9729-f139cb28a64d) | Shinni42 | Console | — |
-| [LoreBook Locations (3D, Compass, Map Pins)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/LoreBook-Locations-3D-Compass-Map-Pins__4756) | Shinni | PC / Mac | 1.0.121 |
+| [LoreBook Locations (3D, Compass, Map Pins)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/LoreBook-Locations-3D-Compass-Map-Pins__4756) | Shinni | PC / Mac | 1.0.127 |
 | [LoreBooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/LoreBooks__288) | Kyoma | PC / Mac | 108 |
 | [Lorebooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Lorebooks__d324f223-1cd9-40d2-8e37-8cf302dde557) | Sharlikran | Console | — |
 | [LorebooksColoredLibrary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/LorebooksColoredLibrary__3168) | tim99 | PC / Mac | 4.1 |
@@ -379,6 +379,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LoreTooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/LoreTooltips__4460) | tomkolp | PC / Mac | 1.0.1 |
 | [Lost Treasure](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CrazyDutchGuy/Lost-Treasure__561) | CrazyDutchGuy | PC / Mac | 34 |
 | [LostPassives](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/necco889/LostPassives__3733) | necco889 | PC / Mac | 0.0.2 |
+| [LousyTourist's update for Votans keybinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/LousyTourist-s-update-for-Votans-keybinder__5118) | lousytourist | PC / Mac | 26.1.26 |
 | [LovelyEmotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShinyBones/LovelyEmotes__1890) | ShinyBones | PC / Mac | 5.2 |
 | [LovelyEmotes - EmoteModification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShinyBones/LovelyEmotes---EmoteModification__3934) | ShinyBones | PC / Mac | 1.0 |
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |

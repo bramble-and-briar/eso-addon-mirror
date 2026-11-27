@@ -1,6 +1,52 @@
 -- Ramaladni Tracker v0.9.23 — Sorcerer isolated runtime.
 -- Mechanics copied from the v0.9.22 reference; other classes are not modified.
 local M=RamaladniMastery
+local TEXT_ALIGN_BOTTOM = TEXT_ALIGN_BOTTOM
+local TEXT_ALIGN_LEFT = TEXT_ALIGN_LEFT
+local d = d
+local ipairs = ipairs
+local math = math
+local pairs = pairs
+local string = string
+local tonumber = tonumber
+local tostring = tostring
+local type = type
+local BOTTOMLEFT = BOTTOMLEFT
+local BUFF_EFFECT_TYPE_DEBUFF = BUFF_EFFECT_TYPE_DEBUFF
+local COMBAT_MECHANIC_FLAGS_HEALTH = COMBAT_MECHANIC_FLAGS_HEALTH
+local COMBAT_MECHANIC_FLAGS_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA
+local COMBAT_MECHANIC_FLAGS_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA
+local COMBAT_MECHANIC_FLAGS_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE
+local COMBAT_UNIT_TYPE_NONE = COMBAT_UNIT_TYPE_NONE
+local COMBAT_UNIT_TYPE_PLAYER = COMBAT_UNIT_TYPE_PLAYER
+local CT_LABEL = CT_LABEL
+local DoesUnitExist = DoesUnitExist
+local EFFECT_RESULT_FADED = EFFECT_RESULT_FADED
+local EFFECT_RESULT_FULL_REFRESH = EFFECT_RESULT_FULL_REFRESH
+local EFFECT_RESULT_GAINED = EFFECT_RESULT_GAINED
+local EFFECT_RESULT_UPDATED = EFFECT_RESULT_UPDATED
+local EVENT_ACTION_SLOT_ABILITY_USED = EVENT_ACTION_SLOT_ABILITY_USED
+local EVENT_COMBAT_EVENT = EVENT_COMBAT_EVENT
+local EVENT_EFFECT_CHANGED = EVENT_EFFECT_CHANGED
+local EVENT_MANAGER = EVENT_MANAGER
+local GetAbilityBaseCostInfo = GetAbilityBaseCostInfo
+local GetAbilityCastInfo = GetAbilityCastInfo
+local GetAbilityDescription = GetAbilityDescription
+local GetAbilityName = GetAbilityName
+local GetNumSkillAbilities = GetNumSkillAbilities
+local GetNumSkillLines = GetNumSkillLines
+local GetSkillAbilityId = GetSkillAbilityId
+local GetSkillAbilityInfo = GetSkillAbilityInfo
+local GetSlotBoundId = GetSlotBoundId
+local GetSpecificSkillAbilityKeysByAbilityId = GetSpecificSkillAbilityKeysByAbilityId
+local GetUnitName = GetUnitName
+local GetUnitPower = GetUnitPower
+local REGISTER_FILTER_ABILITY_ID = REGISTER_FILTER_ABILITY_ID
+local REGISTER_FILTER_UNIT_TAG = REGISTER_FILTER_UNIT_TAG
+local REGISTER_FILTER_UNIT_TAG_PREFIX = REGISTER_FILTER_UNIT_TAG_PREFIX
+local SKILL_TYPE_CLASS = SKILL_TYPE_CLASS
+local SLASH_COMMANDS = SLASH_COMMANDS
+local WINDOW_MANAGER = WINDOW_MANAGER
 local shared=M.shared
 local SkillState,LeadNow,HideState=shared.SkillState,shared.LeadNow,shared.HideState
 local lead=shared.lead
@@ -8,33 +54,33 @@ local runtime={}
 M.modules["Sorcerer"]=runtime
 do
 local e={key="Sorcerer:Conservation of Energy",class="Sorcerer",en="Conservation of Energy",title="Сохранение энергии / Conservation of Energy",passiveId=263870,candidateIDs={263877,263901},model="observed_stacks",value=0,cap=0,target=false,kind="instant_proc_counter",mechanic="Rank 2 Blood Magic: any paid non-cost-per-tick ability restores Magicka and Stamina; exact amount scales with maximum resources",durationRule="Instant activation; count observed eligible casts, no invented timer"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Sorcerer:Font of Power",class="Sorcerer",en="Font of Power",title="Источник силы / Font of Power",passiveId=263871,candidateIDs={263878},model="conditional_percent",value=15,cap=0,target=false,kind="dynamic_percent+timer",mechanic="Rank 2 Dark Magic prerequisite: Sorcerer skill grants +15% Weapon/Spell Damage plus 1% per complete 1750 maximum Magicka or Stamina (higher value)",durationRule="10 sec from eligible Sorcerer ability; calculated from actual use, marked estimated unless ESO reports endTime"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Sorcerer:Static Reverberation",class="Sorcerer",en="Static Reverberation",title="Статический резонанс / Static Reverberation",passiveId=263872,candidateIDs={263928},model="observed_stacks",value=5,cap=0,target=false,kind="conditional_chance",mechanic="5% +1% per 1% missing target HP; divided by (1 + own active permanent pets), 1441 Shock Damage",durationRule="Instant damage proc; internal minimum 0.3 sec between procs; no aura timer"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Sorcerer:Calculated Defense",class="Sorcerer",en="Calculated Defense",title="Расчётливая защита / Calculated Defense",passiveId=263873,candidateIDs={264991,268274},model="timed_percent",value=6,cap=0,target=false,kind="two_phase_timer+percent",mechanic="0.5 sec shield when Sorcerer ability or cast-time skill begins; if shield survives, self/nearby group +6% Weapon/Spell Damage",durationRule="0.5 sec shield; 20 sec bonus ONLY when actual own mastery proc is observed"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Sorcerer:Sphere of Influence",class="Sorcerer",en="Sphere of Influence",title="Сфера влияния / Sphere of Influence",passiveId=263874,candidateIDs={263915,268275},model="observed_stacks",value=225,cap=0,target=false,kind="two_timer+numeric",mechanic="Casting a shield on self/ally: an extra 4 sec shield and +225 Health/Magicka/Stamina Recovery for 12 sec",durationRule="Separate observable 4 sec shield and 12 sec recovery phases"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 
 -- v0.9.15 SORCERER ONLY. All calculations below are segregated from
@@ -58,21 +104,20 @@ local sorc={initialized=false,debug=false,casts=0,paid=0,classCasts=0,
   shieldEvents=0,lastShieldReason='none',
   lastAbility=0,lastCost=0,lastPerTick=nil,lastClass=nil}
 local function SorcPrint(message)
-  if d then d('|c8AB5FFRamaladni Sorc|r '..tostring(message)) end
+  d('|c8AB5FFRamaladni Sorc|r '..tostring(message))
 end
 local function SorcLearned(key)
-  return SkillState(RamaladniMastery.byKey[key])==true
+  return SkillState(M.byKey[key])==true
 end
 local function SorcMaxPower(powerType)
-  if not (GetUnitPower and powerType) then return nil end
+  if not (powerType) then return nil end
   local _,maximum,effective=GetUnitPower('player',powerType)
   if type(effective)=='number' and effective>0 then return effective end
   if type(maximum)=='number' and maximum>0 then return maximum end
   return nil
 end
 local function SorcRank2(names)
-  if not (SKILL_TYPE_CLASS and GetNumSkillLines and GetNumSkillAbilities and
-          GetSkillAbilityInfo) then return nil end
+
   for line=1,GetNumSkillLines(SKILL_TYPE_CLASS) do
     for i=1,GetNumSkillAbilities(SKILL_TYPE_CLASS,line) do
       local name,_,earnedRank,_,_,purchased,_,rank=
@@ -97,12 +142,11 @@ local SORC_EXPLOIT_NAMES={'Exploitation','Ruthlessness','Беспощаднос�
 local function SorcClassAbility(id)
   if not (type(id)=='number' and id>0) then return false end
   -- Engine mapping includes the currently morphed spell, not just its base ID.
-  if GetSpecificSkillAbilityKeysByAbilityId and SKILL_TYPE_CLASS then
+  do
     local skillType=GetSpecificSkillAbilityKeysByAbilityId(id)
     if type(skillType)=='number' then return skillType==SKILL_TYPE_CLASS end
   end
-  if not (GetNumSkillLines and GetNumSkillAbilities and GetSkillAbilityId and
-          SKILL_TYPE_CLASS) then return false end
+
   for line=1,GetNumSkillLines(SKILL_TYPE_CLASS) do
     for index=1,GetNumSkillAbilities(SKILL_TYPE_CLASS,line) do
       if GetSkillAbilityId(SKILL_TYPE_CLASS,line,index,false)==id then return true end
@@ -111,7 +155,7 @@ local function SorcClassAbility(id)
   return false
 end
 local function SorcAbilityPaid(id)
-  if not (GetAbilityBaseCostInfo and type(id)=='number' and id>0) then
+  if not (type(id)=='number' and id>0) then
     return false,nil,nil -- No cost API: do not count free or tick casts.
   end
   local cost,flags,perTick=GetAbilityBaseCostInfo(id,nil,'player')
@@ -125,13 +169,13 @@ local function SorcAbilityPaid(id)
     for _,flag in ipairs({COMBAT_MECHANIC_FLAGS_MAGICKA,
         COMBAT_MECHANIC_FLAGS_STAMINA,COMBAT_MECHANIC_FLAGS_HEALTH,
         COMBAT_MECHANIC_FLAGS_ULTIMATE}) do
-      if flag and flags==flag then recognized=true end
+      if flags==flag then recognized=true end
     end
     if not recognized then
       for _,flag in ipairs({COMBAT_MECHANIC_FLAGS_MAGICKA,
           COMBAT_MECHANIC_FLAGS_STAMINA,COMBAT_MECHANIC_FLAGS_HEALTH,
           COMBAT_MECHANIC_FLAGS_ULTIMATE}) do
-        if type(flags)=='number' and type(flag)=='number' and flag>0 and
+        if type(flags)=='number' and flag>0 and
            math.floor(flags/flag)%2==1 then recognized=true end
       end
     end
@@ -140,8 +184,7 @@ local function SorcAbilityPaid(id)
   return true,cost,perTick
 end
 local function SorcOwnSource(sourceType)
-  return sourceType==nil or COMBAT_UNIT_TYPE_PLAYER==nil or
-         sourceType==COMBAT_UNIT_TYPE_PLAYER
+  return sourceType==nil or sourceType==COMBAT_UNIT_TYPE_PLAYER
 end
 -- Sphere of Influence triggers on a SHIELD CAST, not merely when either
 -- candidate effect ID happens to appear. This also supports shields whose
@@ -161,7 +204,7 @@ local SORC_SHIELD_NAMES={
 }
 local function SorcShieldAbility(id)
   if type(id)~='number' or id<=0 then return false,'bad-id' end
-  local name=GetAbilityName and GetAbilityName(id)
+  local name=GetAbilityName(id)
   local normalized=(type(name)=='string' and name or ''):lower()
   normalized=normalized:gsub('%^%a+$',''):gsub('^%s+',''):gsub('%s+$','')
   if SORC_SHIELD_NAMES[normalized] then return true,'skill-name' end
@@ -174,8 +217,7 @@ local function SorcShieldAbility(id)
        (normalized:find('ward',1,true) and not normalized:find('reward',1,true))) then
     return true,'shield-name'
   end
-  if not GetAbilityDescription then return false,'no-description-API' end
-  local description=GetAbilityDescription(id)
+  local description=GetAbilityDescription(id,nil,'player')
   if type(description)~='string' or description=='' then return false,'empty-tooltip' end
   local d=description:lower()
   -- Use shield-specific descriptions in either ESO language; merely seeing
@@ -208,16 +250,16 @@ local function SorcShieldApplied(_,change,_,name,unitTag,start,finish,stacks,
                                  icon,buffType,effectType,abilityType,statusType,
                                  unitName,unitId,abilityId,sourceType)
   if change~=EFFECT_RESULT_GAINED and change~=EFFECT_RESULT_FULL_REFRESH then return end
-  if BUFF_EFFECT_TYPE_DEBUFF~=nil and effectType==BUFF_EFFECT_TYPE_DEBUFF then return end
+  if effectType==BUFF_EFFECT_TYPE_DEBUFF then return end
   if not (unitTag=='player' or
      (type(unitTag)=='string' and unitTag:match('^group%d+$'))) then return end
   if type(abilityId)~='number' or abilityId<=0 or
      abilityId==263874 or abilityId==263915 or abilityId==268275 then return end
   -- Do not assume the passive exists when its ownership is explicitly false.
-  if SkillState(RamaladniMastery.byKey[SORC_SPHERE])==false then return end
+  if SkillState(M.byKey[SORC_SPHERE])==false then return end
   local now=LeadNow()
   local own=SorcOwnSource(sourceType) and sourceType~=nil and
-            (COMBAT_UNIT_TYPE_PLAYER==nil or sourceType==COMBAT_UNIT_TYPE_PLAYER)
+            (sourceType==COMBAT_UNIT_TYPE_PLAYER)
   -- NONE is only accepted when an own shield cast was just detected.
   if not own and now-sorc.lastShieldCastAt>1.5 then return end
   local isShield,reason=SorcShieldAbility(abilityId)
@@ -245,7 +287,7 @@ local function SorcShieldApplied(_,change,_,name,unitTag,start,finish,stacks,
   end
 end
 local function SorcAbilityCast(_,slot)
-  if not (GetSlotBoundId and type(slot)=='number') then return end
+  if not (type(slot)=='number') then return end
   local id=GetSlotBoundId(slot)
   if type(id)~='number' or id<=0 then return end
   local now=LeadNow()
@@ -258,7 +300,7 @@ local function SorcAbilityCast(_,slot)
   local paid,cost,perTick=SorcAbilityPaid(id)
   sorc.lastCost=cost or 0;sorc.lastPerTick=perTick
   local isShield,shieldReason=SorcShieldAbility(id)
-  if isShield and SkillState(RamaladniMastery.byKey[SORC_SPHERE])~=false then
+  if isShield and SkillState(M.byKey[SORC_SPHERE])~=false then
     SorcStartSpherePrediction(id,now)
     sorc.lastShieldReason=shieldReason
   end
@@ -275,12 +317,8 @@ local function SorcAbilityCast(_,slot)
   end
   -- Only the short initial shield is predicted. Survival cannot be inferred
   -- from a cast, so the 20 sec group bonus needs its own real observed proc.
-  local castTime=0
-  if GetAbilityCastInfo then
-    local a,b=GetAbilityCastInfo(id)
-    if type(b)=='number' then castTime=b end
-    if type(a)=='number' then castTime=a end
-  end
+  local _,duration=GetAbilityCastInfo(id,nil,'player')
+  local castTime=duration or 0
   if (classSkill or castTime>0) and SorcLearned(SORC_DEFENSE) then
     sorc.defense.shieldUntil=now+.5
     sorc.defense.shieldObserved=false
@@ -311,7 +349,7 @@ local function SorcAura(_,change,_,name,unitTag,start,finish,stacks,
     -- is stronger than requiring COMBAT_UNIT_TYPE_PLAYER unconditionally.
     if now-sorc.lastShieldCastAt>2.5 then return end
     if not (SorcOwnSource(sourceType) or
-       (COMBAT_UNIT_TYPE_NONE~=nil and sourceType==COMBAT_UNIT_TYPE_NONE)) then return end
+       (sourceType==COMBAT_UNIT_TYPE_NONE)) then return end
   elseif unitTag~='player' or not SorcOwnSource(sourceType) then
     return
   end
@@ -393,9 +431,9 @@ end
 local SORC_PET_NAMES={'familiar','clannfear','twilight','volatile','бес','кланнфир',
                       'сумрак','крылат','матриарх','истязатель'}
 local function SorcPermanentPets()
-  if not (DoesUnitExist and GetUnitName) then return nil end
+
   local count,unknown=0,0
-  local base=UNIT_PLAYER_PET or 'playerpet'
+  local base='playerpet'
   for i=1,7 do
     local tag=base..i
     if DoesUnitExist(tag) then
@@ -414,9 +452,8 @@ local function SorcPermanentPets()
   return count
 end
 local function SorcStaticChance()
-  if not (DoesUnitExist and DoesUnitExist('reticleover') and GetUnitPower and
-          POWERTYPE_HEALTH) then return nil end
-  local current,maximum=GetUnitPower('reticleover',POWERTYPE_HEALTH)
+  if not DoesUnitExist('reticleover') then return nil end
+  local current,maximum=GetUnitPower('reticleover',COMBAT_MECHANIC_FLAGS_HEALTH)
   if type(current)~='number' or type(maximum)~='number' or maximum<=0 then return nil end
   local pets=SorcPermanentPets()
   if pets==nil then return nil end
@@ -426,7 +463,7 @@ end
 local function SorcDisplay(key,state,now)
   -- Some game builds expose Class Mastery passives under a separate skill
   -- line; unknown ownership must not silently suppress an observed shield.
-  local owned=SkillState(RamaladniMastery.byKey[key])
+  local owned=SkillState(M.byKey[key])
   if owned==false or (owned~=true and key~=SORC_SPHERE) then
     HideState(state);state.cooldownUntil=0;return true,nil
   end
@@ -443,8 +480,8 @@ local function SorcDisplay(key,state,now)
     if p.untilTime>now then
       state.untilTime=p.untilTime;state.activeFlag=true
       state.timerEstimated=not p.observed
-      local m=SorcMaxPower(POWERTYPE_MAGICKA)
-      local s=SorcMaxPower(POWERTYPE_STAMINA)
+      local m=SorcMaxPower(COMBAT_MECHANIC_FLAGS_MAGICKA)
+      local s=SorcMaxPower(COMBAT_MECHANIC_FLAGS_STAMINA)
       if m==nil and s==nil then return true,'15%+' end
       local highest=math.max(m or 0,s or 0)
       return true,tostring(15+math.floor(highest/1750))..'%'
@@ -487,10 +524,11 @@ local function SorcDisplay(key,state,now)
   HideState(state)
   return true,nil
 end
+local SorcSphereProbe
 local function SorcDebug(input)
   local command=(input or ''):lower():match('^%s*(.-)%s*$')
   if command=='sphere test' then
-    if SkillState(RamaladniMastery.byKey[SORC_SPHERE])==false then
+    if SkillState(M.byKey[SORC_SPHERE])==false then
       SorcPrint('Sphere TEST: passive explicitly not learned.');return
     end
     SorcStartSpherePrediction(0,LeadNow())
@@ -508,8 +546,8 @@ local function SorcDebug(input)
     end
     SorcPrint('debug '..(sorc.debug and 'ON' or 'OFF'))
   end
-  local m=SorcMaxPower(POWERTYPE_MAGICKA)
-  local s=SorcMaxPower(POWERTYPE_STAMINA)
+  local m=SorcMaxPower(COMBAT_MECHANIC_FLAGS_MAGICKA)
+  local s=SorcMaxPower(COMBAT_MECHANIC_FLAGS_STAMINA)
   local chance,pets=SorcStaticChance()
   SorcPrint(string.format('BloodII=%s ExploitII=%s casts=%d paid=%d sorcCasts=%d lastAbility=%d cost=%s perTick=%s class=%s',
     tostring(SorcRank2(SORC_BLOOD_NAMES)),tostring(SorcRank2(SORC_EXPLOIT_NAMES)),
@@ -544,8 +582,8 @@ SorcSphereProbe=function(_,change,_,name,unitTag,start,finish,_,_,_,effectType,
   if now-sorc.lastShieldCastAt>2.5 then return end
   if type(finish)~='number' or finish<=now then return end
   if not (SorcOwnSource(sourceType) or
-     (COMBAT_UNIT_TYPE_NONE~=nil and sourceType==COMBAT_UNIT_TYPE_NONE)) then return end
-  if BUFF_EFFECT_TYPE_DEBUFF~=nil and effectType==BUFF_EFFECT_TYPE_DEBUFF then return end
+     (sourceType==COMBAT_UNIT_TYPE_NONE)) then return end
+  if effectType==BUFF_EFFECT_TYPE_DEBUFF then return end
   local duration=(type(start)=='number' and start>0) and finish-start or finish-now
   if not ((duration>=2.5 and duration<=5.5) or
           (duration>=10 and duration<=14)) then return end
@@ -556,29 +594,49 @@ SorcSphereProbe=function(_,change,_,name,unitTag,start,finish,_,_,_,effectType,
     tostring(abilityId),tostring(name),tostring(unitTag),tostring(unitName),
     duration,tostring(sourceType)))
 end
+local syncEvents=M.NewEventSet()
+runtime.SyncEvents=function(selected)
+  if not selected[SORC_CONSERVATION] then sorc.conservation.at=-100 end
+  if not selected[SORC_FONT] then sorc.font.untilTime=0;sorc.font.observed=false end
+  if not selected[SORC_STATIC] then sorc.static.at=-100 end
+  if not selected[SORC_DEFENSE] then
+    sorc.defense.shieldUntil=0;sorc.defense.bonusUntil=0;sorc.lastEligibleAt=-100
+    sorc.defense.shieldObserved=false;sorc.defense.bonusObserved=false
+  end
+  if not selected[SORC_SPHERE] then
+    sorc.sphere.shieldUntil=0;sorc.sphere.recoveryUntil=0;sorc.lastShieldCastAt=-100
+    sorc.sphere.shieldObserved=false;sorc.sphere.recoveryObserved=false
+  end
+  syncEvents(function(Add)
+    if selected[SORC_CONSERVATION] or selected[SORC_FONT] or selected[SORC_DEFENSE] or selected[SORC_SPHERE] then
+      Add('RamaladniSorc_Cast',EVENT_ACTION_SLOT_ABILITY_USED,SorcAbilityCast)
+    end
+    if selected[SORC_SPHERE] then
+      -- No ability-ID restriction: unknown shields are valid. Exact player
+      -- and group-prefix filters are disjoint; Lua still validates group tags.
+      Add('RamaladniSorc_ShieldPlayer',EVENT_EFFECT_CHANGED,SorcShieldApplied,REGISTER_FILTER_UNIT_TAG,'player')
+      Add('RamaladniSorc_ShieldGroup',EVENT_EFFECT_CHANGED,SorcShieldApplied,REGISTER_FILTER_UNIT_TAG_PREFIX,'group')
+    end
+    for id,key in pairs(SORC_AURA_IDS) do
+      if selected[key] then
+        if key==SORC_SPHERE then
+          Add('RamaladniSorc_Aura_'..id,EVENT_EFFECT_CHANGED,SorcAura,REGISTER_FILTER_ABILITY_ID,id)
+        else
+          Add('RamaladniSorc_Aura_'..id,EVENT_EFFECT_CHANGED,SorcAura,
+            REGISTER_FILTER_ABILITY_ID,id,REGISTER_FILTER_UNIT_TAG,'player')
+        end
+      end
+    end
+    if selected[SORC_STATIC] then
+      Add('RamaladniSorc_Static',EVENT_COMBAT_EVENT,SorcStaticHit,REGISTER_FILTER_ABILITY_ID,263928)
+    end
+  end)
+end
 local function InitSorc()
   if sorc.initialized then return end
   sorc.initialized=true
   SLASH_COMMANDS['/rmsorc']=SorcDebug
-  EVENT_MANAGER:RegisterForEvent('RamaladniSorc_Cast',EVENT_ACTION_SLOT_ABILITY_USED,
-    SorcAbilityCast)
-  -- Recover own shield gains when action-slot events do not fire.
-  EVENT_MANAGER:RegisterForEvent('RamaladniSorc_ShieldApplied',
-    EVENT_EFFECT_CHANGED,SorcShieldApplied)
-  for id in pairs(SORC_AURA_IDS) do
-    local namespace='RamaladniSorc_Aura_'..tostring(id)
-    EVENT_MANAGER:RegisterForEvent(namespace,EVENT_EFFECT_CHANGED,SorcAura)
-    EVENT_MANAGER:AddFilterForEvent(namespace,EVENT_EFFECT_CHANGED,
-      REGISTER_FILTER_ABILITY_ID,id)
-  end
-  if EVENT_COMBAT_EVENT then
-    EVENT_MANAGER:RegisterForEvent('RamaladniSorc_Static',EVENT_COMBAT_EVENT,
-      SorcStaticHit)
-    EVENT_MANAGER:AddFilterForEvent('RamaladniSorc_Static',EVENT_COMBAT_EVENT,
-      REGISTER_FILTER_ABILITY_ID,263928)
-  end
 end
-
 
 runtime.Init=InitSorc
 runtime.Display=SorcDisplay
@@ -594,7 +652,6 @@ runtime.UpdateWidgetExtras=function(entry,widget,now)
     return
   end
   if not widget.sphereShieldLabel then
-    if not WINDOW_MANAGER then return end
     local label=WINDOW_MANAGER:CreateControl(nil,widget.win,CT_LABEL)
     label:SetAnchor(BOTTOMLEFT,widget.win,BOTTOMLEFT,2,-2)
     label:SetDimensions(27,20)

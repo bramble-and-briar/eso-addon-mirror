@@ -76,6 +76,11 @@ function MailSendPane.Build(tab, parent)
         tab:Refresh()
     end)
     tab.btnCancelMailSend:SetAnchor(TOPLEFT, pane, TOPLEFT, 175, 340)
+
+    Addon.JournalWidgets.RegisterTabChain({
+        tab.mailRecEdit,
+        tab.mailRoleEdit,
+    })
 end
 
 function MailSendPane.OnTransportEvent(tab, evType, payload)

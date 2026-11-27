@@ -29,7 +29,7 @@ function ZeraUIRegisterSettings(A)
     local name="ZeraUISettingsPanel"
     local panel=A.settingsPanel or LAM:RegisterAddonPanel(name,{
         type="panel",name="Zera UI",displayName="|cE9C46AZera|r |cFFF4DCUI|r",
-        author="|cE9C46AZerakthion|r",version="1.1.5",slashCommand="/zeraset",
+        author="|cE9C46AZerakthion|r",version="1.1.6",slashCommand="/zeraset",
         registerForRefresh=true,registerForDefaults=true,
         resetFunc=function() if A.ResetEffectGridDefaults then A:ResetEffectGridDefaults() end end,
     })
@@ -254,7 +254,13 @@ function ZeraUIRegisterSettings(A)
         {"02  |  Action bar & animations","Availability rules, warning thresholds and animation behavior",{
             sub("Availability & timers",{
                 toggle("Show skill tooltips","showSkillTooltips"),
-                toggle("Active bar on top","activeBarOnTop","Move the active weapon bar to the top row whenever you weapon swap."),
+                {type="dropdown",name="Active bar position",vabKey="activeBarPosition",
+                    choices={"Default (Front top)","Active bar on top","Active bar on bottom"},
+                    choicesValues={"Default","Top","Bottom"},
+                    tooltip="Choose whether front/back rows stay fixed, or move the active weapon bar to the top or bottom row whenever you weapon swap.",
+                    getFunc=function() return A.settings.activeBarPosition or "Default" end,
+                    setFunc=function(v) A.settings.activeBarPosition=v; applyHUD() end},
+                toggle("Hide idle skills on inactive bar","hideInactiveIdle","On the inactive weapon bar, hide skill boxes that have no active timer, stack, toggle, proc, or warning animation."),
                 toggle("Darken unusable skills","showUnavailable"),
                 toggle("Darken low-resource skills","darkenResource","Darken skills whose Magicka or Stamina cost exceeds your current resource."),
                 toggle("Darken corpse-required skills","darkenCorpse","Darken Blastbones/corpse consumers when ESO reports a corpse is required and none is available."),
@@ -571,7 +577,7 @@ function ZeraUIRegisterSettings(A)
     end
     ordered[#ordered+1]={type="divider"}
     ordered[#ordered+1]={type="description",vabFooter=true,
-        text="Zera UI 1.1.5  ·  /zera  ·  /zeraset  ·  Visual sizing, fonts & colors live in Edit HUD."}
+        text="Zera UI 1.1.6  ·  /zera  ·  /zeraset  ·  Visual sizing, fonts & colors live in Edit HUD."}
     ordered[#ordered+1]={type="button",name="Reload UI",func=function() ReloadUI() end,width="half"}
     local options=ordered
 

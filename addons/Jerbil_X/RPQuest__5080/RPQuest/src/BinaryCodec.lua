@@ -1,4 +1,5 @@
 -- Ref: docs/adr/0008-codec-compacto-rpq3-lzss-base85.md
+-- Ref: docs/adr/0018-ejes-de-victoria-modo-freeform-y-objetivos-requeridos.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -277,6 +278,50 @@ function BinaryCodec:ReadStr(data, pos, len)
     if not sLen or nextPos + sLen - 1 > len then return nil, nextPos end
     if sLen == 0 then return "", nextPos end
     return string.sub(data, nextPos, nextPos + sLen - 1), nextPos + sLen
+end
+
+--- Appends a packed LSB-first bitset of `count` booleans (`math.ceil(count / 8)` bytes) from `items[i][field]` or `items[i]`.
+function BinaryCodec:WriteBitset(buf, items, count, field)
+    local total = math.max(0, math.floor(tonumber(count) or 0))
+    local byteCount = math.ceil(total / 8)
+    for b = 0, byteCount - 1 do
+        local mask = 0
+        local bit = 1
+        for k = 1, 8 do
+            local idx = b * 8 + k
+            if idx <= total then
+                local entry = items and items[idx]
+                local flag = field and (type(entry) == "table" and entry[field] == true) or (entry == true)
+                if flag then
+                    mask = mask + bit
+                end
+            end
+            bit = bit * 2
+        end
+        self:WriteByte(buf, mask)
+    end
+end
+
+--- Reads `math.ceil(count / 8)` packed LSB-first bitset bytes from `data` at `pos`, returning an array of `count` booleans and `nextPos`.
+function BinaryCodec:ReadBitset(data, pos, len, count)
+    local total = math.max(0, math.floor(tonumber(count) or 0))
+    local byteCount = math.ceil(total / 8)
+    local out = {}
+    local floor = math.floor
+    for b = 0, byteCount - 1 do
+        local mask
+        mask, pos = self:ReadByte(data, pos, len)
+        if not mask then
+            return nil, pos
+        end
+        for k = 0, 7 do
+            local idx = b * 8 + k + 1
+            if idx <= total then
+                out[idx] = (floor(mask / (2 ^ k)) % 2) == 1
+            end
+        end
+    end
+    return out, pos
 end
 
 --- Compresses binary data using LZSS (with raw fallback if not smaller).

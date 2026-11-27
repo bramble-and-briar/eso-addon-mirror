@@ -184,7 +184,7 @@ function CMA:CustomItemRuleAdd(customRuleName, customRuleItemId, customRuleActio
     -- serialize the table
     self.db.serializedCustomItemRules = self:serializeCustomItemRuleTable(self.customItemRuleTable)
     -- update the dropdown choices
-    CustomRulesDropdownControl:UpdateChoices(self.customItemRuleDropdownNames, self.customItemRuleDropdownValues)
+    -- CustomRulesDropdownControl:UpdateChoices(self.customItemRuleDropdownNames, self.customItemRuleDropdownValues)
     
     -- if it was successful clear the fields
     return "", "", ""
@@ -208,7 +208,7 @@ function CMA:CustomItemRuleRemove(customRuleItemId, CustomRulesDropdownControl)
         -- serialize the table
         self.db.serializedCustomItemRules = self:serializeCustomItemRuleTable(self.customItemRuleTable)
         -- update the dropdown choices
-        CustomRulesDropdownControl:UpdateChoices(self.customItemRuleDropdownNames, self.customItemRuleDropdownValues)
+        -- CustomRulesDropdownControl:UpdateChoices(self.customItemRuleDropdownNames, self.customItemRuleDropdownValues)
     else
         self:SendChatMessage("Failed to remove custom rule: " .. tostring(customRuleItemId))
     end

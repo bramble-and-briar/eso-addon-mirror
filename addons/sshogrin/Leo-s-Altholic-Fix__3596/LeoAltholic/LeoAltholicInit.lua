@@ -1,12 +1,13 @@
 
 LeoAltholic = LeoAltholic or {}
-LeoAltholicUI = LeoAltholicUI or {}
-LeoAltholicChecklistUI = LeoAltholicChecklistUI or {}
-LeoAltholicToolbarUI = LeoAltholicToolbarUI or {}
+local LeoAltholic = LeoAltholic
+LeoAltholic.UI = LeoAltholic.UI or {}
+LeoAltholic.ChecklistUI = LeoAltholic.ChecklistUI or {}
+LeoAltholic.ToolbarUI = LeoAltholic.ToolbarUI or {}
 
 LeoAltholic.name = "LeoAltholic"
 LeoAltholic.displayName = "Leo's Altholic"
-LeoAltholic.version = "1.9.9"
+LeoAltholic.version = "1.9.10"
 LeoAltholic.chatPrefix = "|c39B027" .. LeoAltholic.name .. "|r: "
 
 LeoAltholic.TAB_BIO = "Bio"

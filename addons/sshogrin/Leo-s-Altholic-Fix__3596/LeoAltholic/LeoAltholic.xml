@@ -11,8 +11,8 @@
             <Anchor point="TOP" relativeTo="GuiRoot" relativePoint="CENTER" offsetY="100" />
 
             <OnMoveStop> LeoAltholic:OnWindowMoveStop() </OnMoveStop>
-            <OnHide> LeoAltholicUI:OnHide(self, hidden) </OnHide>
-            <OnShow> LeoAltholicUI:OnShow(self, hidden) </OnShow>
+            <OnHide> LeoAltholic.UI:OnHide(self, hidden) </OnHide>
+            <OnShow> LeoAltholic.UI:OnShow(self, hidden) </OnShow>
 
             <Controls>
                 <Backdrop name="$(parent)BG" centerColor="000000" edgeColor="222222">
@@ -1310,8 +1310,8 @@
                 <Label name="$(parent)Class1" mouseEnabled="true" font="LeoAltholicLargeFont" color="FF0000" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="TOPRIGHT" offsetX="14" offsetY="0"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Class1" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1320,8 +1320,8 @@
                 <Label name="$(parent)Class2" mouseEnabled="true" font="LeoAltholicLargeFont" color="FF0000" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Class1" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Class2" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1330,8 +1330,8 @@
                 <Label name="$(parent)Class3" mouseEnabled="true" font="LeoAltholicLargeFont" color="FF0000" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Class2" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Class3" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1340,8 +1340,8 @@
                 <Label name="$(parent)Weapon1" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Class3" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon1" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1350,8 +1350,8 @@
                 <Label name="$(parent)Weapon2" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon1" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon2" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1360,8 +1360,8 @@
                 <Label name="$(parent)Weapon3" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon2" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon3" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1370,8 +1370,8 @@
                 <Label name="$(parent)Weapon4" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon3" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon4" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1380,8 +1380,8 @@
                 <Label name="$(parent)Weapon5" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon4" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon5" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1390,8 +1390,8 @@
                 <Label name="$(parent)Weapon6" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon5" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon6" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1400,8 +1400,8 @@
                 <Label name="$(parent)Armor1" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Weapon6" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Armor1" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1410,8 +1410,8 @@
                 <Label name="$(parent)Armor2" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Armor1" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Armor2" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1420,8 +1420,8 @@
                 <Label name="$(parent)Armor3" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Armor2" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Armor3" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1430,8 +1430,8 @@
                 <Label name="$(parent)Racial" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Armor3" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Racial" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1440,8 +1440,8 @@
                 <Label name="$(parent)Craft1" mouseEnabled="true" font="LeoAltholicLargeFont" color="FF0000" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Racial" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft1" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1450,8 +1450,8 @@
                 <Label name="$(parent)Craft2" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft1" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft2" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1460,8 +1460,8 @@
                 <Label name="$(parent)Craft3" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft2" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft3" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1470,8 +1470,8 @@
                 <Label name="$(parent)Craft4" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft3" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft4" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1480,8 +1480,8 @@
                 <Label name="$(parent)Craft5" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft4" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft5" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1490,8 +1490,8 @@
                 <Label name="$(parent)Craft6" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft5" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft6" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1500,8 +1500,8 @@
                 <Label name="$(parent)Craft7" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft6" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft7" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1529,8 +1529,8 @@
                 <Label name="$(parent)World1" mouseEnabled="true" font="LeoAltholicLargeFont" color="FF0000" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="TOPRIGHT" offsetX="14" offsetY="0"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)World1" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1539,8 +1539,8 @@
                 <Label name="$(parent)World2" mouseEnabled="true" font="LeoAltholicLargeFont" color="FF0000" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)World1" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)World2" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1549,8 +1549,8 @@
                 <Label name="$(parent)World3" mouseEnabled="true" font="LeoAltholicLargeFont" color="FF0000" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)World2" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)World3" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1559,8 +1559,8 @@
                 <Label name="$(parent)World4" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)World3" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)World4" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1569,8 +1569,8 @@
                 <Label name="$(parent)Guild1" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)World4" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild1" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1579,8 +1579,8 @@
                 <Label name="$(parent)Guild2" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild1" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild2" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1589,8 +1589,8 @@
                 <Label name="$(parent)Guild3" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild2" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild3" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1599,8 +1599,8 @@
                 <Label name="$(parent)Guild4" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild3" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild4" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1609,8 +1609,8 @@
                 <Label name="$(parent)Guild5" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild4" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild5" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1627,8 +1627,8 @@
                 <Label name="$(parent)AvA1" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Guild6" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)AvA1" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1637,8 +1637,8 @@
                 <Label name="$(parent)AvA2" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)AvA1" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)AvA2" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1647,8 +1647,8 @@
                 <Label name="$(parent)AvA3" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Dimensions x="24" y="28"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)AvA2" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)AvA3" relativePoint="TOPRIGHT" offsetX="0" offsetY="0"/>
@@ -1674,20 +1674,20 @@
                 <Label name="$(parent)Disc1" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT" mouseEnabled="true">
                     <Dimensions x="250" y="32" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipChampionSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipChampionSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipChampionSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipChampionSkill(self, false) </OnMouseExit>
                 </Label>
                 <Label name="$(parent)Disc2" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT" mouseEnabled="true">
                     <Dimensions x="250" y="32" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Disc1" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipChampionSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipChampionSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipChampionSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipChampionSkill(self, false) </OnMouseExit>
                 </Label>
                 <Label name="$(parent)Disc3" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT" mouseEnabled="true">
                     <Dimensions x="250" y="32" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Disc2" relativePoint="TOPRIGHT" offsetX="10"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipChampionSkill(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipChampionSkill(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipChampionSkill(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipChampionSkill(self, false) </OnMouseExit>
                 </Label>
                 <Line name="$(parent)HorizLine" color="444444" thickness="2" pixelRoundingEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0"/>
@@ -1752,26 +1752,26 @@
                 <Label name="$(parent)Craft1" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="TOPRIGHT" offsetX="10" offsetY="0"/>
                     <Dimensions x="200" y="35"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipResearch(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipResearch(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipResearch(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipResearch(self, false) </OnMouseExit>
                 </Label>
                 <Label name="$(parent)Craft2" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft1" relativePoint="TOPRIGHT" offsetX="10" offsetY="0"/>
                     <Dimensions x="200" y="35"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipResearch(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipResearch(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipResearch(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipResearch(self, false) </OnMouseExit>
                 </Label>
                 <Label name="$(parent)Craft6" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft2" relativePoint="TOPRIGHT" offsetX="10" offsetY="0"/>
                     <Dimensions x="200" y="35"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipResearch(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipResearch(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipResearch(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipResearch(self, false) </OnMouseExit>
                 </Label>
                 <Label name="$(parent)Craft7" mouseEnabled="true" font="LeoAltholicLargeFont" verticalAlignment="CENTER" horizontalAlignment="LEFT">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Craft6" relativePoint="TOPRIGHT" offsetX="10" offsetY="0"/>
                     <Dimensions x="200" y="35"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipResearch(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipResearch(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipResearch(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipResearch(self, false) </OnMouseExit>
                 </Label>
 
                 <Line color="444444" thickness="2" pixelRoundingEnabled="true">
@@ -1889,7 +1889,7 @@
         <TopLevelControl name="LeoAltholicToolbar" mouseEnabled="true" movable="true" hidden="true" clampedToScreen="true">
             <Dimensions x="600" y="32" />
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="100" offsetY="100" />
-            <OnMoveStop> LeoAltholicToolbarUI:OnWindowMoveStop() </OnMoveStop>
+            <OnMoveStop> LeoAltholic.ToolbarUI:OnWindowMoveStop() </OnMoveStop>
             <Controls>
                 <Backdrop name="$(parent)BG" centerColor="000000" edgeColor="222222" alpha="0.5">
                     <Anchor point="TOPLEFT" relativePoint="TOPLEFT" relativeTo="$(parent)"/>
@@ -2024,8 +2024,8 @@
                 <Texture name="$(parent)WarningIcon" hidden="true" mouseEnabled="true" color="FFC000" textureFile="/esoui/art/miscellaneous/eso_icon_warning.dds">
                     <Dimensions y="32" x="32"/>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-30" offsetY="-2"/>
-                    <OnMouseEnter> LeoAltholicUI.TooltipWarning(self, true) </OnMouseEnter>
-                    <OnMouseExit> LeoAltholicUI.TooltipWarning(self, false) </OnMouseExit>
+                    <OnMouseEnter> LeoAltholic.UI.TooltipWarning(self, true) </OnMouseEnter>
+                    <OnMouseExit> LeoAltholic.UI.TooltipWarning(self, false) </OnMouseExit>
                 </Texture>
             </Controls>
         </TopLevelControl>
@@ -2033,7 +2033,7 @@
         <TopLevelControl name="LeoAltholicChecklist" mouseEnabled="true" movable="true" hidden="false" clampedToScreen="true">
             <Dimensions x="200" y="50" />
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="100" offsetY="100" />
-            <OnMoveStop> LeoAltholicChecklistUI.OnWindowMoveStop() </OnMoveStop>
+            <OnMoveStop> LeoAltholic.ChecklistUI.OnWindowMoveStop() </OnMoveStop>
             <Controls>
                 <Backdrop name="$(parent)BGHeader" mouseEnabled="false" centerColor="000000" edgeColor="222222" alpha="0.6">
                     <Anchor point="TOPLEFT" relativePoint="TOPLEFT" relativeTo="$(parent)"/>
@@ -2049,13 +2049,13 @@
                     <Dimensions x="30" y="30"/>
                     <Anchor point="TOPRIGHT" relativeTo="$(parent)BGHeader" relativePoint="TOPRIGHT" offsetX="-2" offsetY="4"/>
                     <Textures normal="/esoui/art/chatwindow/maximize_up.dds" mouseOver="/esoui/art/chatwindow/maximize_over.dds" pressed="esoui/art/chatwindow/maximize_down.dds" />
-                    <OnClicked> LeoAltholicChecklistUI:MinimizeUI() </OnClicked>
+                    <OnClicked> LeoAltholic.ChecklistUI:MinimizeUI() </OnClicked>
                 </Button>
                 <Button name="$(parent)MaxButton" hidden="true" clickSound="Click" inheritAlpha="false">
                     <Dimensions x="30" y="30"/>
                     <Anchor point="TOPRIGHT" relativeTo="$(parent)BGHeader" relativePoint="TOPRIGHT" offsetX="-2" offsetY="4"/>
                     <Textures normal="/esoui/art/chatwindow/minimize_up.dds" mouseOver="/esoui/art/chatwindow/minimize_over.dds" pressed="esoui/art/chatwindow/minimize_down.dds" />
-                    <OnClicked> LeoAltholicChecklistUI:MaximizeUI() </OnClicked>
+                    <OnClicked> LeoAltholic.ChecklistUI:MaximizeUI() </OnClicked>
                 </Button>
 
                 <Backdrop name="$(parent)Panel" centerColor="000000" edgeColor="222222" alpha="0.3" hidden="false">

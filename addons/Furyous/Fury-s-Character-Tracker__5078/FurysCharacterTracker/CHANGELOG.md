@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.5
+- **Finished writs stay finished.** A writ you hand in now always shows as Done, even when the game doesn't tell the addon about the hand-in. When a writ taken today leaves your journal, the addon counts it as handed in. It also reads your writs again whenever you finish a quest and when you log out or switch characters.
+- **Alchemy writs are read right.** An alchemy writ could be taken for another craft's writ, so its column stayed "-". On an English client the writ's name now decides which craft it is.
+- If the game crashes, anything since your last logout, character switch or reload is still lost. The game saves addon data only at those moments.
+- Windows Tools 1.8.5: no change, same version number as the addon.
+
 ## 1.8.4
 - **Smaller version number.** The version in the title bar is now in small print, the same in every Fury window, so the name and your other Fury addons' icons stand out.
 - Windows Tools 1.8.4: no change, same version number as the addon.

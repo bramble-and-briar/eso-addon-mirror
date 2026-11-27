@@ -8,7 +8,7 @@
 DebuffTracker = {
     name = "DebuffTracker",
     displayName = "DebuffTracker",
-    version = "5.21.24",
+    version = "5.25.6",
     author = "SkullElf",
 
     Util = {},
@@ -20,6 +20,8 @@ DebuffTracker = {
     Effects = {},
     Combat = {},
     Resources = {},
+    Group = {},
+    Weave = {},
     Gear = {},
     Procs = {},
 
@@ -35,6 +37,7 @@ DebuffTracker = {
     DisplayTypes = {},
     Announcer = {},
     World = {},
+    GroupFrames = {},
     Marker = {},
     Unlock = {},
 

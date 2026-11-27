@@ -7,7 +7,7 @@ local FIL = FurysInventoryLedger
 
 FIL.name    = "FurysInventoryLedger"
 FIL.title   = "Fury's Inventory Ledger"
-FIL.version = "1.7.4"
+FIL.version = "1.7.5"
 -- The Windows tools (Excel export) can't ship in the ESOUI zip; this page has the download.
 FIL.toolsUrl = "https://github.com/AlbertHoffpauir/FurysInventoryLedger#downloads"
 FIL.COPY_SCENE    = "FurysInventoryLedgerCopy"
@@ -523,14 +523,25 @@ local function WantsExport()
     return SV.settings.autoExport or exportPrepared
 end
 
--- Runs when the character leaves the world (logout, reload, zone change).
-local function OnDeactivated()
+-- 1.7.5: the Excel list and the daily totals are built only on the way out of the game
+-- (logout, character switch, quit, reload), not at every loading screen. Building thousands of
+-- rows at each port (a recruit tour ports every few seconds) is heavy work at the moment the
+-- game is busiest loading the next zone.
+local function SaveBeforeExit()
     FlushPending()
     local today = os.date("%Y-%m-%d", GetTimeStamp())
     local needTotals = dirty or not (acct.history and acct.history[today])
     if dirty and WantsExport() then SaveExport(BuildRows()) end
     if needTotals then FIL.RecordSnapshot() end
     dirty = false
+end
+
+-- Runs at every loading screen too: only the quick work here. The first one of the day still
+-- writes today's totals, so the change columns have a day to compare with.
+local function OnDeactivated()
+    FlushPending()
+    local today = os.date("%Y-%m-%d", GetTimeStamp())
+    if not (acct.history and acct.history[today]) then FIL.RecordSnapshot() end
 end
 
 local RELOAD_TEXT = "<<1>> rows are ready for Excel. The game only writes them to your PC when the interface reloads or you log out.\n\nReload the interface now? You get a short loading screen. After it, run ExportToExcel.cmd from the Windows tools."
@@ -996,6 +1007,10 @@ local function OnLoaded(_, addonName)
     EVENT_MANAGER:RegisterForEvent(FIL.name, EVENT_HOUSING_FURNITURE_REMOVED, OnFurnitureChanged)
     -- Daily totals, and the saved Excel list when it is wanted, but only if something changed.
     EVENT_MANAGER:RegisterForEvent(FIL.name, EVENT_PLAYER_DEACTIVATED, OnDeactivated)
+    -- 1.7.5: the game writes saved data only when you leave it, so that is when the list is built.
+    ZO_PreHook("Logout", function() SaveBeforeExit() end)
+    ZO_PreHook("Quit", function() SaveBeforeExit() end)
+    ZO_PreHook("ReloadUI", function() SaveBeforeExit() end)
 
     FIL.CreateScene(FIL.COPY_SCENE, FurysInventoryLedgerWindow)
     FIL.CreateScene(FIL.SUMMARY_SCENE, FurysInventoryLedgerSummary)

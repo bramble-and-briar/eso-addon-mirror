@@ -1,11 +1,11 @@
 ## Title: |c0099ffBag Space Indicator|r
 ## Author: |c999999Lord Richter
-## Version: 3.49.0
+## Version: 3.52.0
 ## Description: Displays the bank and bag space on the screen
 ## SavedVariables: BagSpaceIndicatorVars
-## APIVersion: 101048 101049
+## APIVersion: 101051 101052
 
-# BagSpaceIndicator v3.49.0 20260308
+# BagSpaceIndicator v3.52.0 20261126
 #
 # This Add-on is not created by, affiliated with, or sponsored by, ZeniMax Media Inc. or its affiliates.
 # The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States

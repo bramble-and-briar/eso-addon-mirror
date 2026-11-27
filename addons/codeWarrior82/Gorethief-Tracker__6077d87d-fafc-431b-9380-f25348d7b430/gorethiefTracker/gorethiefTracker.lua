@@ -1,4 +1,9 @@
 local appName = "gorethiefTracker"
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 local gorethiefAbilityID = 260047
 local timeRemaining = 0
 local picPath = GetAbilityIcon(gorethiefAbilityID)
@@ -19,7 +24,8 @@ gorethiefTracker.defaults = {
     autoTrack = true,
 	notify = true,
     yAxisText = 930,
-    xAxisText = 1400
+    xAxisText = 1400,
+	lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -201,7 +207,11 @@ end
 local function stopTrackingAuto()
 
     if gorethiefTracker.savedVariables.trackGore and gorethiefTracker.savedVariables.autoTrack then
-        printMessage("Gorethief set not found")
+		if not notFoundAlreadyChecked then
+            printMessage("Gorethief set not found")
+        end
+		notFoundAlreadyChecked = true
+        alreadyChecked = false
         unRegisterAlerts()
         gttrack:SetHidden(true)
     end
@@ -210,7 +220,11 @@ end
 --start tracking if set is not equipped
 local function startTrackingAuto()
     if gorethiefTracker.savedVariables.trackGore and gorethiefTracker.savedVariables.autoTrack then
-        printMessage("Found Gorethief set")
+		if not alreadyChecked then
+			printMessage("Found Gorethief set")
+		end
+		alreadyChecked = true
+		notFoundAlreadyChecked = false
         registerAlerts()
     end
 end
@@ -291,7 +305,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return gorethiefTracker.savedVariables.xAxisText
             end,
@@ -305,7 +319,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return gorethiefTracker.savedVariables.yAxisText
             end,
@@ -337,6 +351,14 @@ local function createOptions()
     LAM:RegisterAddonPanel("Gorethief Tracker", panelData)
     LAM:RegisterOptionControls("Gorethief Tracker", optionsData)
 end
+
+--notify about update when player activates
+local function activated()
+    if gorethiefTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        gorethiefTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end	
 
 --an addon has loaded
 local function onAddOnLoaded(event, name)
@@ -370,11 +392,11 @@ local function onAddOnLoaded(event, name)
     --check if set is equipped
     if not isSetEquiped(setId, setCount) and gorethiefTracker.savedVariables.autoTrack and gorethiefTracker.savedVariables.trackGore then
         --notify set not found
-        zo_callLater(function() printMessage("Gorethief set not found") end, 600)
+        zo_callLater(function() printMessage("Gorethief set not found") notFoundAlreadyChecked = true end, 600)
     elseif isSetEquiped(setId, setCount) and gorethiefTracker.savedVariables.autoTrack and gorethiefTracker.savedVariables.trackGore then
         isEquiped = true
         --notify set found
-        zo_callLater(function() printMessage("Found Gorethief set") end, 600)
+        zo_callLater(function() printMessage("Found Gorethief set") alreadyChecked = true end, 600)
     end
 
     --double check if set is equipped without autotracking stipulation
@@ -407,6 +429,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+	EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

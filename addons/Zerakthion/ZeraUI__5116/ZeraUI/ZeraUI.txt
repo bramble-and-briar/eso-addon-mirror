@@ -1,8 +1,8 @@
 ## Title: Zera UI
 ## Description: Combat HUD, action bar, sets and effects. English / Türkçe settings.
 ## Author: Zerakthion
-## Version: 1.1.5
-## AddOnVersion: 10105
+## Version: 1.1.6
+## AddOnVersion: 10106
 ## APIVersion: 101051
 ## SavedVariables: ZeraUISaved
 ## DependsOn: LibAddonMenu-2.0>=40

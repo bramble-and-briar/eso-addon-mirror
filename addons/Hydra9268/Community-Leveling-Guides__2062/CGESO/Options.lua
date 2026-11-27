@@ -85,6 +85,15 @@ local defaultChar = {
   favoriteguides = {
     never_reset = true,
   },
+  -- guideTitle → step number for resume markers
+  bookmarks = {
+    never_reset = true,
+  },
+  -- guideTitle → { text, step } player notes
+  guidenotes = {
+    never_reset = true,
+  },
+  bugnotes = "",
   -- "ask" = prompt Full vs Main Quests Only when both exist; "full" / "mqo" remember the choice.
   guide_style = "ask",
   creator = false,
@@ -442,7 +451,231 @@ function SavedVars:InitializeOptions()
       })
     AddOption("skipauxsteps",{
         type = "toggle",
+        -- Safer off: only tip/text fluff is skipped when enabled; gotos/beacons always stay.
+        _default = false,
+      })
+
+    AddOption(nil,{
+      type="header",
+      name=O["opt_qol"] or "Quality of Life",
+      })
+    AddOption("stuckstep",{
+        type = "toggle",
         _default = true,
+      })
+    AddOption("stuckstep_minutes",{
+        type = "slider",
+        min = 1, max = 60, step = 1,
+        _default = 10,
+      })
+    AddOption("bookmarks",{
+        type = "toggle",
+        _default = true,
+        set = function(_, v)
+          if CGV.Viewer and CGV.Viewer.Frame and CGV.Viewer.Frame.TitleBar and CGV.Viewer.Frame.TitleBar.bookmark then
+            CGV.Viewer.Frame.TitleBar.bookmark:SetHidden(not v)
+          end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_bookmark_set"] or "Bookmark this step",
+        desc = O["opt_bookmark_set_desc"] or "Save a resume marker for the current guide and step.",
+        func = function()
+          if CGV.Features then CGV.Features:SetBookmark() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_bookmark_resume"] or "Resume bookmark",
+        desc = O["opt_bookmark_resume_desc"] or "Jump to the bookmarked step for the current guide.",
+        func = function()
+          if CGV.Features then CGV.Features:ResumeBookmark() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_guidenote"] or "Edit guide note",
+        desc = O["opt_guidenote_desc"] or "Open a copyable note for the current guide (included in bug dumps).",
+        func = function()
+          if CGV.Features then CGV.Features:PromptGuideNote() end
+        end,
+      })
+    AddOption("questlink",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("zone_nudge",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("hidecompletedgoals",{
+        type = "toggle",
+        set = function()
+          if CGV.Viewer and CGV.Viewer.Update then CGV.Viewer:Update(true) end
+        end,
+        _default = false,
+      })
+    AddOption("suggest_snooze_minutes",{
+        type = "slider",
+        min = 5, max = 120, step = 5,
+        _default = 30,
+      })
+    AddOption("wayshrine_nearby",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("endguide_toast",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("door_nearby",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("suggest_ready_ping",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("home_progress",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("quiet_mode",{
+        type = "toggle",
+        _default = false,
+      })
+    AddOption("remember_home_folder",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("extras_nudge",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption("note_badge_only_when_set",{
+        type = "toggle",
+        _default = true,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_undo_skip"] or "Undo last skip",
+        desc = O["opt_undo_skip_desc"] or "Restore the step before the last skip. Also /cgv undo.",
+        func = function()
+          if CGV.Features then CGV.Features:UndoLastSkip() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_jump_zone"] or "Load this zone’s guide",
+        desc = O["opt_jump_zone_desc"] or "Preferred Full/MQO for current zone. Also /cgv zone.",
+        func = function()
+          if CGV.Features then CGV.Features:JumpToZoneGuide() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_catchup"] or "Catch up completed steps",
+        desc = O["opt_catchup_desc"] or "Advance past already-complete steps. Also /cgv catchup.",
+        func = function()
+          if CGV.Features then CGV.Features:CatchUpSkip() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_step_back"] or "Step history back",
+        desc = O["opt_step_back_desc"] or "Previous step in history ring. Also /cgv back.",
+        func = function()
+          if CGV.Features then CGV.Features:StepHistoryBack() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_switch_style"] or "Switch Full ↔ MQO",
+        desc = O["opt_switch_style_desc"] or "Jump to the other style for this zone. Also /cgv style.",
+        func = function()
+          if CGV.Features then CGV.Features:SwitchGuideStyle() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_copy_step"] or "Copy current step",
+        desc = O["opt_copy_step_desc"] or "Dump the current step for authoring (Print to Chat).",
+        func = function()
+          if CGV.Features then CGV.Features:CopyCurrentStep() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_list_ignored"] or "List ignored guides",
+        desc = O["opt_list_ignored_desc"] or "Show forever-ignored guides. Also /cgv ignored.",
+        func = function()
+          if CGV.Features then CGV.Features:ListIgnoredGuides() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_clear_ignored"] or "Clear ignored guides",
+        desc = O["opt_clear_ignored_desc"] or "Clear forever-ignored suggestions. Also /cgv clearignored.",
+        func = function()
+          if CGV.Features then CGV.Features:ClearIgnoredGuides() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_viewer_find"] or "Find in guide (viewer)",
+        desc = O["opt_viewer_find_desc"] or "Open the viewer find box. Also /cgv findui.",
+        func = function()
+          if CGV.Features then CGV.Features:ToggleViewerFind() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_gallery_checklist"] or "ESOUI gallery checklist",
+        desc = O["opt_gallery_checklist_desc"] or "799×498 stretch-fill PNG rules. Also /cgv gallery.",
+        func = function()
+          if CGV.Features then CGV.Features:ShowGalleryChecklist() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_upload_checklist"] or "Upload-day checklist",
+        desc = O["opt_upload_checklist_desc"] or "Version/gallery/README reminders. Also /cgv upload.",
+        func = function()
+          if CGV.Features then CGV.Features:ShowUploadChecklist() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_mapdata_scaffold"] or "MapData scaffold",
+        desc = O["opt_mapdata_scaffold_desc"] or "Next MapData id + stubs. Also /cgv mapdata.",
+        func = function()
+          if CGV.Features then CGV.Features:ShowMapDataScaffold() end
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_compact_preset"] or "Apply compact viewer",
+        desc = O["opt_compact_preset_desc"] or "Steps shown = 1, smaller primary/secondary text.",
+        func = function()
+          if CGV.Features then CGV.Features:ApplyCompactPreset() end
+        end,
       })
 
     AddOption(nil,{
@@ -595,6 +828,55 @@ function SavedVars:InitializeOptions()
           if v and CGV.UnloadUnusedGuides then
             CGV:UnloadUnusedGuides()
           end
+        end,
+    })
+    AddOption(nil,{
+        type="header",
+        name=O["opt_authoring"] or "Authoring",
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_find_step"] or "Find in current guide",
+        desc = O["opt_find_step_desc"] or "Use /cgv find <text>, then /cgv step N. Prints matches to chat/dump.",
+        func = function()
+          d("|cfd5b02CGESO:|r type |cffffff/cgv find <text>|r then |cffffff/cgv step N|r to jump.")
+        end,
+      })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_cgpos_template"] or "Copy step template",
+        desc = O["opt_cgpos_template_desc"] or "Build a step/goto template at your position (also /cgpos template).",
+        func = function()
+          if CGV.Features then CGV.Features:CopyStepTemplate() end
+        end,
+    })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_cgpos_pack"] or "Copy MapData pack",
+        desc = O["opt_cgpos_pack_desc"] or "goto + offsets + step template in one dump (also /cgpos pack).",
+        func = function()
+          if CGV.Features then CGV.Features:CopyMapDataPack() end
+        end,
+    })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_cgpos_history"] or "Show /cgpos history",
+        desc = O["opt_cgpos_history_desc"] or "Print recent /cgpos dumps (also /cgpos history).",
+        func = function()
+          if CGV.Features then CGV.Features:PrintCgposHistory() end
+        end,
+    })
+    AddOption(nil,{
+        type = "execute",
+        width = 150,
+        name = O["opt_poi_list"] or "List zone wayshrines / doors",
+        desc = O["opt_poi_list_desc"] or "Live POI list for this zone (works when wayshrine Name fails, e.g. Solstice). Also /cgpos poi.",
+        func = function()
+          if CGV.Features then CGV.Features:ListZoneWayshrinesAndDoors() end
         end,
     })
   end

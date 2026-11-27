@@ -1,4 +1,9 @@
 local appName = "warHornTracker"
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 
 local isLoaded = false
 local isWhActive = false
@@ -20,6 +25,7 @@ warHornTracker.defaults = {
 	playSound = true,
     yAxisText = 700,
     xAxisText = 780,
+	lastSeenVersion = 0
 }
 
 warHornTracker.isBasicHorn = {
@@ -249,7 +255,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the notification text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return warHornTracker.savedVariables.xAxisText
             end,
@@ -263,7 +269,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the notification text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return warHornTracker.savedVariables.yAxisText
             end,
@@ -300,15 +306,23 @@ end
 local function stopTrackingAuto()
 
     if warHornTracker.savedVariables.trackWh and warHornTracker.savedVariables.autoTrack then
-        printMessage("Warhorn Ultimate not found")
+		if not notFoundAlreadyChecked then
+            printMessage("Warhorn Ultimate not found")
+        end
+		notFoundAlreadyChecked = true
+        alreadyChecked = false
         unRegisterAlerts()
     end
 end
 
 --start tracking if set is not equipped
 local function startTrackingAuto()
-    if warHornTracker.savedVariables.trackWh and warHornTracker.savedVariables.autoTrack then
-        printMessage("Found Warhorn Ultimate")
+    if warHornTracker.savedVariables.trackWh and warHornTracker.savedVariables.autoTrack then 
+		if not alreadyChecked then
+			printMessage("Found Warhorn Ultimate")
+		end
+		alreadyChecked = true
+		notFoundAlreadyChecked = false
         registerAlerts()
     end
 end
@@ -341,6 +355,14 @@ local function checkSkills()
     end
 end
 
+--notify about update when player activates
+local function activated()
+    if warHornTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        warHornTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end	
+
 --addon loaded
 local function onAddOnLoadedWht(event, name)
     --if add-on loaded was not this add-on quit
@@ -369,10 +391,10 @@ local function onAddOnLoadedWht(event, name)
     --check if set is equipped
     if not checkSkills() and warHornTracker.savedVariables.autoTrack and warHornTracker.savedVariables.trackWh then
         --notify set not found
-        zo_callLater(function() printMessage("Warhorn Ultimate not found") end, 600)
+        zo_callLater(function() printMessage("Warhorn Ultimate not found") notFoundAlreadyChecked = true end, 600)
     elseif checkSkills() and warHornTracker.savedVariables.autoTrack and warHornTracker.savedVariables.trackWh then
         --notify set found
-        zo_callLater(function() printMessage("Found Warhorn Ultimate") end, 600)
+        zo_callLater(function() printMessage("Found Warhorn Ultimate") alreadyChecked = true end, 600)
     end
 
     --setup text field areas
@@ -392,6 +414,9 @@ local function onAddOnLoadedWht(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+	EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --register for a callback when a skill is change, removed or updated, then check for relevent ulti
     ACTION_BAR_ASSIGNMENT_MANAGER:RegisterCallback("SlotUpdated", function(actionSlotIndex, hotbarCategory, isChangedByPlayer)

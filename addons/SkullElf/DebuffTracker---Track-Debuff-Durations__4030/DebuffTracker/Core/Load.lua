@@ -148,6 +148,7 @@ end
 function Load.InitializeSlots()
     local function Dirty()
         slotsDirty = true
+        if DT.Engine.StandingChanged then DT.Engine.StandingChanged() end
         DT.Engine.RequestUpdate()
     end
     -- by name: a list of constants stops at the first one this client doesn't have (ipairs ends at nil)
@@ -159,6 +160,7 @@ function Load.InitializeSlots()
     end
     local function ChampionChanged()
         cpDirty = true
+        if DT.Engine.StandingChanged then DT.Engine.StandingChanged() end
         if DT.Procs.OnLoadoutChanged then DT.Procs.OnLoadoutChanged() end
         DT.Engine.RequestUpdate()
     end
@@ -225,6 +227,16 @@ end
 -- Returns loaded (bool), reason (string, for the editor's "why isn't it showing" hint)
 -- "Above heads" needs a world position; the game only gives that for allies.
 function Load.HeadsProblem(tracker)
+    if tracker.display.type == "onframes" then
+        -- entries about allies: buffs / debuffs on group members, you or your companion, group members themselves
+        -- (Group members), or a group's resources
+        local tr = tracker.trigger
+        if (tr.type == "effect" and C.HEAD_SCOPES[tr.scope]) or tr.type == "group"
+            or (tr.type == "resource" and (tr.unit == "group" or tr.unit == "player")) then
+            return nil
+        end
+        return DT.L("On group frames only works on allies (group members, you, your companion)")
+    end
     if tracker.display.type ~= "heads" then return nil end
     local tr = tracker.trigger
     if tr.type ~= "effect" or not C.HEAD_SCOPES[tr.scope] then
@@ -233,7 +245,7 @@ function Load.HeadsProblem(tracker)
     return nil
 end
 
-function Load.Check(tracker, ctx)
+local function Standing(tracker, ctx)
     if not tracker.enabled then return false, DT.L("Disabled") end
     local headsProblem = Load.HeadsProblem(tracker)
     if headsProblem then return false, headsProblem end
@@ -244,27 +256,10 @@ function Load.Check(tracker, ctx)
         return false, DT.L("Not worn")
     end
     local ld = tracker.load
-    -- "Stay shown after combat" (Meterskull keeps its meters 5 s): longer than the usual grace
-    if ld.combat == "in" and not ctx.inCombat and not ((ld.combatLinger or 0) > Load.COMBAT_GRACE
-        and Load.SinceCombat() < ld.combatLinger) then
-        return false, DT.L("Only in combat")
-    end
-    if ld.combat == "out" and ctx.inCombat then return false, DT.L("Only out of combat") end
     if ld.group == "solo" and ctx.groupSize > 0 then return false, DT.L("Solo only") end
     if ld.group == "group" and (ctx.groupSize < 2 or ctx.groupSize > 4) then return false, DT.L("Small group only") end
     if ld.group == "raid" and ctx.groupSize < 5 then return false, DT.L("Raid only") end
     if ld.group == "grouped" and ctx.groupSize < 2 then return false, DT.L("Group only") end
-    if ld.bossOnly and not ctx.bossPresent then return false, DT.L("Boss fights only") end
-    if ld.trashOnly and ctx.bossPresent then return false, DT.L("Not during boss fights") end
-    if ld.hideDead and ctx.dead then return false, DT.L("You're dead") end
-    -- werewolf form (Tony, 5.14.6: "show only when I'm human" -- the werewolf bar isn't one of your two bars, so
-    -- "skill slotted" could never see it). Read only for trackers that use it.
-    if ld.werewolf ~= "any" then
-        if ctx.werewolf == nil then ctx.werewolf = type(IsWerewolf) == "function" and IsWerewolf() == true end
-        if ld.werewolf == "only" and not ctx.werewolf then return false, DT.L("Only in werewolf form") end
-        if ld.werewolf == "never" and ctx.werewolf then return false, DT.L("Not in werewolf form") end
-    end
-
     -- Every list below is "only when" (one of them matches) or, switched to "never when", the opposite: hidden
     -- when one of them matches (Tony: HyperTools' "!" prefix, here as a plain switch next to each list).
     local never = ld.never
@@ -351,6 +346,47 @@ function Load.Check(tracker, ctx)
         why = Apply("skills", ok, DT.L("Skill not slotted"), DT.L("Not with this skill slotted"))
         if why then return false, why end
     end
+    if #ld.characters > 0 then
+        local ok = false
+        for _, n in ipairs(ld.characters) do
+            if U.Lower(n) == U.Lower(ctx.character) then ok = true; break end
+        end
+        why = Apply("characters", ok, DT.L("Other characters only"), DT.L("Not on this character"))
+        if why then return false, why end
+    end
+    return true
+end
+
+-- What changes from moment to moment (combat, a boss, being dead, werewolf form, which boss): only hides the tracker.
+local function Moment(tracker, ctx)
+    local ld = tracker.load
+    local never = ld.never
+    local function Apply(group, matched, onlyReason, neverReason)
+        if never[group] then
+            if matched then return neverReason end
+        elseif not matched then
+            return onlyReason
+        end
+        return nil
+    end
+    local why
+    -- "Stay shown after combat" (Meterskull keeps its meters 5 s): longer than the usual grace
+    if ld.combat == "in" and not ctx.inCombat and not ((ld.combatLinger or 0) > Load.COMBAT_GRACE
+        and Load.SinceCombat() < ld.combatLinger) then
+        return false, DT.L("Only in combat")
+    end
+    if ld.combat == "out" and ctx.inCombat then return false, DT.L("Only out of combat") end
+    if ld.bossOnly and not ctx.bossPresent then return false, DT.L("Boss fights only") end
+    if ld.trashOnly and ctx.bossPresent then return false, DT.L("Not during boss fights") end
+    if ld.hideDead and ctx.dead then return false, DT.L("You're dead") end
+    -- werewolf form (Tony, 5.14.6: "show only when I'm human" -- the werewolf bar isn't one of your two bars, so
+    -- "skill slotted" could never see it). Read only for trackers that use it.
+    if ld.werewolf ~= "any" then
+        if ctx.werewolf == nil then ctx.werewolf = type(IsWerewolf) == "function" and IsWerewolf() == true end
+        if ld.werewolf == "only" and not ctx.werewolf then return false, DT.L("Only in werewolf form") end
+        if ld.werewolf == "never" and ctx.werewolf then return false, DT.L("Not in werewolf form") end
+    end
+
     if #ld.bossNames > 0 then
         local ok = false
         for _, have in ipairs(BossNames(ctx)) do
@@ -362,15 +398,30 @@ function Load.Check(tracker, ctx)
         why = Apply("bosses", ok, DT.L("Other boss"), DT.L("Not against this boss"))
         if why then return false, why end
     end
-    if #ld.characters > 0 then
-        local ok = false
-        for _, n in ipairs(ld.characters) do
-            if U.Lower(n) == U.Lower(ctx.character) then ok = true; break end
-        end
-        why = Apply("characters", ok, DT.L("Other characters only"), DT.L("Not on this character"))
-        if why then return false, why end
-    end
     return true
+end
+
+-- Returns loaded (bool), reason (string, for the editor's "why isn't it showing" hint), standing (bool).
+-- "Standing" conditions change rarely -- enabled, role, class, character, zone, group, sets, champion and slotted
+-- skills: a tracker that fails one of them doesn't listen to anything at all (Engine.Rebuild; Yarden, 5.21.26: "I'm on
+-- healer. Why am I listening to non healer things??" -- a Taunt tracker for tanks still followed every taunt). The
+-- moment-to-moment ones only hide it, so nothing re-registers each time combat starts or ends.
+function Load.Check(tracker, ctx)
+    local ok, why = Standing(tracker, ctx)
+    if not ok then return false, why, false end
+    ok, why = Moment(tracker, ctx)
+    if not ok then return false, why, true end
+    return true, nil, true
+end
+
+-- only the standing conditions (does this tracker need to listen to anything right now?): ok, reason
+function Load.Standing(tracker, ctx)
+    return Standing(tracker, ctx)
+end
+
+-- only the moment-to-moment ones: ok, reason
+function Load.Moment(tracker, ctx)
+    return Moment(tracker, ctx)
 end
 
 function Load.IsLoaded(tracker, ctx)

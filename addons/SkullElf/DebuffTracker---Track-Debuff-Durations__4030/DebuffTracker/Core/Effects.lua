@@ -171,6 +171,8 @@ end
 
 local wantIds = {}       -- raw ability ids that enemy-scope triggers listen for
 local wantNames = {}     -- lowercase names (unfiltered registration)
+-- (is this ability listened to on enemies right now? -- for tests and /dt perf)
+function E.WantsId(id) return wantIds[id] == true end
 -- lowercase of effect names seen by the unfiltered registration (every effect in the area reaches it)
 local lowerOf, lowerCount = {}, 0
 local function LowerName(name)
@@ -816,7 +818,10 @@ function E.Initialize()
         E.ResolveTarget()
         if DT.Engine.RequestUpdate then DT.Engine.RequestUpdate() end
     end)
-    local function GroupChanged() E.MarkPrefixDirty("group") end
+    local function GroupChanged()
+        E.MarkPrefixDirty("group")
+        if DT.Engine.StandingChanged then DT.Engine.StandingChanged() end   -- "group size" load conditions
+    end
     EVENT_MANAGER:RegisterForEvent(NS .. "_GroupUpdate", EVENT_GROUP_UPDATE, GroupChanged)
     EVENT_MANAGER:RegisterForEvent(NS .. "_GroupJoined", EVENT_GROUP_MEMBER_JOINED, GroupChanged)
     EVENT_MANAGER:RegisterForEvent(NS .. "_GroupLeft", EVENT_GROUP_MEMBER_LEFT, GroupChanged)

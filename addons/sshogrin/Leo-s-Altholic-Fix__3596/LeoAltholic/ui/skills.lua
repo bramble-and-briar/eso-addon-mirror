@@ -1,6 +1,6 @@
-
-LeoAltholicSkillsList = ZO_SortFilterList:Subclass()
-function LeoAltholicSkillsList:New(control)
+local LeoAltholic = LeoAltholic
+LeoAltholic.SkillsList = ZO_SortFilterList:Subclass()
+function LeoAltholic.SkillsList:New(control)
 
     ZO_SortFilterList.InitializeSortFilterList(self, control)
 
@@ -22,7 +22,7 @@ function LeoAltholicSkillsList:New(control)
     return self
 end
 
-function LeoAltholicSkillsList:SetupEntry(control, data)
+function LeoAltholic.SkillsList:SetupEntry(control, data)
 
     control.data = data
 
@@ -156,7 +156,7 @@ function LeoAltholicSkillsList:SetupEntry(control, data)
     ZO_SortFilterList.SetupRow(self, control, data)
 end
 
-function LeoAltholicSkillsList:ColorRow(control, data, mouseIsOver)
+function LeoAltholic.SkillsList:ColorRow(control, data, mouseIsOver)
 
     local color = ZO_SECOND_CONTRAST_TEXT
     local r, g, b = GetInterfaceColor(INTERFACE_COLOR_TYPE_ITEM_QUALITY_COLORS, ITEM_QUALITY_MAGIC)
@@ -186,7 +186,7 @@ function LeoAltholicSkillsList:ColorRow(control, data, mouseIsOver)
     end
 end
 
-function LeoAltholicSkillsList:BuildMasterList()
+function LeoAltholic.SkillsList:BuildMasterList()
     self.masterList = {}
     local list = LeoAltholic.ExportCharacters(true)
     for k, v in ipairs(list) do
@@ -199,7 +199,7 @@ function LeoAltholicSkillsList:BuildMasterList()
     end
 end
 
-function LeoAltholicSkillsList:SortScrollList()
+function LeoAltholic.SkillsList:SortScrollList()
     local scrollData = ZO_ScrollList_GetDataList(self.list)
     if self.currentSortKey == "queueIndex" then
         table.sort(scrollData, function(listEntry1, listEntry2)
@@ -210,7 +210,7 @@ function LeoAltholicSkillsList:SortScrollList()
     end
 end
 
-function LeoAltholicSkillsList:FilterScrollList()
+function LeoAltholic.SkillsList:FilterScrollList()
     local scrollData = ZO_ScrollList_GetDataList(self.list)
     ZO_ClearNumericallyIndexedTable(scrollData)
     for i = 1, #self.masterList do
@@ -231,7 +231,7 @@ local function addLineTitle(tooltip, text, color)
     tooltip:AddLine(text, "ZoFontHeader3", r, g, b, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
 end
 
-function LeoAltholicUI.TooltipSkill(control, visible)
+function LeoAltholic.UI.TooltipSkill(control, visible)
 
     if visible and control.tooltip and control.tooltip.name then
         if not parent then parent = control end

@@ -18,7 +18,7 @@
     "CompanionDashboard"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5053/",
-  "fingerprint": "6b2e0c26fa686750db7556d2884542652bc49103902b721a13bffa9799707a06",
+  "fingerprint": "9dd1e96eead5db5e238ed21a5e7da13bfca76c5e64eb37ee3ddfaf721593666d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18684.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "5053",
   "source_url": "https://www.esoui.com/downloads/info5053-CompanionDashboard.html",
   "stats": {
-    "downloads": 64,
-    "favorites": 0,
-    "monthly_downloads": 61
+    "downloads": 82,
+    "favorites": 1,
+    "monthly_downloads": 77
   },
   "title": "Companion Dashboard",
-  "updated_at": 1795358722000,
-  "version": "1.5.3"
+  "updated_at": 1795763025000,
+  "version": "1.5.4"
 }

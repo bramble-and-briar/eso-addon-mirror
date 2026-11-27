@@ -6,33 +6,7 @@ local names=N.skillNames
 local wm=WINDOW_MANAGER
 local gold={.86,.71,.43,1}
 local pale={.88,.86,.79,1}
-local guides={
-{'Gather resource nodes','Harvest statistics','Node recording','Known node markers','Nearby resource hints','Farming routes','Efficiency analysis'},
-{'Blacksmith equipment and research','Crafting statistics','Material inventory','Research planner','Cost estimator','Set advisor','Crafting optimization'},
-{'Craft wooden equipment','Crafting statistics','Material inventory','Research planner','Cost estimator','Set advisor','Crafting optimization'},
-{'Craft cloth and leather equipment','Crafting statistics','Material inventory','Research planner','Cost estimator','Set advisor','Crafting optimization'},
-{'Create potions and poisons','Crafting statistics','Ingredient reference','Reagent inventory','Recipe advisor','Cost analysis','Alchemy workshop'},
-{'Craft glyphs','Crafting statistics','Rune reference','Recipe calculator','Glyph catalog','Enchanting advisor','Glyph optimization'},
-{'Prepare food and drink','Cooking statistics','Recipe catalog','Ingredient tracking','Food recommendations','Buff expiry alerts','Nutrition advisor'},
-{'Craft jewelry','Crafting statistics','Material inventory','Research planner','Cost estimator','Set advisor','Crafting optimization'},
-{'Catch fish','Fishing journal','Known fishing holes','Bait reference','Rare fish tracker','Expedition planner','Fishing analysis'},
-{'Complete quests and discover places','Adventure journal','Lore intelligence','Narrative continuity','Zone advisor','Adventure finder','Progression advisor'},
-{'Defeat enemies and bosses','Kill journal','Enemy statistics','Known bosses','Slayer assignments','Boss intelligence','Master contracts'},
-{'Complete group dungeons','Dungeon journal','Career statistics','DPS and HPS','Role analysis','Boss intelligence','Performance reports'},
-{'Earn qualifying alliance points','PvP statistics','Match history','Opponent history','Battlefield intelligence','Mission advisor','Career analytics'},
-{'Craft and place furnishings','Housing journal','Furniture catalog','Duplicate detection','Material planner','Estate valuation','Estate dashboard'},
-{'Earn gold through permitted NPC sales','Income tracker','Loot valuation','Deconstruction advisor','Wealth dashboard','NPC sale advisor','Profit analysis'},
-{'Pickpocket, lockpick and fence','Criminal journal','Fencing tracker','Known safe boxes','Bounty advisor','Heist routes','Career dashboard'},
-{'Scry and excavate antiquities','Excavation journal','Lead tracker','Expiry reminders','Regional advisor','Acquisition guide','Expedition planner'},
-{'Survive active gameplay','Survival journal','Equipment warnings','Critical health awareness','Danger indicators','Threat awareness','Survival intelligence'},
-{'Survive combat encounters','Engagement history','Combat alert','Danger warning','Directional indicators','Rear threat awareness','Threat prioritization'},
-{'Sustain combat','Expedition tracker','Fatigue awareness','Stamina warnings','Resource trends','Combat efficiency','Resource advisor'},
-{'Discover locations','Travel journal','Landmark catalog','Cardinal compass','Known routes','Sanctuary guidance','Return navigation'},
-{'Heal and recover in combat','Healing journal','Potion warnings','Status recognition','Damage trends','Recovery advisor','Emergency alerts'},
-{'Interrupt and defeat enemies','Combat journal','Block and dodge stats','Interrupt analysis','Attack reference','Defensive feedback','Combat analysis'},
-{'Craft your own supplies','Wealth tracker','Acquisition journal','Supply dashboard','Equipment advisor','Shortage warnings','Self-sufficiency advisor'},
-{'Establish a residence','Residence journal','Storage ledger','Supply inventory','Preparation checklist','Shortage advisor','Sanctuary dashboard'},
-{'Sneak and evade detection','Stealth journal','Detection history','Escape statistics','Disengagement feedback','Known safe routes','Evasion analysis'} }
+local guides={{'Gather resource nodes'},{'Survive active gameplay'},{'Survive combat encounters'},{'Sustain combat'},{'Interrupt and defeat enemies'}}
 local marks={5,15,30,50,75,99}
 local icons={'crafting','blacksmithing','woodworking','clothier','alchemy','enchanting','provisioning','jewelrycrafting'}
 local function label(parent,size,x,y,w,h)
@@ -42,20 +16,31 @@ local function bg(parent,x,y,w,h,r,g,b,a)
  local t=wm:CreateControl(nil,parent,CT_TEXTURE);t:SetAnchor(TOPLEFT,parent,TOPLEFT,x,y);t:SetDimensions(w,h);t:SetColor(r,g,b,a);return t
 end
 local function data(i) local a=N.hardcore.saved;local x=(a.xp or {})[names[i]] or 0;local l=N.skillLevel(x);local lo=N.skillThreshold(l);local hi=N.skillThreshold(math.min(99,l+1));return x,l,l==99 and 1 or math.max(0,math.min(1,(x-lo)/math.max(1,hi-lo))) end
+local settingsRows={{'combatCamera','Automatic first-person combat'},{'overlays','Immersive overlays'},{'intensity','Overlay intensity',0,100},{'meters','Nutrition HUD'},{'x','Nutrition horizontal position',-1000,1000},{'y','Nutrition vertical position',-900,0},{'scale','Nutrition scale',50,150}}
+for _,k in ipairs({'health','poison','burn','disease','chill','shock','bleed','control','hunger','thirst'}) do settingsRows[#settingsRows+1]={k,k:sub(1,1):upper()..k:sub(2)..' effect'} end
+local function adjustSettings(dx)
+ local a=N.hardcore.saved;local r=settingsRows[W.setting or 1]
+ if r[3] then a[r[1]]=math.max(r[3],math.min(r[4],(a[r[1]] or r[3])+dx*5)) else a[r[1]]=not (a[r[1]]~=false) end
+end
 local function refresh()
  local a=N.hardcore.saved;local total=0;for i=1,#names do local _,l=data(i);total=total+l end
- W.header:SetText('ESO HARDCORE   |   '..({'SKILLS','SURVIVAL','CAREER','ASSIGNMENTS','RULESET','FALLEN','DEVELOPER','HC INVENTORY','HC BANK','INTEGRITY LOG'})[W.page]);W.sub:SetText('Total level '..total..' / 2574  |  '..(a.fallen and 'FALLEN' or a.active and 'ACTIVE' or 'NOT ENROLLED'))
+ W.header:SetText('ESO HARDCORE   |   '..({'SKILLS','SURVIVAL','CAREER','REMOVED','RULESET','FALLEN','DEVELOPER','HC INVENTORY','HC BANK','INTEGRITY LOG','SETTINGS'})[W.page]);W.sub:SetText('Total level '..total..' / '..(#names*99)..'  |  '..(a.fallen and 'FALLEN' or a.active and 'ACTIVE' or 'NOT ENROLLED'))
  local grid=W.page==1 and not W.detail;W.grid:SetHidden(not grid);W.body:SetHidden(grid or W.page==8 or W.page==9);if N.bagGrid then N.bagGrid.render(W.page) end
  if grid then for i,t in ipairs(W.tiles) do local _,l,p=data(i);t.level:SetText(tostring(l)..(l==99 and ' *' or ''));t.fill:SetWidth(math.max(1,170*p));t.back:SetColor(i==W.selected and .28 or .12,i==W.selected and .21 or .10,i==W.selected and .13 or .09,1) end;W.footer:SetText('D-pad: Select    X: Skill guide    L1 / R1: Pages    Circle: Close')
- elseif W.page==1 then local x,l,p=data(W.selected);local g=guides[W.selected];local lines={names[W.selected]..'   |   Level '..l..'/99',string.format('XP: %d   |   %s',math.floor(x),l==99 and 'Mastered' or math.ceil(N.skillThreshold(l+1)-x)..' XP to next level'),'Progress: '..math.floor(p*100)..'%','XP sources: '..g[1],'','SKILL UNLOCKS (guide entries are planned unless listed below)' };for j,m in ipairs(marks) do lines[#lines+1]=string.format('Level %d  |  %s  |  %s',m,g[j+1],l>=m and 'Level met' or 'Locked') end;if names[W.selected]=='Pathfinding' then lines[#lines+1]='Implemented: level 30 native compass' elseif names[W.selected]=='Adventuring' then lines[#lines+1]='Implemented: level 15 quest tracker' elseif names[W.selected]=='Survivalist' then lines[#lines+1]='Implemented: level 50 slower nutrition' end;if N.skillJournal then lines[#lines+1]=N.skillJournal(names[W.selected]) end;W.body:SetText(table.concat(lines,'\n'));W.footer:SetText('Circle: Skills grid    L1 / R1: Pages')
- elseif W.page==2 then W.body:SetText(string.format('Hunger: %d%%\nThirst: %d%%\nSkill XP multiplier: %g%%\n\nMaintain both meters to maximize progression.\nAutomatic nutrition: enabled.\nSurvivalist 50: 10%% slower depletion.',math.floor(a.food),math.floor(a.water),N.hardcore.multiplier()*100));W.body:SetText(W.body:GetText()..'\n\nDifficulty: '..N.hardcore.difficultyName()..'\nAutomatically read from ESO character sheet.');W.footer:SetText('L1/R1: Pages    Circle: Close')
- elseif W.page==3 then W.body:SetText('Character: '..tostring(N.safe(GetUnitName,'player') or '')..'\nStatus: '..(a.fallen and 'Fallen' or a.active and 'Active' or 'Not enrolled')..'\nTotal skill level: '..total..' / 2574\nActive survival time: '..math.floor((a.survivalSeconds or 0)/60)..' minutes'..'\n\n'..N.journalText());W.footer:SetText('L1 / R1: Pages    Circle: Close')
+ elseif W.page==1 then local x,l,p=data(W.selected);local k=names[W.selected];local g=guides[W.selected];local lines={k..'   |   Level '..l..'/99',string.format('XP: %d   |   %s',math.floor(x),l==99 and 'Mastered' or math.ceil(N.skillThreshold(l+1)-x)..' XP to next level'),'XP sources: '..g[1],'','MILESTONE REWARDS'};local selected=W.rewardIndex or 1;for j,m in ipairs(marks) do lines[#lines+1]=string.format('%sLv %d | %s',j==selected and '> ' or '  ',m,N.rewards.label(k,j)) end;lines[#lines+1]='';lines[#lines+1]=N.rewards.line(k,selected,l);W.body:SetText(table.concat(lines,'\n'));W.footer:SetText('Up/Down: Reward    X: Refresh    Circle: Skills grid')
+ elseif W.page==2 then W.body:SetText(string.format('Hunger: %d%%\nThirst: %d%%\nSkill XP multiplier: %g%%\n\nMaintain both meters to maximize progression.\nAutomatic nutrition: enabled.\nSurvivalist 50: 10%% slower depletion.',math.floor(a.food),math.floor(a.water),N.hardcore.multiplier()*100));W.body:SetText(W.body:GetText()..'\n\nDifficulty: '..N.hardcore.difficultyName()..'\n'..N.hardcore.difficultyInfo()..'\nLeft/right cycles manual difficulty or Auto.\nManual overrides detection until returned to Auto.');W.footer:SetText('Left/Right: Difficulty fallback    L1/R1: Pages    Circle: Close')
+ elseif W.page==3 then W.body:SetText('Character: '..tostring(N.safe(GetUnitName,'player') or '')..'\nStatus: '..(a.fallen and 'Fallen' or a.active and 'Active' or 'Not enrolled')..'\nTotal skill level: '..total..' / '..(#names*99)..'\nActive survival time: '..math.floor((a.survivalSeconds or 0)/60)..' minutes'..'\n\n'..N.journalText());W.footer:SetText('L1 / R1: Pages    Circle: Close')
  elseif W.page==8 or W.page==9 then W.footer:SetText("D-pad: Select    X: Category    L1/R1: Pages    Circle: Close")
  elseif W.page==10 then W.body:SetText(N.economyText(W.page).."\n\nRECENT EVENTS\n"..N.economyDebug());W.footer:SetText('D-pad: Browse / sort    L1 / R1: Pages    Circle: Close')
  elseif W.page==7 then W.body:SetText(N.dev.text());W.footer:SetText("D-pad: Adjust/select    X: Apply    Circle: Close")
+ elseif W.page==11 then
+  local i=W.setting or 1;local first=math.max(1,math.min(i-3,#settingsRows-7));local lines={N.settingsStatus and N.settingsStatus() or 'Settings available here',''}
+  for j=first,math.min(first+7,#settingsRows) do local r=settingsRows[j];local v=a[r[1]];lines[#lines+1]=(j==i and '> ' or '  ')..r[2]..': '..(r[3] and tostring(v) or (v~=false and 'ON' or 'OFF')) end
+  lines[#lines+1]='';lines[#lines+1]=N.combatCamera.info();W.body:SetText(table.concat(lines,'\n'));W.footer:SetText('Up/Down: Select    Left/Right or X: Adjust    L1/R1: Pages    Circle: Close')
+ elseif W.page==5 then W.body:SetText(N.expansionPage(W.page)..'\n\nImmersive Combat Camera: '..(N.combatCamera.enabled() and 'ON' or 'OFF')..'\n'..N.combatCamera.info());W.footer:SetText('X: Toggle combat camera    L1/R1: Pages    Circle: Close')
  else W.body:SetText(N.expansionPage(W.page));W.footer:SetText('L1 / R1: Pages    Circle: Close') end
 end
-local function move(dx,dy) if W.page==2 then return end;if W.page==8 or W.page==9 then N.bagGrid.move(dx,dy);refresh();return end;if W.page==7 then N.dev.move(dx,dy);refresh();return end;if W.page~=1 or W.detail then return end;W.selected=math.max(1,math.min(#names,W.selected+dx+dy*4));refresh() end
+local function move(dx,dy) if W.page==11 then if dy~=0 then W.setting=math.max(1,math.min(#settingsRows,(W.setting or 1)+dy)) elseif dx~=0 then adjustSettings(dx) end;refresh();return end;if W.page==2 then if dx~=0 then N.hardcore.changeDifficulty(dx);refresh() end;return end;if W.page==8 or W.page==9 then N.bagGrid.move(dx,dy);refresh();return end;if W.page==7 then N.dev.move(dx,dy);refresh();return end;if W.page==1 and W.detail then W.rewardIndex=((W.rewardIndex or 1)-1+dx+dy)%6+1;refresh();return end;if W.page~=1 then return end;W.selected=math.max(1,math.min(#names,W.selected+dx+dy*4));refresh() end
 local function release()
  W.focus=false
  if W.layer then W.layer=false;N.safe(RemoveActionLayerByName,layerName) end
@@ -65,9 +50,9 @@ end
 function ESOHardcoreGridInput(action)
  if not W.focus or SCENE_MANAGER:GetCurrentScene()~=W.scene or (ZO_Dialogs_IsShowingDialog and N.safe(ZO_Dialogs_IsShowingDialog)) then return end
  if action=='LEFT' then move(-1,0) elseif action=='RIGHT' then move(1,0) elseif action=='UP' then move(0,-1) elseif action=='DOWN' then move(0,1)
- elseif action=='primary' then if W.page==8 or W.page==9 then N.bagGrid.apply();refresh() elseif W.page==7 then if N.dev.apply() then W.focus=false;SCENE_MANAGER:HideCurrentScene() else refresh() end elseif W.page==1 then W.detail=not W.detail;refresh() end
- elseif action=='prev' then W.page=(W.page+8)%10+1;W.detail=false;N.dev.confirm=nil;refresh()
- elseif action=='next' then W.page=W.page%10+1;W.detail=false;N.dev.confirm=nil;refresh()
+ elseif action=='primary' then if W.page==11 then adjustSettings(1);refresh() elseif W.page==5 then N.combatCamera.toggle();refresh() elseif W.page==8 or W.page==9 then N.bagGrid.apply();refresh() elseif W.page==7 then if N.dev.apply() then W.focus=false;SCENE_MANAGER:HideCurrentScene() else refresh() end elseif W.page==1 then if not W.detail then W.detail=true;W.rewardIndex=1 end;refresh() end
+ elseif action=='prev' then W.page=(W.page+9)%11+1;if W.page==4 then W.page=3 end;W.detail=false;N.dev.confirm=nil;refresh()
+ elseif action=='next' then W.page=W.page%11+1;if W.page==4 then W.page=5 end;W.detail=false;N.dev.confirm=nil;refresh()
  elseif action=='back' then if W.detail then W.detail=false;N.dev.confirm=nil;refresh() else W.focus=false;SCENE_MANAGER:HideCurrentScene() end end
 end
 function N.buildSkillWindow()
@@ -114,8 +99,8 @@ function N.toggleHardcorePage(page)
  if not N.hardcore or not N.hardcore.saved then return end
  if W.scene and SCENE_MANAGER:GetCurrentScene()==W.scene then
   if W.page==page then W.focus=false;SCENE_MANAGER:HideCurrentScene();return end
-  W.page=page;W.detail=false;N.dev.confirm=nil;refresh();return
+  W.page=page==4 and 1 or page;W.detail=false;N.dev.confirm=nil;refresh();return
  end
- W.page=page;W.detail=false;N.dev.confirm=nil
+ W.page=page==4 and 1 or page;W.detail=false;N.dev.confirm=nil
  if setup() then SCENE_MANAGER:Show('ESOHardcoreSkillsScene') end
 end

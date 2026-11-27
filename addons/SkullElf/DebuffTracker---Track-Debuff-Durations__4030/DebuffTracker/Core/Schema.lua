@@ -114,6 +114,21 @@ S.TRACKER_DEFAULTS = {
         gcdSoundLong = true,    -- on abilities over 1 s too [not "No sound on long abilities"]
         gcdSoundOOC = false,    -- out of combat too ["Play sounds ooc"]
         gcdVolume = 5,          -- the sound is played this many times (louder) ["Volume of 'tick' and 'tock'"]
+        healthVisuals = true,   -- health: shield, trauma and "can't be healed" on the bars (5.22.0)
+        -- group members (Core/Group.lua, 5.23.0)
+        groupSelf = true,       -- you among them
+        groupCompanions = true, -- companions (after the players; your own when you're not grouped)
+        groupSolo = false,      -- not grouped: still show yourself (and your companion)
+        groupSort = "role",     -- "role" (tanks, healers, damage) | "group" (group order) | "name"
+        groupNames = "character", -- "character" | "account"
+        -- weaving (Core/Weave.lua, 5.24.0; WeaveDelays' options in brackets)
+        weaveLatency = false,   -- light attacks may land up to 1.6 s after the press instead of 1 s ["Increase latency tolerance"]
+        weaveConfirm = false,   -- count a skill only once the game reports it went off ["confirm skill casts"]
+        weaveHeavyBreaks = false, -- a heavy attack between two skills isn't delay (ours)
+        weaveTextMissed = "M",  -- no light attack pressed before the skill
+        weaveTextVanished = "X", -- pressed, never registered (cast too fast)
+        weaveTextQueued = "Q",  -- queued, never landed (range, the enemy died)
+        weaveTextBashed = "B",  -- the skill was bash-cancelled
         calc = "none",          -- "none" | "missing" (value from missing %) | "divide" (% / divisor)
         calcScalar = 30,        -- missing: value at 100% missing...
         calcStart = 100,        -- ...counted from this %...
@@ -157,6 +172,7 @@ S.TRACKER_DEFAULTS = {
         borderColor = { 0, 0, 0, 1 },
         iconTint = { 1, 1, 1, 1 },  -- multiplies the icon's colours (darken a too-bright icon)
         procPercent = true,     -- proc cards: the resource % strip along the bottom
+        procGauge = true,       -- proc cards: the resource gauge inside the icon and its line (5.21.27)
         procColorOk = { 0.36, 0.95, 0.45, 1 },    -- proc cards: full bonus / running / can proc
         procColorPart = { 1, 0.80, 0.30, 1 },     -- ...partial bonus, players count when low
         procColorBad = { 0.95, 0.30, 0.30, 1 },   -- ...can't proc (gauge above the line), wasted procs
@@ -207,6 +223,9 @@ S.TRACKER_DEFAULTS = {
         vertical = false,       -- bars as vertical columns (width = length, row height = thickness)
         iconTimer = "sweep",    -- icons: "sweep" (dark overlay) | "shrinkV" | "shrinkH" (the icon itself shrinks) | "none"
         cooldownColor = { 0.886, 0.294, 0.290, 1 }, -- ability timers: bar / timer colour during the cooldown
+        shieldColor = { 0.92, 0.92, 1, 0.55 },      -- health bars: damage shield (from the empty end)
+        traumaColor = { 0.58, 0.16, 0.70, 0.95 },   -- health bars: trauma (health that needs healing first)
+        noHealColor = { 0.10, 0.10, 0.12, 0.55 },   -- health bars: can't be healed (over the health left)
         cooldownDesaturate = true,  -- ...and the icon goes grey
         -- Meter (number tiles: character stats, a value from a rule...): one tile per entry
         meterWidth = 118,
@@ -223,6 +242,43 @@ S.TRACKER_DEFAULTS = {
         -- timers ... so you can see the arena floor a bit clearer" -- it was a fixed 40% black)
         trackColor = { 0, 0, 0, 0.4 },
         zoneColor = { 1, 0.88, 0.5, 0.45 },     -- bars: the end window (global cooldown: your ping, to queue the next input)
+        -- Group frames (5.23.0): health bars coloured by role, the trackers' own colours otherwise
+        frameColorBy = "role",  -- "role" | "health" (the timer gradient: green -> amber -> red) | "solid" (colorSolid)
+        tankColor = { 0.30, 0.56, 0.90, 1 },
+        healerColor = { 0.26, 0.74, 0.44, 1 },
+        dpsColor = { 0.80, 0.33, 0.30, 1 },
+        companionColor = { 0.45, 0.50, 0.46, 1 },
+        frameClassIcon = true,  -- the class icon at the left end
+        frameLeader = true,     -- the leader's mark before the name
+        frameRoleIcon = false,  -- the role icon before the name
+        frameHealthText = "value", -- "value" | "pct" | "both" | "none"
+        frameShieldText = true, -- "+6k" after the health while shielded
+        frameRangeAlpha = 0.4,  -- out of support range: faded to this
+        frameMouse = true,      -- tooltip and the group menu on right-click
+        hideGameFrames = false, -- hide the game's group / raid frames while these show
+        frameTipSets = true,    -- tooltip: the member's gear sets (needs LibSetDetection, optional)
+        frameTipEffects = "timed", -- tooltip: the effects on them: "timed" | "all" (with the ones without an end) | "none"
+        -- On group frames
+        frameShow = "icons",    -- "icons" | "bar" (a thin bar along the frame)
+        frameSpot = "right",    -- icons: "right" | "left" | "inside"; bar: "bottom" | "top"
+        frameIconSize = 0,      -- 0 = the frame's height
+        frameBarSize = 3,       -- the bar's thickness
+        framesOf = "",          -- which group frames tracker ("" = the first one shown)
+        -- Weave strip (5.24.0): one slot per skill, iconSize = a slot's width, columns = slots per row
+        weaveRows = 1,
+        weaveIcons = true,      -- the skill's icon on its tile
+        weaveAverage = true,    -- the fight's average delay (seconds): in the header's badge, or above the tiles
+        weaveGoodMs = 50,       -- up to this: the good colour...
+        weaveSlowMs = 250,      -- ...from this on: the slow colour (in between: okay, blended)
+        weaveScaleMs = 300,     -- the line under a skill is full at this much time lost
+        weaveGoodColor = { 0.36, 0.95, 0.45, 1 },   -- (the proc cards' green / gold / red / grey)
+        weaveOkColor = { 1, 0.80, 0.30, 1 },
+        weaveSlowColor = { 0.95, 0.30, 0.30, 1 },
+        weaveMissColor = { 0.95, 0.30, 0.30, 1 },   -- the M / X / Q letters
+        weaveMarkerColor = { 1, 1, 1, 1 },
+        -- the window's own border (any display with a window): nil = the style's; and its thickness, 0 = the style's 1 px
+        windowEdge = nil,
+        windowEdgeSize = 0,
     },
 
     position = {
@@ -452,6 +508,19 @@ local function NormalizeTrigger(tr)
     tr.procGameDurations = tr.procGameDurations == true
     tr.procZenBoss = tr.procZenBoss == true
     tr.calc = Enum(tr.calc, VALID.calc, "none")
+    tr.healthVisuals = tr.healthVisuals ~= false
+    tr.groupSelf = tr.groupSelf ~= false
+    tr.groupCompanions = tr.groupCompanions ~= false
+    tr.groupSolo = tr.groupSolo == true
+    tr.groupSort = (tr.groupSort == "group" or tr.groupSort == "name") and tr.groupSort or "role"
+    tr.groupNames = tr.groupNames == "account" and "account" or "character"
+    tr.weaveLatency = tr.weaveLatency == true
+    tr.weaveConfirm = tr.weaveConfirm == true
+    tr.weaveHeavyBreaks = tr.weaveHeavyBreaks == true
+    for _, key in ipairs({ "weaveTextMissed", "weaveTextVanished", "weaveTextQueued", "weaveTextBashed" }) do
+        if type(tr[key]) ~= "string" then tr[key] = dt[key] end
+        tr[key] = tr[key]:sub(1, 6)
+    end
     tr.calcScalar = Num(tr.calcScalar, dt.calcScalar, 0, 100000)
     tr.calcStart = Num(tr.calcStart, dt.calcStart, 1, 100)
     tr.calcCap = Num(tr.calcCap, dt.calcCap, 0, 100)
@@ -548,6 +617,10 @@ function S.Normalize(t)
     ds.sort = Enum(ds.sort, VALID.sort, dd.sort)
     -- proc grids keep every icon in place unless a sort was picked on purpose
     if t.trigger.type == "procs" and ds.sort == "expiry" and not ds.sortChosen then ds.sort = "fixed" end
+    -- group members keep the trigger's order (roles / group / names) unless a sort was picked on purpose
+    if t.trigger.type == "group" and ds.sort == "expiry" and not ds.sortChosen then ds.sort = "fixed" end
+    -- the skills you cast stay in the order you cast them
+    if t.trigger.type == "weave" and not ds.sortChosen then ds.sort = "fixed" end
     -- ...and show every proc you have (10 hid procs past the tenth), unless a limit was set on purpose
     if t.trigger.type == "procs" and ds.maxShown == dd.maxShown and not ds.maxChosen then ds.maxShown = 40 end
     ds.timeFormat = Enum(ds.timeFormat, VALID.timeFormat, dd.timeFormat)
@@ -573,6 +646,9 @@ function S.Normalize(t)
     ds.vertical = ds.vertical == true
     ds.iconTimer = (ds.iconTimer == "shrinkV" or ds.iconTimer == "shrinkH" or ds.iconTimer == "none") and ds.iconTimer or "sweep"
     ds.cooldownColor = Color(ds.cooldownColor, dd.cooldownColor)
+    ds.shieldColor = Color(ds.shieldColor, dd.shieldColor)
+    ds.traumaColor = Color(ds.traumaColor, dd.traumaColor)
+    ds.noHealColor = Color(ds.noHealColor, dd.noHealColor)
     ds.cooldownDesaturate = ds.cooldownDesaturate ~= false
     ds.blinkThreshold = Num(ds.blinkThreshold, dd.blinkThreshold, 0, 60)
     ds.borderSize = math.floor(Num(ds.borderSize, dd.borderSize, 0, 12))
@@ -587,6 +663,7 @@ function S.Normalize(t)
     ds.gameFrame = ds.gameFrame ~= false
     ds.rowBorder = ds.rowBorder == true
     ds.procPercent = ds.procPercent ~= false
+    ds.procGauge = ds.procGauge ~= false
     for _, key in ipairs({ "borderColor", "iconTint", "procColorOk", "procColorPart", "procColorBad", "procColorInfo" }) do
         ds[key] = Color(ds[key], dd[key])
     end
@@ -603,6 +680,88 @@ function S.Normalize(t)
     ds.meterCaptionColor = Color(ds.meterCaptionColor, dd.meterCaptionColor)
     ds.zoneColor = Color(ds.zoneColor, dd.zoneColor)
     ds.trackColor = Color(ds.trackColor, dd.trackColor)
+    for _, key in ipairs({ "tankColor", "healerColor", "dpsColor", "companionColor" }) do ds[key] = Color(ds[key], dd[key]) end
+    ds.frameColorBy = (ds.frameColorBy == "health" or ds.frameColorBy == "solid") and ds.frameColorBy or "role"
+    ds.frameHealthText = (ds.frameHealthText == "pct" or ds.frameHealthText == "both" or ds.frameHealthText == "none") and ds.frameHealthText or "value"
+    ds.frameClassIcon = ds.frameClassIcon ~= false
+    ds.frameLeader = ds.frameLeader ~= false
+    ds.frameRoleIcon = ds.frameRoleIcon == true
+    ds.frameShieldText = ds.frameShieldText ~= false
+    ds.frameMouse = ds.frameMouse ~= false
+    ds.hideGameFrames = ds.hideGameFrames == true
+    ds.frameTipSets = ds.frameTipSets ~= false
+    ds.frameTipEffects = (ds.frameTipEffects == "all" or ds.frameTipEffects == "none") and ds.frameTipEffects or "timed"
+    ds.frameRangeAlpha = Num(ds.frameRangeAlpha, dd.frameRangeAlpha, 0.05, 1)
+    ds.frameShow = ds.frameShow == "bar" and "bar" or "icons"
+    if ds.frameShow == "bar" then
+        ds.frameSpot = ds.frameSpot == "top" and "top" or "bottom"
+    else
+        ds.frameSpot = (ds.frameSpot == "left" or ds.frameSpot == "inside") and ds.frameSpot or "right"
+    end
+    ds.frameIconSize = math.floor(Num(ds.frameIconSize, 0, 0, 120))
+    ds.frameBarSize = math.floor(Num(ds.frameBarSize, dd.frameBarSize, 1, 20))
+    ds.framesOf = type(ds.framesOf) == "string" and ds.framesOf or ""
+    ds.weaveRows = math.floor(Num(ds.weaveRows, 1, 1, 10))
+    ds.weaveIcons = ds.weaveIcons ~= false
+    ds.weaveAverage = ds.weaveAverage ~= false
+    ds.weaveGoodMs = math.floor(Num(ds.weaveGoodMs, dd.weaveGoodMs, 0, 1000))
+    ds.weaveSlowMs = math.floor(Num(ds.weaveSlowMs, dd.weaveSlowMs, ds.weaveGoodMs + 1, 2000))
+    ds.weaveScaleMs = math.floor(Num(ds.weaveScaleMs, dd.weaveScaleMs, 100, 2000))
+    for _, key in ipairs({ "weaveGoodColor", "weaveOkColor", "weaveSlowColor", "weaveMissColor", "weaveMarkerColor" }) do
+        ds[key] = Color(ds[key], dd[key])
+    end
+    if ds.windowEdge ~= nil then ds.windowEdge = Color(ds.windowEdge, { 1, 1, 1, 1 }) end
+    ds.windowEdgeSize = math.floor(Num(ds.windowEdgeSize, 0, 0, 10))
+    -- group frames saved before 5.25.5 sat on a dark panel (the Library's / the import's): taken away once, unless a
+    -- background was picked (Yarden: "I hate the black background")
+    if ds.type == "frames" and not ds.framesLook2 then
+        local b = ds.background
+        local function Is(c) return math.abs(b[1] - c[1]) < 0.01 and math.abs(b[2] - c[2]) < 0.01 and math.abs(b[3] - c[3]) < 0.01 and math.abs((b[4] or 1) - c[4]) < 0.01 end
+        if Is({ 0.055, 0.067, 0.082, 0.7 }) or Is({ 0.055, 0.067, 0.082, 0.82 }) then ds.background = { 0, 0, 0, 0 } end
+        ds.framesLook2 = true
+    end
+    -- the weave strip's look, once for strips saved by earlier versions (afterwards the player's choices stay):
+    --   * imported from WeaveDelays before 5.24.3: its white frame, its opacity, its bigger slots (Yarden: "I still see
+    --     the border");
+    --   * 5.24.3-5.24.4: a header ("Weaving" + an icon) and the dark panel (Yarden: "It can't be black, it makes it harder
+    --     to see the background. Also, wtf is the icon and "weaving"?? The user knows what this bar is for").
+    -- Now: the tiles over the game, nothing round them; the average above them.
+    if ds.type == "weave" and not ds.weaveLook2 then
+        if t.fromWeaveDelays and not ds.weaveDTLook then
+            ds.windowEdge, ds.windowEdgeSize = nil, 0
+            ds.alpha = 1
+            ds.background = { 0, 0, 0, 0 }
+            ds.showHeader = false
+            if ds.spacing < 3 then ds.spacing = 3 end
+            if ds.iconSize >= 45 then ds.iconSize = math.max(24, math.floor(ds.iconSize * 0.85 + 0.5)) end
+        elseif ds.weaveDTLook then
+            ds.showHeader = false
+            if ds.title == DT.L("Weaving") then ds.title = "" end
+            local b, d = ds.background, dd.background
+            if math.abs(b[1] - d[1]) < 0.01 and math.abs(b[2] - d[2]) < 0.01 and math.abs(b[3] - d[3]) < 0.01 and math.abs((b[4] or 1) - (d[4] or 1)) < 0.01 then
+                ds.background = { 0, 0, 0, 0 }
+            end
+        end
+        ds.weaveLook2 = true
+    end
+    -- 5.24.6: the time in big outlined text in the bar under each icon (Yarden: "Practically impossible to see
+    -- anything"): bold with a thick outline, unless a font was picked
+    if ds.type == "weave" and not ds.weaveLook3 then
+        if ds.fontFace == "MEDIUM_FONT" and ds.fontEffect == "soft-shadow-thick" then
+            ds.fontFace, ds.fontEffect = "BOLD_FONT", "thick-outline"
+        end
+        ds.weaveLook3 = true
+    end
+    -- 5.25.0: the line under each skill is full at 300 ms (was WeaveDelays' 500), the M / X / Q letters red (the grey
+    -- "no light attack" colour was for the old block) -- unless changed
+    if ds.type == "weave" and not ds.weaveLook4 then
+        if ds.weaveScaleMs == 500 then ds.weaveScaleMs = 300 end
+        local m = ds.weaveMissColor
+        if math.abs(m[1] - 0.62) < 0.01 and math.abs(m[2] - 0.62) < 0.01 and math.abs(m[3] - 0.62) < 0.01 then
+            ds.weaveMissColor = { 0.95, 0.30, 0.30, 1 }
+        end
+        ds.weaveLook4 = true
+    end
     -- the first caption colour (5.17.0-5.17.3) was too dark to read on the tile: brighter, same transparency
     local mc = ds.meterCaptionColor
     if math.abs(mc[1] - 0.80) < 0.005 and math.abs(mc[2] - 0.72) < 0.005 and math.abs(mc[3] - 0.52) < 0.005 then
@@ -740,7 +899,8 @@ end
 function S.Clone(tracker)
     local t = U.Copy(tracker)
     t.id = U.NewId("t")
-    t.fromCooldowns, t.fromUntaunted, t.fromBTG, t.fromStagger, t.fromExoY, t.fromMeterskull, t.fromMiat, t.fromGcd = nil, nil, nil, nil, nil, nil, nil, nil   -- a copy is yours: a new import must not replace it
+    t.fromCooldowns, t.fromUntaunted, t.fromBTG, t.fromStagger, t.fromExoY, t.fromMeterskull, t.fromMiat, t.fromGcd = nil, nil, nil, nil, nil, nil, nil, nil
+    t.fromAltGF, t.fromWeaveDelays = nil, nil   -- a copy is yours: a new import must not replace it
     t.name = (tracker.name or "Tracker") .. " (copy)"
     t.position.anchorTo = ""
     return S.Normalize(t)

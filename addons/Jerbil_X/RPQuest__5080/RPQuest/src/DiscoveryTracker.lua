@@ -64,30 +64,42 @@ function DiscoveryTracker:EvaluatePlayerPosition(zoneId, worldX, _worldY, worldZ
         self:UpdatePollingState()
         return false
     end
-    if not activeQuest or activeQuest.completed or type(activeQuest.discoveries) ~= "table" then
+    if not activeQuest or activeQuest.completed or activeQuest.failed or type(activeQuest.discoveries) ~= "table" then
         return false
     end
 
     local defaultRadius = Addon.Constants.DISCOVERY_RADIUS.MEDIUM
+    local isSequential = (activeQuest.sequentialDiscoveries == true)
     local triggeredAny = false
     for idx, point in ipairs(activeQuest.discoveries) do
-        if not point.discovered and point.worldX and point.worldZ then
-            local zoneMatches = (point.zoneId == 0) or (zoneId == 0) or (point.zoneId == zoneId)
-            if zoneMatches then
-                local dx = worldX - point.worldX
-                local dz = worldZ - point.worldZ
-                local radius = point.radius or defaultRadius
-                if ((dx * dx) + (dz * dz)) <= (radius * radius) then
-                    local ok, quest, isCompleted, triggeredPoint = Addon.QuestRepository:MarkDiscoveryTriggered(activeQuest.id, idx)
-                    if ok and triggeredPoint then
-                        triggeredAny = true
-                        Addon.Announcements:AnnounceDiscovery(quest, triggeredPoint)
-                        if isCompleted then
-                            Addon.Announcements:AnnounceQuestCompleted(quest)
-                            break
+        if not point.discovered then
+            if isSequential and idx > 1 and not (activeQuest.discoveries[idx - 1] and activeQuest.discoveries[idx - 1].discovered == true) then
+                break
+            end
+            if point.worldX and point.worldZ then
+                local zoneMatches = (point.zoneId == 0) or (zoneId == 0) or (point.zoneId == zoneId)
+                if zoneMatches then
+                    local dx = worldX - point.worldX
+                    local dz = worldZ - point.worldZ
+                    local radius = point.radius or defaultRadius
+                    if ((dx * dx) + (dz * dz)) <= (radius * radius) then
+                        local ok, quest, isCompleted, triggeredPoint, questFailed, failReason = Addon.QuestRepository:MarkDiscoveryTriggered(activeQuest.id, idx)
+                        if ok and triggeredPoint then
+                            triggeredAny = true
+                            Addon.Announcements:AnnounceDiscovery(quest, triggeredPoint)
+                            if questFailed then
+                                Addon.Announcements:AnnounceQuestFailed(quest, nil, failReason)
+                                break
+                            elseif isCompleted then
+                                Addon.Announcements:AnnounceQuestCompleted(quest)
+                                break
+                            end
                         end
                     end
                 end
+            end
+            if isSequential then
+                break
             end
         end
     end

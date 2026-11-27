@@ -20,6 +20,7 @@ Timer                                             - Object containing all functi
 Libraries and Aliases
 ------------------------------------------------------------------------------------------------]]--
 local EM = EVENT_MANAGER
+local LS = LibStatic
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -57,12 +58,13 @@ Outputs:			None
 Description:	Initializes the object.
 ------------------------------------------------------------------------------------------------]]--
 function Timer:Initialize(Options)
-  self.uniqueName = Options.uniqueName
+  if not Options then return end
+  self.uniqueName = Options.uniqueName or tostring(self)
   self.timerType = Options.timerType or LIBSTATIC_TIMER_TYPE_COUNT_UP
   self.updateInterval = Options.updateInterval or LIBSTATIC_TIMER_UPDATE_INTERVAL_200
   self.duration = Options.duration
-  self.updateCallback = Options.updateCallback or function() end
-  self.finishedCallback = Options.finishedCallback or function() end
+  self.updateCallback = Options.updateCallback or ZO_Noop()
+  self.finishedCallback = Options.finishedCallback or ZO_Noop()
   self.running = false
   self.paused = false
   self.finished = false
@@ -216,8 +218,10 @@ Outputs:			None
 Description:	Pauses/unpauses the timer. If no state is specified then it will be toggled. Only works if currently running or paused.
 ------------------------------------------------------------------------------------------------]]--
 function Timer:Pause(state)
+  if not self.running and not self.paused then return end
+
   local now = GetFrameTimeMilliseconds()
-  if not state then
+  if state == nil then
     self.paused = not self.paused
   elseif state ~= self.paused then
     self.paused = state
@@ -225,7 +229,6 @@ function Timer:Pause(state)
     return
   end
 
-  -- self.paused is the 'new' paused state
   if self.paused and self.running then
     self.pauseTimeLeft = self.endTime - now
     self.pauseTimePassed = now - self.startTime
@@ -243,4 +246,4 @@ end
 --[[------------------------------------------------------------------------------------------------
 Global template assignment
 ------------------------------------------------------------------------------------------------]]--
-LibStatic.TIMER = Timer
+LS.TIMER = Timer

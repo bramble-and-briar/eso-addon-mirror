@@ -1,6 +1,6 @@
 # CGESO
 
-![](https://imgur.com/817R4SR.png)
+![](https://i.imgur.com/dGaw1uD.jpeg)
 
 A public domain leveling guide originally created by Zygor Guides, later discontinued and open-sourced. Now maintained by snichols7778 with contributions from Hydra9268, the project adds leveling, Lorebook, Skyshard, and Delve guides for new content while keeping it alive for as long as ESO exists.
 
@@ -12,12 +12,40 @@ Install through the excellent add-on manager <a href="https://www.esoll.es/" tar
 
 ### Libraries Required
 
-ESOLL automatically installs the required libraries. If you prefer to install this addon manually, you will need: **LibGPS**, **LibMapPing**, **LibDebugLogger**, and **LibChatMessage**.
+ESOLL automatically installs the required libraries. If you prefer to install this addon manually, you will need: **LibGPS**, **LibMapPing**, **LibDebugLogger**, LibAddonMenu-2.0, and **LibChatMessage**.
 
 ----
 
 # Changelog
 
+<details>
+<summary>11/26/2026 - QoL Features &amp; Dual Settings</summary>
+<ul>
+    <li>Fixed Bugs from previous upload.</li>
+    <li>Stuck-step detector</li>
+    <li>Bug / Author Dumps</li>
+    <li>Bookmark / resume markers</li>
+    <li>Quest link from a named step into the journal</li>
+    <li>Compact viewer preset</li>
+    <li>Zone-Suggestion</li>
+    <li>In-guide search</li>
+    <li>Sticky waypoint arrow</li>
+    <li>ESOUI gallery checklist</li>
+    <li>Clear / list ignored guides</li>
+    <li>Viewer find — title-bar</li>
+    <li>Jump to zone guide</li>
+    <li>Catch-up skip</li>
+    <li>Hide viewer in combat</li>
+    <li>Note badge on viewer</li>
+    <li>Remember Home folder</li>
+    <li>Quiet mode</li>
+    <li>In-zone extras tip</li>
+    <li>Upload-day checklist</li>
+    <li>Step history ring</li>
+    <li>Home Favorites</li>
+    <li>Full ↔ MQO switch</li>
+</ul>
+</details>
 <details>
 <summary>11/14/2026 - UI &amp; Guide System Update</summary>
 <ul>
@@ -320,6 +348,10 @@ ESOLL automatically installs the required libraries. If you prefer to install th
 ### Creator Mode
 * /cgv creator
 
+### Point of Interest List
+* /cgpos poi
+* It will give you a list of wayshrines and doors in the zone your currently in.
+
 ### Development HOW-TO
 
 
@@ -337,10 +369,28 @@ ESOLL automatically installs the required libraries. If you prefer to install th
 `step` = Declares a guide step (Auto-advance based on `goto` and `step` or if the condition of another action like wayshrine or accept is met).<br/>
 
 
-#### These actions are purely visual and do not auto-advance to the next step
+#### These now advance to next step.
 
 `talk` = Talk to NPCs.<br/>>
+`'` = Adds general information. It will auto complete after dialogue ends.<br/>
+
+`Open` = Talk to NPCs.<br/>>
 `'` = Adds general information.<br/>
+`'Open _Door_`
+`'Use _Door_`
+`Door Lever`
+`'Open _Portal_`
+`'Use _Portal_`
+`Approach _Portal_,`
+`'Climb`
+`Open _Gate_`
+`Unlock`
+`'Use _Door Lever_`
+`'Travel to _Wayshrine Name_`
+`kill NPC Name (The Exact name of NPC is required if multiple npcs all npcs should have a step between them)` Will complete after death.<br/>
+`'Examine _Item or person_ (Exact name in game is required)`<br/>
+`'Hide` will advance when you use it.
+
 
 
 #### Goal Handlers - requires a pipe | in front to activate (e.g. |tip, |q, |count)
@@ -386,6 +436,7 @@ step
 * `/re` = /reloadui
 * `/cgpos` - For city and delve data. Also displays the map's correct DDS filename.
 * `/cgpos gps` - For general map data. Works in any map.
+* `/cgpos pack` Pack is the full authoring block gives same information as cgpos gps but allows you to copy from a dump block.
 * `/dump CGFunctionName(arguments)` - A way to execute ESO's and CGESO's public functions<br> (e.g. `/dump CGV.Pointer:GetDistToCoords(alinor_base,48.80,54.64)`)
 
 #### /dump functions of note:

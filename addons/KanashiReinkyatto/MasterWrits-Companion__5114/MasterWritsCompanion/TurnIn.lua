@@ -1,3 +1,4 @@
+local L = MWC.L
 -- Turning writs in: starting one master writ quest per craft (the game allows one each) for writs whose items
 -- are ready in the bag, and, with Autodelivery on, handing them in while the player talks to the Mastercraft
 -- Mediator, then starting the next batch when the conversation ends. Talking and walking stay manual.
@@ -17,9 +18,16 @@ local COOLDOWN_WAIT_LIMIT_MS = 5000
 -- game shows them, the conversation is closed once no writ quest is left to hand in, and nothing heavy runs
 -- during it (the list and the bag marks are rebuilt once when it ends).
 local FREE_SLOT_RESERVE = 2
--- Hand-ins are only picked at these NPCs (plus any NPC a writ was once handed in to, so other client languages
--- work after one manual hand-in), by option type, not the localized text.
-local MEDIATORS = { ["Rolis Hlaalu"] = true, ["Faustina Curio"] = true }
+-- Hand-ins are only picked at the mediators: their names in the language file (MWC.L.MEDIATORS), plus any NPC
+-- a writ was once handed in to (so a client language without those names works after one manual hand-in). The
+-- option is told by its type, not the localized text.
+local function IsMediator(npc)
+  if npc == "" then return false end
+  for _, name in ipairs(MWC.L.MEDIATORS or {}) do
+    if name == npc then return true end
+  end
+  return MWC.sv.mediators ~= nil and MWC.sv.mediators[npc] == true
+end
 local TURN_IN_OPTION_TYPES = {}
 for _, name in ipairs({ "CHATTER_START_COMPLETE_QUEST", "CHATTER_START_ADVANCE_COMPLETABLE_QUEST_CONDITIONS",
     "CHATTER_COMPLETE_QUEST" }) do
@@ -43,7 +51,7 @@ function MWC.TurnIn.ConflictingAddons()
   local found = {}
   local ok, settings = pcall(function() return WritCreater and WritCreater.GetSettings and WritCreater:GetSettings() end)
   if ok and settings and settings.autoAccept then
-    table.insert(found, "Dolgubon's Lazy Writ Crafter (its auto accept / turn in writs)")
+    table.insert(found, L.DOLGUBON_CONFLICT)
   end
   return found
 end
@@ -52,12 +60,11 @@ end
 -- panel builds its controls the first time it is shown, so the submenu is opened once it exists (as a click on
 -- its title would). Without LibAddonMenu or the panel, the way there is printed instead.
 local SETTINGS_LINK_TYPE = "mwcsettings"
-local DOLGUBON_PATH = "Settings > Addons > Lazy Writ Crafter > Timesavers > Automatic complete"
 
 function MWC.TurnIn.OpenDolgubonSettings()
   local LAM, panel = LibAddonMenu2, _G["DolgubonsWritCrafter"]
   if not (LAM and LAM.OpenToPanel and panel) then
-    MWC.Print("Turn off: %s.", DOLGUBON_PATH)
+    MWC.Print(L.TURN_OFF, L.DOLGUBON_PATH)
     return
   end
   LAM:OpenToPanel(panel)
@@ -77,7 +84,7 @@ function MWC.TurnIn.OpenDolgubonSettings()
 end
 
 local function DolgubonLink()
-  return MWC.Colorize(MWC.COLOR.BLUE, string.format("|H0:%s:dolgubon|h[Open its settings]|h", SETTINGS_LINK_TYPE))
+  return MWC.Colorize(MWC.COLOR.BLUE, string.format("|H0:%s:dolgubon|h%s|h", SETTINGS_LINK_TYPE, L.OPEN_ITS_SETTINGS))
 end
 
 LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT, function(_, button, _, _, linkType)
@@ -92,8 +99,7 @@ end)
 local function WarnAboutConflicts()
   local conflicts = MWC.TurnIn.ConflictingAddons()
   if #conflicts == 0 then return false end
-  MWC.Print("%s", MWC.Colorize(MWC.COLOR.RED, "Also hands in at the mediator: " .. table.concat(conflicts, ", ")
-    .. ". Turn its Automatic complete off, or Autodelivery here.") .. " " .. DolgubonLink())
+  MWC.Print("%s", MWC.Colorize(MWC.COLOR.RED, string.format(L.CONFLICT_CHAT, table.concat(conflicts, ", "))) .. " " .. DolgubonLink())
   return true
 end
 
@@ -118,13 +124,11 @@ local function ActiveEventQuest()
   return false
 end
 
--- Holiday writs are started in runs of one kind (Witches Festival, Deep Winter, Imperial, New Life are handed in
--- at different places): the last started kind goes on while there are any, then the next in order (kind, name).
-local lastEvent = nil
-
-local function EventPlace(group)
-  return group.event
-end
+-- Holiday writs are started in runs, so one writ crate takes them one after another: by holiday (Witches Festival,
+-- New Life, Deep Winter, Imperial), and within it by craft (each craft has its own crate). The last started
+-- holiday and craft go on while there are any, then the same holiday's next craft, then the next holiday, in
+-- order (holiday, craft, name).
+local lastEvent, lastEventCraft = nil, nil
 
 local function ReadyEventWrit()
   if not MWC.sv.showEvent then return nil end
@@ -133,23 +137,28 @@ local function ReadyEventWrit()
     if group.event and group.queued > 0 and not group.problem and (group.readyBag or 0) > 0 then
       for _, writ in ipairs(group.writs) do
         if not writ.state and writ.bag == BAG_BACKPACK and not MWC.Session.IsExcluded(writ.uid) then
-          table.insert(candidates, { writ = writ, group = group, place = EventPlace(group) })
+          table.insert(candidates, { writ = writ, group = group })
           break
         end
       end
     end
   end
   table.sort(candidates, function(a, b)
-    if a.place ~= b.place then return a.place < b.place end
+    if a.group.event ~= b.group.event then return a.group.event < b.group.event end
+    if a.group.typeOrder ~= b.group.typeOrder then return (a.group.typeOrder or 0) < (b.group.typeOrder or 0) end
     return (a.group.name or "") < (b.group.name or "")
   end)
-  local pick = candidates[1]
+  local pick, sameEvent
   for _, candidate in ipairs(candidates) do
-    if lastEvent and candidate.place == lastEvent then
-      pick = candidate
-      break
+    if candidate.group.event == lastEvent then
+      if candidate.group.type == lastEventCraft then
+        pick = candidate
+        break
+      end
+      sameEvent = sameEvent or candidate
     end
   end
+  pick = pick or sameEvent or candidates[1]
   if pick then return pick.writ, pick.group end
 end
 
@@ -170,17 +179,36 @@ local function StopEventStart(why)
   eventStart = nil
 end
 
+-- Master writs go first: a holiday quest is started only once no master writ is left to deliver, neither a
+-- quest in the journal nor a queued writ in the bag or bank, crafted or not (a holiday quest takes its craft's
+-- quest slot, so a master writ of that craft couldn't be started). Writs that can't be crafted (a problem, or
+-- they spend kept materials) don't hold holiday quests back.
+local HandableQuests, GroupCounts
+local function MasterWorkLeft()
+  if MWC.Journal.OpenCount() > 0 or HandableQuests() > 0 then return true end
+  local _, journalQuests = MWC.Journal.ActiveCrafts()
+  if journalQuests > 0 then return true end
+  for _, group in ipairs(MWC.Plan.Build().groups) do
+    if not group.event then
+      local bag, bank, notReady = GroupCounts(group)
+      if bag + bank > 0 or (notReady > 0 and not group.kept) then return true end
+    end
+  end
+  return false
+end
+
 local function StartEventQuest()
   if not autodelivery or eventStart or run or ActiveEventQuest() then return end
+  if MasterWorkLeft() then return end
   local writ, group = ReadyEventWrit()
   if not writ then return end
-  eventStart = { slot = writ.slot, uid = writ.uid, name = group.name, place = EventPlace(group),
+  eventStart = { slot = writ.slot, uid = writ.uid, name = group.name, event = group.event, craft = group.type,
     since = GetGameTimeMilliseconds() }
   ShowEventState()
   EVENT_MANAGER:RegisterForEvent(EVENT_NS .. "Event", EVENT_QUEST_OFFERED, function()
     if not (eventStart and eventStart.usedAt) then return end
     MWC.Log("Event: quest of %s accepted", eventStart.name)
-    lastEvent = eventStart.place
+    lastEvent, lastEventCraft = eventStart.event, eventStart.craft
     StopEventStart()
     AcceptOfferedQuest()
   end)
@@ -233,10 +261,10 @@ end
 -- One group's queued bag writs: ready to start here (writ and items in the bag), ready but with something in
 -- the bank, and not crafted yet. Crafted items go to the group's active quests first (they are handed in
 -- with them), and those items are assumed to be in the bag.
--- Holiday writs aren't started or handed in here (their quests are started by hand and handed in at the writ
--- turn-in sites, see the end of this file).
-local function GroupCounts(group)
-  if group.event or group.queued == 0 or group.problem then return 0, 0, 0 end
+-- Holiday writs are counted the same way but apart (see Counts): their quests start one at a time and are handed
+-- in at the writ turn-in sites, not at the mediator.
+GroupCounts = function(group)
+  if group.queued == 0 or group.problem then return 0, 0, 0 end
   local queuedInBag = 0
   for _, writ in ipairs(group.writs) do
     if not writ.state and writ.bag == BAG_BACKPACK and not MWC.Session.IsExcluded(writ.uid) then
@@ -249,12 +277,18 @@ local function GroupCounts(group)
   return bag, ready - bag, group.queued - ready
 end
 
--- Per craft and in total: see GroupCounts. Writs marked skip are not counted.
+-- Per craft and in total (master writs), and holiday writs on their own (Event checkbox on): see GroupCounts.
+-- Writs marked skip are not counted.
 function MWC.TurnIn.Counts(groups)
   local byCraft, totals = {}, { bag = 0, bank = 0, notReady = 0 }
+  local event = { bag = 0, bank = 0, notReady = 0 }
   for _, group in ipairs(groups) do
     local bag, bank, notReady = GroupCounts(group)
-    if bag + bank + notReady > 0 then
+    if group.event then
+      if MWC.sv.showEvent then
+        event.bag, event.bank, event.notReady = event.bag + bag, event.bank + bank, event.notReady + notReady
+      end
+    elseif bag + bank + notReady > 0 then
       local counts = byCraft[group.type] or { bag = 0, bank = 0, notReady = 0 }
       byCraft[group.type] = counts
       counts.bag, counts.bank, counts.notReady = counts.bag + bag, counts.bank + bank, counts.notReady + notReady
@@ -264,7 +298,7 @@ function MWC.TurnIn.Counts(groups)
     totals.bag, totals.bank = totals.bag + counts.bag, totals.bank + counts.bank
     totals.notReady = totals.notReady + counts.notReady
   end
-  return byCraft, totals
+  return byCraft, totals, event
 end
 
 local function Finish(fmt, ...)
@@ -287,7 +321,9 @@ local function Candidates()
   local candidates, taken = {}, {}
   local active = MWC.TurnIn.ActiveCrafts()
   for _, group in ipairs(MWC.Plan.Build().groups) do
-    if not taken[group.type] and not active[group.type] and (GroupCounts(group)) > 0 then
+    -- Holiday writs never: their groups share the craft types, and their quests start one at a time after the
+    -- master writs (StartEventQuest).
+    if not group.event and not taken[group.type] and not active[group.type] and (GroupCounts(group)) > 0 then
       for _, writ in ipairs(group.writs) do
         if not writ.state and writ.bag == BAG_BACKPACK and not MWC.Session.IsExcluded(writ.uid) then
           taken[group.type] = true
@@ -317,30 +353,31 @@ local function AcceptNext()
   if not group then
     local failed = {}
     for craft in pairs(run.failed) do
-      table.insert(failed, craft)
+      table.insert(failed, L.CRAFT[craft] or craft)
     end
-    local skipped = #failed > 0 and string.format(" Skipped: %s (the quest didn't start, try again).",
+    local skipped = #failed > 0 and string.format(L.QUESTS_SKIPPED,
       table.concat(failed, ", ")) or ""
+    MWC.Activity.Succeed(#failed > 0)
     if run.started > 0 then
-      Finish("Done: %d writ quests started. Talk to the Mastercraft Mediator.%s", run.started, skipped)
+      Finish(L.QUESTS_STARTED, run.started, skipped)
     else
-      Finish("Done: no new quests (each craft with a ready writ already has one).%s", skipped)
+      Finish(L.NO_NEW_QUESTS, skipped)
     end
     return
   end
   if GetNumBagFreeSlots(BAG_BACKPACK) < FREE_SLOT_RESERVE then
-    Finish("Keep at least %d bag slots free for the rewards.", FREE_SLOT_RESERVE)
+    Finish(L.KEEP_SLOTS_FREE, FREE_SLOT_RESERVE)
     return
   end
   if GetNumJournalQuests() >= MAX_JOURNAL_QUESTS then
-    Finish("The quest journal is full (%d quests). Finish or abandon some first.", MAX_JOURNAL_QUESTS)
+    Finish(L.JOURNAL_FULL, MAX_JOURNAL_QUESTS)
     return
   end
   run.tried[group.type] = true
   run.pending = true
   run.current = group.type
   run.currentGroup, run.currentWrit = group, writ
-  MWC.Activity.Progress(run.started, string.format("Starting quests %d / %d: %s… wait before talking to the Mediator",
+  MWC.Activity.Progress(run.started, string.format(L.STARTING_QUESTS_PROGRESS,
     run.started + 1, run.planned, group.name))
 
   local slot, waitStarted, usedAt = writ.slot, GetGameTimeMilliseconds(), nil
@@ -361,13 +398,13 @@ local function AcceptNext()
     -- Waits for the item cooldown and for the last quest offer to close (items can't be used during it).
     if not CanUseItems() then
       if now - waitStarted > COOLDOWN_WAIT_LIMIT_MS then
-        Finish("Can't start writ quests now: leave combat, close the loot window, bank or conversation.")
+        Finish("%s", L.CANT_START_QUESTS)
       end
       return
     end
     if (GetItemCooldownInfo(BAG_BACKPACK, slot) or 0) > 0 then
       if now - waitStarted > COOLDOWN_WAIT_LIMIT_MS then
-        Finish("The item cooldown didn't end, stopped.")
+        Finish("%s", L.COOLDOWN_STOPPED)
       end
       return
     end
@@ -382,7 +419,8 @@ end
 
 local function NextOrFinish()
   if run.started >= run.planned then
-    Finish("Done: %d writ quests started. Talk to the Mastercraft Mediator.", run.started)
+    MWC.Activity.Succeed()
+    Finish(L.QUESTS_STARTED, run.started, "")
   else
     AcceptNext()
   end
@@ -466,11 +504,11 @@ function MWC.TurnIn.StartQuests()
   if run or eventStart then return end
   local planned = MWC.TurnIn.StartableCrafts(MWC.Plan.Build().groups)
   if planned == 0 then
-    MWC.Print("Nothing to start: no ready writ in the bag for a craft without an active quest.")
+    MWC.Print("%s", L.NOTHING_TO_START)
     return
   end
   -- Like crafting, nothing heavy runs between two quests: the list is rebuilt once at the end.
-  if not MWC.Activity.Begin("Starting quests", planned, function() Finish("Stopped.") end, true) then return end
+  if not MWC.Activity.Begin(L.ACTIVITY_STARTING_QUESTS, planned, function() Finish("%s", L.STOPPED) end, true) then return end
   run = { tried = {}, retries = {}, failed = {}, started = 0, planned = planned, candidates = Candidates() }
   EVENT_MANAGER:RegisterForEvent(EVENT_NS, EVENT_QUEST_OFFERED, OnQuestOffered)
   AcceptNext()
@@ -513,7 +551,7 @@ local function StepDone(questIndex)
   return true
 end
 
-local function HandableQuests()
+HandableQuests = function()
   local count = 0
   for questIndex = 1, MAX_JOURNAL_QUESTS do
     if IsValidQuestIndex(questIndex) and MWC.Journal.MasterWritInfo(questIndex) and StepDone(questIndex) then
@@ -572,7 +610,7 @@ end
 local function OnEventChatter()
   if not MWC.sv.showEvent or conversation then return false end
   local npc = zo_strformat("<<1>>", GetUnitName("interact"))
-  if MEDIATORS[npc] or (MWC.sv.mediators and MWC.sv.mediators[npc]) then return false end
+  if IsMediator(npc) then return false end
   local done = DoneEventQuests()
   if done == 0 and not eventChat then return false end
   eventChat = eventChat or { picks = 0 }
@@ -651,18 +689,37 @@ ChooseOption = function()
     EndInteraction(INTERACTION_CONVERSATION)
   elseif not conversation.hinted and MWC.TurnIn.ActiveCraftingQuests() > 0 and not run then
     conversation.hinted = true
-    MWC.Print("No hand-in option recognized. Pick it yourself.")
+    MWC.Print("%s", L.NO_HANDIN_OPTION)
   end
 end
 
 local warnedAboutConflict = false
+
+-- An NPC with a hand-in option while master writs are ready, not known as a mediator (a client language whose
+-- mediator names aren't in the language file): said once per login how the addon learns it.
+local hintedUnknownMediator = false
+
+local function HintUnknownMediator()
+  if hintedUnknownMediator or HandableQuests() == 0 then return end
+  for i = 1, GetChatterOptionCount() do
+    local _, optionType = GetChatterOption(i)
+    if TURN_IN_OPTION_TYPES[optionType] then
+      hintedUnknownMediator = true
+      MWC.Print("%s", MWC.L.UNKNOWN_MEDIATOR)
+      return
+    end
+  end
+end
 
 local function OnChatter()
   if OnEventChatter() then return end
   if not MWC.TurnIn.IsAutoHandIn() then return end
   if not conversation then
     local npc = zo_strformat("<<1>>", GetUnitName("interact"))
-    if not (MEDIATORS[npc] or (MWC.sv.mediators and MWC.sv.mediators[npc])) then return end
+    if not IsMediator(npc) then
+      HintUnknownMediator()
+      return
+    end
     conversation = { handedIn = 0 }
     if not warnedAboutConflict then
       warnedAboutConflict = WarnAboutConflicts()
@@ -782,9 +839,9 @@ local function EventWorkLeft()
   return MWC.sv.showEvent and (eventStart ~= nil or ActiveEventQuest() or ReadyEventWrit() ~= nil)
 end
 
-function MWC.TurnIn.CheckFinished(totals)
+function MWC.TurnIn.CheckFinished(totals, event)
   if autodelivery and totals.bag + totals.bank == 0 and MWC.Journal.OpenCount() == 0 and not run
-      and not EventWorkLeft() then
+      and not EventWorkLeft() and (not event or event.bank == 0) then
     SwitchOff()
   end
 end

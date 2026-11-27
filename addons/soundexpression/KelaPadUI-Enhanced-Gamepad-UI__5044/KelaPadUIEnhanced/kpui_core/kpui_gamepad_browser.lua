@@ -17,7 +17,8 @@
 --   GetColumns(source)        { { title, key, width, align } } left to right;
 --                             `width` is relative, `key` is the sort key
 --   GetRows(source)           array of records, already filtered
---   GetCellTexts(source, record)  { text per column }, icon path
+--   GetCellTexts(source, record)  { text per column }, icon path (drawn in
+--                                 column source.iconColumn, default 1)
 --   GetSortState(source)      key, order of the current sort
 --   Sort(source, key, order)  sorts the source; without it the table sorts
 --                             records by record[key]
@@ -27,9 +28,17 @@
 --                                 labels, GetSelected() -> index, Select(index) }
 --                               { kind = "toggle", caption, Get(), Set(bool) }
 --   GetActions(source, record)    { { label, action } }
---   GetTooltip(source, record)    "item", link | "collectible", id | "text", s
+--   GetTooltip(source, record)    "item", link | "collectible", id |
+--                             "antiquity", id | "text", s
+--   GetSummary(source)        { { label, value } }, up to four, above the table
 --
--- A source calls browser:RefreshSource(source) when its data changes.
+-- Rows with equal sort values keep the order GetRows returned them in, so a
+-- source orders its rows sensibly and the sort only reorders by the column.
+--
+-- A source calls browser:RefreshSource(source) when its data changes, or
+-- KelaGamepadBrowser.Changed(source) from anywhere (SetSources stores the
+-- browser on each source). The filter builders below keep their state on the
+-- source, as `source[field]`, and call Changed themselves.
 
 local CHOICE_DIALOG = "KELA_GAMEPAD_BROWSER_CHOICE"
 local ROW_HEIGHT = 44
@@ -102,6 +111,9 @@ local function ShowChoices(title, labels, selectedIndex, onPick)
 	end
 end
 
+-- Shared with the other Kela gamepad screens (Fight Stats filters).
+KelaShowChoiceDialog = ShowChoices
+
 local function RunActions(actions)
 	if #actions == 1 then
 		actions[1].action()
@@ -110,7 +122,7 @@ local function RunActions(actions)
 		for index, action in ipairs(actions) do
 			labels[index] = action.label
 		end
-		ShowChoices(GetString(KELA_EXTENDED_JOURNAL_ACTIONS), labels, nil, function(index)
+		ShowChoices(GetString(KELA_BROWSER_ACTIONS), labels, nil, function(index)
 			actions[index].action()
 		end)
 	end
@@ -135,7 +147,11 @@ function BrowserTable:Initialize(control, browser, source, columns)
 	self.columns = columns
 	ZO_GamepadInteractiveSortFilterList.Initialize(self, control)
 	self:RemoveFilters()
-	self:SetEmptyText(GetString(KELA_EXTENDED_JOURNAL_NO_RESULTS))
+	self:SetEmptyText(GetString(KELA_BROWSER_NO_RESULTS))
+	-- The header above the table grows once its summary is filled in, which
+	-- shrinks the list after its scroll range was set: without a recommit the
+	-- last rows could not be scrolled into view.
+	ZO_ScrollList_AddCommitOnHeightChange(self.list)
 	ZO_ScrollList_AddDataType(self.list, DATA_TYPE, "ZO_GamepadInteractiveSortFilterListRow", ROW_HEIGHT, function(row, rowData)
 		self:SetupRow(row, rowData)
 	end)
@@ -163,7 +179,7 @@ function BrowserTable:InitializeKeybinds()
 		{
 			name = function()
 				local actions = self:GetSelectedActions()
-				return #actions == 1 and actions[1].label or GetString(KELA_EXTENDED_JOURNAL_ACTIONS)
+				return #actions == 1 and actions[1].label or GetString(KELA_BROWSER_ACTIONS)
 			end,
 			keybind = "UI_SHORTCUT_PRIMARY",
 			visible = function()
@@ -173,6 +189,9 @@ function BrowserTable:InitializeKeybinds()
 				RunActions(self:GetSelectedActions())
 			end,
 		},
+		-- An action that names a `keybind` gets that button of its own.
+		self:CreateActionKeybind("UI_SHORTCUT_SECONDARY"),
+		self:CreateActionKeybind("UI_SHORTCUT_TERTIARY"),
 		-- Show or hide the row's tooltip, as the Sets browser does.
 		{
 			alignment = KEYBIND_STRIP_ALIGN_RIGHT,
@@ -199,6 +218,31 @@ function BrowserTable:InitializeKeybinds()
 	ZO_GamepadInteractiveSortFilterList.InitializeKeybinds(self)
 end
 
+function BrowserTable:CreateActionKeybind(keybind)
+	local function GetAction()
+		for _, action in ipairs(self:GetSelectedActions(keybind)) do
+			return action
+		end
+	end
+	return
+	{
+		name = function()
+			local action = GetAction()
+			return action and action.label or ""
+		end,
+		keybind = keybind,
+		visible = function()
+			return GetAction() ~= nil
+		end,
+		callback = function()
+			local action = GetAction()
+			if action then
+				action.action()
+			end
+		end,
+	}
+end
+
 function BrowserTable:GetBackKeybindCallback()
 	return function()
 		self.browser:FocusFilters()
@@ -210,7 +254,7 @@ function BrowserTable:BuildMasterList()
 	for index, record in ipairs(self.source:GetRows() or {}) do
 		-- Rows are wrapped: the core list writes sortIndex into row data, and the
 		-- record belongs to the source.
-		self.masterList[index] = { record = record }
+		self.masterList[index] = { record = record, order = index }
 	end
 end
 
@@ -232,6 +276,10 @@ function BrowserTable:SortScrollList()
 		local valueA, valueB = a.data.record[key], b.data.record[key]
 		if type(valueA) ~= type(valueB) or type(valueA) == "table" or type(valueA) == "boolean" then
 			valueA, valueB = tostring(valueA), tostring(valueB)
+		end
+		if valueA == valueB then
+			-- table.sort is not stable: ties keep the order the source gave.
+			return a.data.order < b.data.order
 		end
 		if ascending then
 			return valueA < valueB
@@ -294,7 +342,7 @@ function BrowserTable:SetupRow(row, rowData)
 			row.kelaCells[index] = label
 		end
 		local indent = 0
-		if index == 1 and icon then
+		if index == (self.source.iconColumn or 1) and icon then
 			indent = ICON_SIZE + 8
 			row.kelaIcon:ClearAnchors()
 			row.kelaIcon:SetAnchor(LEFT, row, LEFT, column.offset, 0)
@@ -324,12 +372,20 @@ function BrowserTable:GetSelectedRecord()
 	return rowData and rowData.record
 end
 
-function BrowserTable:GetSelectedActions()
+-- The selected row's actions: those with no button of their own for A (the
+-- default), or the ones bound to `keybind`.
+function BrowserTable:GetSelectedActions(keybind)
 	local record = self:GetSelectedRecord()
 	if record == nil or not self.source.GetActions then
 		return {}
 	end
-	return self.source:GetActions(record) or {}
+	local actions = {}
+	for _, action in ipairs(self.source:GetActions(record) or {}) do
+		if action.keybind == keybind then
+			actions[#actions + 1] = action
+		end
+	end
+	return actions
 end
 
 -- ---------------------------------------------------------------------------
@@ -338,20 +394,19 @@ end
 
 KelaGamepadBrowser = ZO_Gamepad_ParametricList_Screen:Subclass()
 
--- `name` prefixes every control. With `hostScene` the caller owns the scene:
--- it adds `browser.fragments` and forwards state with OnSceneStateChanged.
--- Without it the browser makes its own scene, `name`, ready to push.
-function KelaGamepadBrowser:New(name, hostScene)
+-- `name` prefixes every control and names the browser's own scene, ready to
+-- push.
+function KelaGamepadBrowser:New(name)
 	local root = CreateTopLevelWindow(name .. "Root")
 	root:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 0, 0)
 	root:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, 0, 0)
 	local control = CreateControlFromVirtual(name, root, "ZO_Gamepad_ParametricList_Screen")
 	local browser = ZO_Object.New(self)
-	browser:Initialize(control, name, root, hostScene)
+	browser:Initialize(control, name, root)
 	return browser
 end
 
-function KelaGamepadBrowser:Initialize(control, name, root, hostScene)
+function KelaGamepadBrowser:Initialize(control, name, root)
 	self.name = name
 	self.root = root
 	self.sources = {}
@@ -371,23 +426,22 @@ function KelaGamepadBrowser:Initialize(control, name, root, hostScene)
 	self.fragments[#self.fragments + 1] = MINIMIZE_CHAT_FRAGMENT
 	self.fragments[#self.fragments + 1] = GAMEPAD_MENU_SOUND_FRAGMENT
 
-	if hostScene then
-		self.scene = hostScene
-	else
-		local scene = ZO_Scene:New(name, SCENE_MANAGER)
-		for _, fragment in ipairs(self.fragments) do
-			scene:AddFragment(fragment)
-		end
-		scene:RegisterCallback("StateChange", function(oldState, newState)
-			self:OnSceneStateChanged(newState)
-		end)
-		self.scene = scene
+	local scene = ZO_Scene:New(name, SCENE_MANAGER)
+	for _, fragment in ipairs(self.fragments) do
+		scene:AddFragment(fragment)
 	end
+	scene:RegisterCallback("StateChange", function(oldState, newState)
+		self:OnSceneStateChanged(newState)
+	end)
+	self.scene = scene
 end
 
 -- `sources` is an array; `index` the one to show first.
 function KelaGamepadBrowser:SetSources(sources, index)
 	self.sources = sources
+	for _, source in ipairs(sources) do
+		source.browser = self
+	end
 	self.sourceIndex = zo_clamp(index or self.sourceIndex or 1, 1, zo_max(#sources, 1))
 end
 
@@ -521,7 +575,7 @@ end
 function KelaGamepadBrowser:RefreshTableHeader(browserTable)
 	local source = browserTable.source
 	local name = ResolveText(source.name, source)
-	local count = zo_strformat(GetString(KELA_EXTENDED_JOURNAL_COUNT), #ZO_ScrollList_GetDataList(browserTable.list))
+	local count = zo_strformat(GetString(KELA_BROWSER_COUNT), #ZO_ScrollList_GetDataList(browserTable.list))
 	local data = browserTable:GetContentHeaderData()
 	local summary = source.GetSummary and source:GetSummary() or nil
 	if summary then
@@ -609,6 +663,8 @@ function KelaGamepadBrowser:RefreshFilters()
 			ordered[#ordered + 1] = filter
 		end
 	end
+	-- The first filter opens the "Filters" section; one with a `header` opens
+	-- a section of that name.
 	local headerAdded = false
 	for _, filter in ipairs(ordered) do
 		if filter.kind == FILTER_SEARCH then
@@ -622,10 +678,10 @@ function KelaGamepadBrowser:RefreshFilters()
 			data:AddSubLabel(function()
 				return self:GetFilterValueText(filter)
 			end)
-			if headerAdded then
+			if headerAdded and not filter.header then
 				list:AddEntry("ZO_GamepadMenuEntryTemplate", data)
 			else
-				data:SetHeader(GetString(KELA_EXTENDED_JOURNAL_FILTERS))
+				data:SetHeader(filter.header and ResolveText(filter.header) or GetString(KELA_BROWSER_FILTERS))
 				list:AddEntryWithHeader("ZO_GamepadMenuEntryTemplate", data)
 				headerAdded = true
 			end
@@ -702,6 +758,8 @@ function KelaGamepadBrowser:ShowDetails(record)
 		if collectibleData then
 			GAMEPAD_TOOLTIPS:LayoutCollectibleFromData(GAMEPAD_RIGHT_TOOLTIP, collectibleData)
 		end
+	elseif kind == "antiquity" then
+		GAMEPAD_TOOLTIPS:LayoutAntiquityLead(GAMEPAD_RIGHT_TOOLTIP, value)
 	elseif kind == "text" and value and value ~= "" then
 		GAMEPAD_TOOLTIPS:LayoutTextBlockTooltip(GAMEPAD_RIGHT_TOOLTIP, value)
 	end
@@ -748,8 +806,8 @@ function KelaGamepadBrowser:OnShowing()
 	ZO_GamepadGenericHeader_Activate(self.header)
 end
 
--- Sources may need the scene shown before their data exists (Extended
--- Journal runs its tab callbacks while its fragments show).
+-- Sources get the scene shown before their first table is built, so one that
+-- needs to load its data can do it in Activate.
 function KelaGamepadBrowser:OnShow()
 	self:SelectSource(self.sourceIndex or 1)
 end
@@ -762,4 +820,100 @@ function KelaGamepadBrowser:OnHiding()
 	end
 	self.tableFocused = false
 	GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+end
+
+-- ---------------------------------------------------------------------------
+-- Filter builders
+-- ---------------------------------------------------------------------------
+
+-- Tells the browser a source's data or filters changed.
+function KelaGamepadBrowser.Changed(source)
+	if source.browser then
+		source.browser:RefreshSource(source)
+	end
+end
+
+-- A search box over source[field].
+function KelaGamepadBrowser.SearchFilter(source, field)
+	return
+	{
+		kind = FILTER_SEARCH,
+		Get = function() return source[field] or "" end,
+		Set = function(text)
+			source[field] = text or ""
+			KelaGamepadBrowser.Changed(source)
+		end,
+	}
+end
+
+-- A choice over source[field]. `GetOptions()` returns { { label, value } } with
+-- the first entry the unfiltered one; source[field] holds the chosen value
+-- (nil for the first entry when its value is nil), never an index, so a list
+-- that changes under the player keeps the choice. A chosen value that fell out
+-- of the list stays listed, so what shows is what filters.
+function KelaGamepadBrowser.ChoiceFilter(source, field, caption, GetOptions)
+	local function Options()
+		local options = GetOptions()
+		local current = source[field]
+		if current ~= nil then
+			local found = false
+			for _, option in ipairs(options) do
+				if option.value == current then
+					found = true
+					break
+				end
+			end
+			if not found then
+				options[#options + 1] = { label = tostring(current), value = current }
+			end
+		end
+		return options
+	end
+	return
+	{
+		kind = FILTER_CHOICE,
+		caption = caption,
+		GetChoices = function()
+			local labels = {}
+			for index, option in ipairs(Options()) do
+				labels[index] = option.label
+			end
+			return labels
+		end,
+		GetSelected = function()
+			for index, option in ipairs(Options()) do
+				if option.value == source[field] then
+					return index
+				end
+			end
+			return 1
+		end,
+		Select = function(index)
+			local option = Options()[index]
+			if option and option.value ~= source[field] then
+				source[field] = option.value
+				KelaGamepadBrowser.Changed(source)
+			end
+		end,
+	}
+end
+
+-- Starts a new section of the filter list, named `header`, at this filter.
+function KelaGamepadBrowser.WithHeader(filter, header)
+	filter.header = header
+	return filter
+end
+
+-- An on/off toggle over source[field].
+function KelaGamepadBrowser.ToggleFilter(source, field, caption)
+	return
+	{
+		kind = FILTER_TOGGLE,
+		caption = caption,
+		Get = function() return source[field] == true end,
+		Set = function(checked)
+			source[field] = checked == true
+			KelaGamepadBrowser.Changed(source)
+		end,
+	}
 end

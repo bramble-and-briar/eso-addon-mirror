@@ -1,7 +1,7 @@
 ## Title: SetupWardrobe
 ## Author: FiNk3F13
-## Version: 1.4.6
-## AddOnVersion: 10406
+## Version: 1.4.8
+## AddOnVersion: 10408
 ## APIVersion: 101051
 ## Description: Ausrüstung und beide Skillleisten per Controller wechseln.
 ## DependsOn: LibHarvensAddonSettings

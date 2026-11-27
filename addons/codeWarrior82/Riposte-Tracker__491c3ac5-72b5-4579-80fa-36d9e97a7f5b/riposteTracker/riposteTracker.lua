@@ -1,4 +1,9 @@
 local appName = "riposteTracker"
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 local riposteAbilityID = 60230
 local timeRemaining = 0
 local picPath = GetAbilityIcon(riposteAbilityID)
@@ -17,7 +22,8 @@ riposteTracker.defaults = {
 	notify = false,
 	notifyStart = true,
     yAxisText = 930,
-    xAxisText = 1400
+    xAxisText = 1400,
+	lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -176,7 +182,11 @@ end
 local function stopTrackingAuto()
 
     if riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack then
-        printMessage("Riposte CP not found")
+		if not notFoundAlreadyChecked then
+            printMessage("Riposte CP not found")
+        end
+		notFoundAlreadyChecked = true
+        alreadyChecked = false
         unRegisterAlerts()
         riptrack:SetHidden(true)
     end
@@ -184,8 +194,12 @@ end
 
 --start tracking if set is not equipped
 local function startTrackingAuto()
-    if riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack then
-        printMessage("Found Riposte CP")
+    if riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack then 
+		if not alreadyChecked then
+			printMessage("Found Riposte CP")
+		end
+		alreadyChecked = true
+		notFoundAlreadyChecked = false
         registerAlerts()
     end
 end
@@ -254,7 +268,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return riposteTracker.savedVariables.xAxisText
             end,
@@ -268,7 +282,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return riposteTracker.savedVariables.yAxisText
             end,
@@ -313,6 +327,14 @@ local function createOptions()
     LAM:RegisterOptionControls("Riposte Tracker", optionsData)
 end
 
+--notify about update when player activates
+local function activated()
+    if riposteTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        riposteTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end	
+
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -343,8 +365,10 @@ local function onAddOnLoaded(event, name)
         if checkCP(riposteCp) and riposteTracker.savedVariables.autoTrack and riposteTracker.savedVariables.trackRip then
             isEquiped = true
             printMessage("Found Riposte CP")
+			alreadyChecked = true
         elseif not checkCP(riposteCp) and riposteTracker.savedVariables.autoTrack and riposteTracker.savedVariables.trackRip then
             printMessage("Riposte CP not found")
+			notFoundAlreadyChecked = true
         end
     end, 1000)
 
@@ -378,6 +402,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+	EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

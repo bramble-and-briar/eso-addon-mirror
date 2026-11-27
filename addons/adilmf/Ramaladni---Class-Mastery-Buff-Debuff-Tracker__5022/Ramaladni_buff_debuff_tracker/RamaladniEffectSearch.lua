@@ -1,8 +1,16 @@
 -- Ramaladni effect lookup: search is independent of the UI and combat tracker.
 -- The installed U52 group data is authored by the Ramaladni project.
 -- No online requests, external libraries or dynamic ability-ID discovery.
-RamaladniEffectSearch = {}
-local S = RamaladniEffectSearch
+local M=RamaladniMastery
+local ipairs = ipairs
+local math = math
+local pairs = pairs
+local string = string
+local table = table
+local tonumber = tonumber
+local tostring = tostring
+local S = {}
+M.EffectSearch = S
 
 -- Search synonyms only: never shown as ID labels and never used to merge unrelated effects.
 -- Hemorrhaging (bleed status) differs from the Nightblade Hemorrhage passive.
@@ -10,12 +18,13 @@ local ALIASES={
   buff={
     ["Minor Berserk"]="Малое неистовство Малая ярость",
     ["Major Berserk"]="Великое неистовство Великая ярость",
+    ["Major Aegis"]="Великий эгид Великая эгида",
     ["Gallop"]="Великий галоп Езда Mounted Speed",
     ["Empower"]="Усиление Силовые атаки Heavy Attacks",
     ["Minor Savagery"]="Кровоизлияние Hemorrhage Ночной клинок",
   },
   debuff={
-    ["Hemorrhaging"]="Кровоизлияние Кровотечение Hemorrhage Bleeding",
+    ["Hemorrhaging"]="Кровотечение Bleeding",
     ["Concussed"]="Concussion Concussed Сотрясение Контузия",
     ["Chilled"]="Охлаждение Охлаждённый Обморожение",
     ["Diseased"]="Заражение Болезнь",
@@ -49,9 +58,9 @@ local function Put(catalog,kind,entry)
   for _,id in ipairs(ids) do catalog.byId[id]=entry end
 end
 
--- All entries are real ID matches from the U52 group dictionary, verified
--- special effects, or effects the game has actually reported to the player.
-function S.Build(kind,groups,ru,verified,presets,learned,observed)
+-- Strict search catalog: only classified U52 groups and verified special presets.
+-- Target ownership and GetAbilityName do not establish buff/debuff polarity.
+function S.Build(kind,groups,ru,verified,presets)
   local catalog={list={},byId={},keys={}}
   local groupEntries={}
   for key,ids in pairs(groups.groups or {}) do
@@ -67,34 +76,18 @@ function S.Build(kind,groups,ru,verified,presets,learned,observed)
   table.sort(groupEntries,function(a,b) return a.en<b.en end)
   for _,entry in ipairs(groupEntries) do Put(catalog,kind,entry) end
 
-  local function AddSingle(id,name,aliases)
-    id=tonumber(id)
-    if not id or id<1 or catalog.byId[id] then return end
-    local english=(name or ''):match('/%s*(.+)$') or name or ''
-    local russian=(name or ''):match('^(.-)%s*/') or name or ''
-    if english:match('^ID%s+%d+$') then english='';russian='' end
-    if english=='' and type(GetAbilityName)=='function' then english=GetAbilityName(id) or '' end
-    if russian=='' then russian=english end
-    if english=='' then english='Неизвестный эффект';russian=english end
-    local members={id}
-    if type(aliases)=='table' then
-      for _,extra in ipairs(aliases) do
+  -- Group presets are already represented by the full group above. The remaining
+  -- presets are the four explicitly classified special debuffs.
+  for _,preset in ipairs(presets or {}) do
+    local id=preset.id
+    if not catalog.byId[id] then
+      local english=preset.name:match('/%s*(.+)$')
+      local russian=ru[english] or preset.name:match('^(.-)%s*/')
+      local members={id}
+      for _,extra in ipairs(preset.aliases or {}) do
         if extra~=id and not catalog.byId[extra] then members[#members+1]=extra end
       end
-    end
-    local display=(russian==english) and russian or (russian..' / '..english)
-    Put(catalog,kind,{id=id,ids=members,en=english,ru=russian,title=display})
-  end
-
-  for _,preset in ipairs(presets or {}) do AddSingle(preset.id,preset.name,preset.aliases) end
-  for en,id in pairs(verified or {}) do
-    AddSingle(id,(ru[en] or en)..' / '..en)
-  end
-  -- Save the language reported by ESO as one more searchable alias, without
-  -- pretending a translation is known for unclassified, player-seen skills.
-  for _,source in ipairs({learned or {},observed or {}}) do
-    for id,info in pairs(source) do
-      if type(info)=='table' then AddSingle(id,info.name) end
+      Put(catalog,kind,{id=id,ids=members,en=english,ru=russian,title=russian..' / '..english})
     end
   end
   table.sort(catalog.list,function(a,b) return a.normalized<b.normalized end)
@@ -109,6 +102,7 @@ function S.Match(catalog,text,limit)
   if num and num>0 and num==math.floor(num) then
     local exact=catalog.byId[num]
     if exact then return {exact} end
+    return found -- no unclassified numeric-ID fallback
   end
   for _,entry in ipairs(catalog.list) do
     if entry.normalized:find(query,1,true) then

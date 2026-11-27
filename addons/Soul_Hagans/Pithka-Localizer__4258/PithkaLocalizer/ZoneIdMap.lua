@@ -1,6 +1,7 @@
 -- ZoneIdMap.lua
 
-ZoneIdMap = {
+PithkaLocalizer = PithkaLocalizer or {}
+PithkaLocalizer.ZoneIdMap = {
     -- Trials
     ["Hel Ra Citadel"]       = 636,    -- Цитадель Хель-Ра (без изменений)
     ["Aetherian Archive"]    = 638,    -- Этерианский Архив (без изменений)

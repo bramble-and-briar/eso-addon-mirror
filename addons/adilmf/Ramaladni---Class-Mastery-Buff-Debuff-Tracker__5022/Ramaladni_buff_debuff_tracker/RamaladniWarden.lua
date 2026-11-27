@@ -1,6 +1,40 @@
 -- Ramaladni Tracker v0.9.23 — Warden isolated runtime.
 -- Mechanics copied from the v0.9.22 reference; other classes are not modified.
 local M=RamaladniMastery
+local d = d
+local ipairs = ipairs
+local math = math
+local pairs = pairs
+local string = string
+local table = table
+local tonumber = tonumber
+local tostring = tostring
+local type = type
+local ACTION_RESULT_BLOCKED_DAMAGE = ACTION_RESULT_BLOCKED_DAMAGE
+local ACTION_RESULT_CRITICAL_DAMAGE = ACTION_RESULT_CRITICAL_DAMAGE
+local ACTION_RESULT_DAMAGE = ACTION_RESULT_DAMAGE
+local ACTION_RESULT_DAMAGE_SHIELDED = ACTION_RESULT_DAMAGE_SHIELDED
+local ACTION_RESULT_DOT_TICK = ACTION_RESULT_DOT_TICK
+local ACTION_RESULT_DOT_TICK_CRITICAL = ACTION_RESULT_DOT_TICK_CRITICAL
+local ACTION_RESULT_EFFECT_GAINED = ACTION_RESULT_EFFECT_GAINED
+local ACTION_RESULT_EFFECT_GAINED_DURATION = ACTION_RESULT_EFFECT_GAINED_DURATION
+local COMBAT_UNIT_TYPE_PLAYER = COMBAT_UNIT_TYPE_PLAYER
+local DoesUnitExist = DoesUnitExist
+local EFFECT_RESULT_FADED = EFFECT_RESULT_FADED
+local EFFECT_RESULT_FULL_REFRESH = EFFECT_RESULT_FULL_REFRESH
+local EFFECT_RESULT_GAINED = EFFECT_RESULT_GAINED
+local EFFECT_RESULT_UPDATED = EFFECT_RESULT_UPDATED
+local EVENT_COMBAT_EVENT = EVENT_COMBAT_EVENT
+local EVENT_EFFECT_CHANGED = EVENT_EFFECT_CHANGED
+local EVENT_MANAGER = EVENT_MANAGER
+local GetAbilityName = GetAbilityName
+local GetNumBuffs = GetNumBuffs
+local GetUnitBuffInfo = GetUnitBuffInfo
+local GetUnitName = GetUnitName
+local REGISTER_FILTER_ABILITY_ID = REGISTER_FILTER_ABILITY_ID
+local REGISTER_FILTER_COMBAT_RESULT = REGISTER_FILTER_COMBAT_RESULT
+local REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE = REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE
+local SLASH_COMMANDS = SLASH_COMMANDS
 local shared=M.shared
 local SkillState,LeadNow,HideState=shared.SkillState,shared.LeadNow,shared.HideState
 local lead=shared.lead
@@ -8,33 +42,33 @@ local runtime={}
 M.modules["Warden"]=runtime
 do
 local e={key="Warden:Tundra's Maw",class="Warden",en="Tundra's Maw",title="Утроба тундры / Tundra's Maw",passiveId=263519,candidateIDs={145977,263825},model="warden_proc",value=20,cap=0,target=true,kind="major_brittle_timer",mechanic="Track actual Major Brittle debuff (145977) from any source; Tundra's Maw upgrades Chilled",durationRule="Use actual ESO effect endTime; Tundra's Maw tooltip says 2.1 sec, but other sources may differ"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Warden:Wild Adaptation",class="Warden",en="Wild Adaptation",title="Приспособляемость леса / Wild Adaptation",passiveId=263520,candidateIDs={263826},model="target_status_number",value=333,cap=5,target=true,kind="target_status_count+numeric",mechanic="333 Weapon/Spell Damage per distinct recognized status effect on the current target, maximum +1665",durationRule="No intrinsic timer; do not count generic debuffs as statuses"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Warden:Glacial Obstinance",class="Warden",en="Glacial Obstinance",title="Ледяная непреклонность / Glacial Obstinance",passiveId=263521,candidateIDs={267305,267310},model="warden_proc",value=15,cap=0,target=false,kind="percent+timer",mechanic="Bond with Nature triggered by Winter Embrace cast + healing at full HP, own mastery proc only",durationRule="10 sec from confirmed own proc, client endTime preferred"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Warden:Green-Keeper's Hide",class="Warden",en="Green-Keeper's Hide",title="Покров хранителя лесов / Green-Keeper's Hide",passiveId=263522,candidateIDs={263828},model="attacker_status_percent",value=3,cap=5,target=false,kind="attacker_status_count+percent",mechanic="-3% incoming damage per distinct status effect on the attacker, up to -15%; attacker must be identified",durationRule="No intrinsic timer"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Warden:Bountiful Harvest",class="Warden",en="Bountiful Harvest",title="Обильная жатва / Bountiful Harvest",passiveId=263523,candidateIDs={61709,263829,263830,268258},model="warden_proc",value=0,cap=0,target=false,kind="major_heroism_timer",mechanic="Track player's actual Major Heroism buff; Bountiful Harvest grants it for 3 sec",durationRule="Actual ESO endTime (never infer 3 sec from a generic Major Heroism cast)"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 
 -- Warden v0.9.12. The main addon still owns generic HUD and SavedVariables.
@@ -61,7 +95,7 @@ local warden={procs={},status={at=-1,tag=nil,signature=nil,count=nil,types=nil},
   attackerName=nil,attackerId=nil,attackerAt=-100,debug=false,lastProcAt={},scanCount=0,
   combatStatusesById={},combatStatusesByName={},statusNameCache=nil}
 local function WardenLearned(key)
-  return SkillState(RamaladniMastery.byKey[key])==true
+  return SkillState(M.byKey[key])==true
 end
 -- For the current reticle target, use the actual effect list as a fallback
 -- when ESO does not emit an effect event for a newly acquired target.
@@ -69,13 +103,12 @@ local function IsMajorBrittle(id,name)
   if id==145977 or id==263825 then return true end
   if type(name)~='string' or name=='' then return false end
   if name=='Major Brittle' or name=='Великая хрупкость' then return true end
-  local localized=GetAbilityName and GetAbilityName(145977)
+  local localized=GetAbilityName(145977)
   return type(localized)=='string' and localized~='' and name==localized
 end
 local function ScanTargetBrittle(now)
-  if not (GetNumBuffs and GetUnitBuffInfo and DoesUnitExist and
-          DoesUnitExist('reticleover')) then return end
-  local unitName=GetUnitName and GetUnitName('reticleover')
+  if not (DoesUnitExist('reticleover')) then return end
+  local unitName=GetUnitName('reticleover')
   local bestEnd,bestId=0,nil
   for i=1,(GetNumBuffs('reticleover') or 0) do
     local name,_,endTime,_,_,_,_,_,_,_,id=GetUnitBuffInfo('reticleover',i)
@@ -100,11 +133,11 @@ local function IsMajorHeroism(id,name)
   if id==61709 then return true end
   if type(name)~='string' or name=='' then return false end
   if name=='Major Heroism' or name=='Великий героизм' then return true end
-  local localized=GetAbilityName and GetAbilityName(61709)
+  local localized=GetAbilityName(61709)
   return type(localized)=='string' and localized~='' and name==localized
 end
 local function ScanPlayerHeroism(now)
-  if not (GetNumBuffs and GetUnitBuffInfo) then return end
+
   local bestEnd,bestId=0,nil
   for i=1,(GetNumBuffs('player') or 0) do
     local name,_,endTime,_,_,_,_,_,_,_,id=GetUnitBuffInfo('player',i)
@@ -124,7 +157,6 @@ local function WardenOwnProc(_,change,slot,name,unitTag,beginTime,endTime,stacks
   -- Generic Major Brittle/Heroism can come from anyone. Only mastery-specific
   -- proc IDs still require the player's own source.
   if not WARDEN_GENERIC_EFFECT_IDS[abilityId] and sourceType~=nil and
-     COMBAT_UNIT_TYPE_PLAYER~=nil and
      sourceType~=COMBAT_UNIT_TYPE_PLAYER then return end
   if key==WARDEN_TUNDRA then
     -- Need enemy target; do not accidentally treat a player Major Brittle as ours.
@@ -158,7 +190,7 @@ local function WardenOwnProc(_,change,slot,name,unitTag,beginTime,endTime,stacks
     end
   else return end
   warden.procs[key]=state
-  if warden.debug and d then
+  if warden.debug then
     d(string.format('Ramaladni Warden %s: id=%s unit=%s end=%.1f estimated=%s',
       key,tostring(abilityId),tostring(unitTag),state.untilTime or 0,
       tostring(state.estimated)))
@@ -219,7 +251,7 @@ local function WardenStatusCategory(id,name)
   -- Use client-localized labels even if they differ from the manual RU list.
   if not warden.statusNameCache then
     warden.statusNameCache={}
-    if GetAbilityName then
+    do
       for knownId,category in pairs(WARDEN_STATUS_IDS) do
         local localized=GetAbilityName(knownId)
         if type(localized)=='string' and localized~='' then
@@ -231,7 +263,7 @@ local function WardenStatusCategory(id,name)
   return warden.statusNameCache[clean]
 end
 local function WardenScanStatus(tag,now,known)
-  if not (GetNumBuffs and GetUnitBuffInfo and DoesUnitExist and DoesUnitExist(tag)) then
+  if not (DoesUnitExist(tag)) then
     return false
   end
   local total=GetNumBuffs(tag) or 0
@@ -260,8 +292,8 @@ local function WardenCountStatus(tag,now)
   return WardenStatusSummary(known)
 end
 local function WardenTargetStatus(now)
-  local target=DoesUnitExist and DoesUnitExist('reticleover') and
-    GetUnitName and WardenNormalName(GetUnitName('reticleover')) or ''
+  local target=DoesUnitExist('reticleover') and
+    WardenNormalName(GetUnitName('reticleover')) or ''
   if warden.status.at>=0 and now-warden.status.at<0.35 and
      warden.status.tag==target then
     return warden.status.count,warden.status.types
@@ -348,8 +380,8 @@ local function WardenIncludeCombat(known,id,name,now)
   return estimated
 end
 local function WardenHideStatus(now)
-  local reticle=DoesUnitExist and DoesUnitExist('reticleover') and
-    GetUnitName and GetUnitName('reticleover') or nil
+  local reticle=DoesUnitExist('reticleover') and
+    GetUnitName('reticleover') or nil
   local recentAttacker=warden.attackerName and now-warden.attackerAt<=5
   local matched=reticle and recentAttacker and
       WardenNormalName(reticle)==WardenNormalName(warden.attackerName)
@@ -387,7 +419,7 @@ local function WardenIncoming(_,result,isError,abilityName,abilityGraphic,abilit
   log,sourceUnitId,targetUnitId,abilityId,overflow)
   if isError or not WARDEN_DAMAGE_RESULTS[result] or
      type(hitValue)~='number' or hitValue<=0 then return end
-  local myName=GetUnitName and GetUnitName('player')
+  local myName=GetUnitName('player')
   if not myName or WardenNormalName(targetName)~=WardenNormalName(myName) then return end
   if not sourceName or sourceName=='' or
      WardenNormalName(sourceName)==WardenNormalName(myName) then return end
@@ -399,57 +431,63 @@ local function WardenDebug(input)
   local cmd=(input or ''):lower():match('^%s*(.-)%s*$')
   if cmd=='debug' then
     warden.debug=not warden.debug
-    if d then d('Ramaladni Warden debug '..(warden.debug and 'ON' or 'OFF')) end
+    d('Ramaladni Warden debug '..(warden.debug and 'ON' or 'OFF'))
   end
   local now=LeadNow()
   local n,names=WardenCountStatus('reticleover',now)
   local hideN,hideNames,hideEstimated,context=WardenHideStatus(now)
-  if d then
-    d(string.format('Ramaladni Warden: reticle=%s [%s], hide=%s [%s] estimated=%s context=%s attacker=%s id=%s age=%.1fs',
-      tostring(n),tostring(names),tostring(hideN),tostring(hideNames),
-      tostring(hideEstimated),tostring(context),tostring(warden.attackerName),
-      tostring(warden.attackerId),now-warden.attackerAt))
-    for _,key in ipairs(WARDEN_KEYS) do
-      local ok=SkillState(RamaladniMastery.byKey[key],true)
-      local proc=warden.procs[key]
-      d(string.format('%s: learned=%s id=%s remaining=%.1f estimated=%s',key,
-        tostring(ok),tostring(proc and proc.observedId),
-        proc and math.max(0,(proc.untilTime or 0)-now) or 0,
-        tostring(proc and proc.estimated)))
-    end
-    if GetNumBuffs and GetUnitBuffInfo and DoesUnitExist and DoesUnitExist('reticleover') then
-      for i=1,math.min(GetNumBuffs('reticleover') or 0,35) do
-        local name,_,finish,_,stacks,_,_,_,_,status,id=GetUnitBuffInfo('reticleover',i)
-        if warden.debug then d(string.format('target aura id=%s name=%s status=%s ends=%s stacks=%s',
-          tostring(id),tostring(name),tostring(status),tostring(finish),tostring(stacks))) end
-      end
+  d(string.format('Ramaladni Warden: reticle=%s [%s], hide=%s [%s] estimated=%s context=%s attacker=%s id=%s age=%.1fs',
+    tostring(n),tostring(names),tostring(hideN),tostring(hideNames),
+    tostring(hideEstimated),tostring(context),tostring(warden.attackerName),
+    tostring(warden.attackerId),now-warden.attackerAt))
+  for _,key in ipairs(WARDEN_KEYS) do
+    local ok=SkillState(M.byKey[key],true)
+    local proc=warden.procs[key]
+    d(string.format('%s: learned=%s id=%s remaining=%.1f estimated=%s',key,
+      tostring(ok),tostring(proc and proc.observedId),
+      proc and math.max(0,(proc.untilTime or 0)-now) or 0,
+      tostring(proc and proc.estimated)))
+  end
+  if DoesUnitExist('reticleover') then
+    for i=1,math.min(GetNumBuffs('reticleover') or 0,35) do
+      local name,_,finish,_,stacks,_,_,_,_,status,id=GetUnitBuffInfo('reticleover',i)
+      if warden.debug then d(string.format('target aura id=%s name=%s status=%s ends=%s stacks=%s',
+        tostring(id),tostring(name),tostring(status),tostring(finish),tostring(stacks))) end
     end
   end
 end
 
 
+local syncEvents=M.NewEventSet()
+runtime.SyncEvents=function(selected)
+  for key in pairs(warden.procs) do
+    if not selected[key] then warden.procs[key]=nil;warden.lastProcAt[key]=nil end
+  end
+  if not selected[WARDEN_HIDE] then
+    warden.attackerName=nil;warden.attackerId=nil;warden.attackerAt=-100
+    warden.combatStatusesById={};warden.combatStatusesByName={}
+  end
+  if not selected[WARDEN_WILD] then warden.status.at=-1 end
+  syncEvents(function(Add)
+    for auraId,key in pairs(WARDEN_OWN_PROCS) do
+      if selected[key] then
+        Add('RamaladniWardenProc_'..auraId,EVENT_EFFECT_CHANGED,WardenOwnProc,REGISTER_FILTER_ABILITY_ID,auraId)
+      end
+    end
+    -- The combat status cache is consumed by Green-Keeper's Hide only.
+    if selected[WARDEN_HIDE] then
+      for auraId in pairs(WARDEN_COMBAT_STATUS_IDS) do
+        Add('RamaladniWardenStatus_'..auraId,EVENT_COMBAT_EVENT,WardenCombatStatus,REGISTER_FILTER_ABILITY_ID,auraId)
+      end
+      for result in pairs(WARDEN_DAMAGE_RESULTS) do
+        Add('RamaladniWardenIncoming_'..result,EVENT_COMBAT_EVENT,WardenIncoming,
+          REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER,REGISTER_FILTER_COMBAT_RESULT,result)
+      end
+    end
+  end)
+end
 runtime.Init=function()
   SLASH_COMMANDS['/rmwarden']=WardenDebug
-  for auraId in pairs(WARDEN_OWN_PROCS) do
-    local namespace='RamaladniWardenProc_'..tostring(auraId)
-    EVENT_MANAGER:RegisterForEvent(namespace,EVENT_EFFECT_CHANGED,WardenOwnProc)
-    EVENT_MANAGER:AddFilterForEvent(namespace,EVENT_EFFECT_CHANGED,
-      REGISTER_FILTER_ABILITY_ID,auraId)
-  end
-  if EVENT_COMBAT_EVENT then
-    for auraId in pairs(WARDEN_COMBAT_STATUS_IDS) do
-      local namespace='RamaladniWardenStatus_'..tostring(auraId)
-      EVENT_MANAGER:RegisterForEvent(namespace,EVENT_COMBAT_EVENT,WardenCombatStatus)
-      EVENT_MANAGER:AddFilterForEvent(namespace,EVENT_COMBAT_EVENT,
-        REGISTER_FILTER_ABILITY_ID,auraId)
-    end
-    EVENT_MANAGER:RegisterForEvent('RamaladniWardenIncoming',EVENT_COMBAT_EVENT,
-      WardenIncoming)
-    if REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE and COMBAT_UNIT_TYPE_PLAYER then
-      EVENT_MANAGER:AddFilterForEvent('RamaladniWardenIncoming',EVENT_COMBAT_EVENT,
-        REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
-    end
-  end
 end
 local function WardenDisplay(key,state,now)
   if not WardenLearned(key) then HideState(state);state.cooldownUntil=0;return true,nil end
@@ -474,7 +512,7 @@ local function WardenDisplay(key,state,now)
   if proc and proc.active and proc.untilTime>now then
     if key==WARDEN_TUNDRA then
       -- A target debuff must not be displayed as active on another enemy.
-      local targetName=GetUnitName and GetUnitName('reticleover')
+      local targetName=GetUnitName('reticleover')
       if targetName and targetName~='' and proc.unitName~=targetName then
         HideState(state);return true,nil
       end

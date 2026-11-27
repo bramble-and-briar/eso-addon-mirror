@@ -1,5 +1,10 @@
 local appName = "turningTideTracker"
 local flowingWaterID = 167350
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 --167061 id for major vuln from turning tide
 local picPath = GetAbilityIcon(flowingWaterID)
 local iconText = zo_iconTextFormat(picPath, 80, 80, " ")
@@ -22,7 +27,8 @@ turningTideTracker.defaults = {
 	notifyReady = true,
 	notifyVuln = true,
     yAxisText = 930,
-    xAxisText = 1300
+    xAxisText = 1300,
+	lastSeenVersion = 0
 }
 
 turningTideTracker.majorEffects = {
@@ -234,7 +240,11 @@ end
 local function stopTrackingAuto()
 
     if turningTideTracker.savedVariables.trackTurn and turningTideTracker.savedVariables.autoTrack then
-        printMessage("Turning Tide set not found")
+		if not notFoundAlreadyChecked then
+            printMessage("Turning Tide set not found")
+        end
+		notFoundAlreadyChecked = true
+        alreadyChecked = false
         unRegisterAlerts()
         unRegisterAlertsVuln()
         ttAddonText:SetHidden(true)
@@ -244,7 +254,11 @@ end
 --start tracking if set is not equipped
 local function startTrackingAuto()
     if turningTideTracker.savedVariables.trackTurn and turningTideTracker.savedVariables.autoTrack then
-        printMessage("Found Turning Tide set")
+		if not alreadyChecked then
+			printMessage("Found Turning Tide set")
+		end
+		alreadyChecked = true
+		notFoundAlreadyChecked = false
         registerAlerts()
     end
     if turningTideTracker.savedVariables.trackVuln then
@@ -345,7 +359,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return turningTideTracker.savedVariables.xAxisText
             end,
@@ -359,7 +373,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return turningTideTracker.savedVariables.yAxisText
             end,
@@ -416,6 +430,14 @@ local function onSceneStateChange(scene, oldState, newState)
     end
 end
 
+--notify about update when player activates
+local function activated()
+    if turningTideTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        turningTideTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end
+
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -448,11 +470,11 @@ local function onAddOnLoaded(event, name)
     --check if set is equipped
     if not isSetEquiped(setId, setCount) and turningTideTracker.savedVariables.autoTrack and turningTideTracker.savedVariables.trackTurn then
         --notify set not found
-        zo_callLater(function() printMessage("Turning Tide set not found") end, 600)
+        zo_callLater(function() printMessage("Turning Tide set not found") notFoundAlreadyChecked = true end, 600)
     elseif isSetEquiped(setId, setCount) and turningTideTracker.savedVariables.autoTrack and turningTideTracker.savedVariables.trackTurn then
         isEquiped = true
         --notify set found
-        zo_callLater(function() printMessage("Found Turning Tide set") end, 600)
+        zo_callLater(function() printMessage("Found Turning Tide set") alreadyChecked = true end, 600)
     end
 
     --double check if set is equipped without autotracking stipulation
@@ -490,6 +512,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+	EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

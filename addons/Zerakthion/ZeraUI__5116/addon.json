@@ -18,7 +18,7 @@
     "ZeraUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5116/",
-  "fingerprint": "6cf95d9a434e2538407b22f6585565278e20e7d9fb7327d073f2a89f05ad3a4d",
+  "fingerprint": "c945c23896a22b8722fc6ff73386d6534c7b4667da4d552a148e9714128993d2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18821.gif",
     "https://cdn-eso.mmoui.com/preview/pvw18816.png",
@@ -34,11 +34,11 @@
   "source_id": "5116",
   "source_url": "https://www.esoui.com/downloads/info5116-ZeraUI.html",
   "stats": {
-    "downloads": 3,
+    "downloads": 30,
     "favorites": 1,
-    "monthly_downloads": 0
+    "monthly_downloads": 26
   },
   "title": "ZeraUI",
-  "updated_at": 1795684874000,
-  "version": "1.1.5"
+  "updated_at": 1795772010000,
+  "version": "1.1.6"
 }

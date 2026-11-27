@@ -1,3 +1,4 @@
+local L = MWC.L
 MWC.Enchanting = {
   ITEMS_PER_WRIT = 1,
   YIELD = 1,
@@ -110,9 +111,9 @@ end
 function MWC.Enchanting.Recipe(writ)
   local glyphId, levelCode, quality = writ.fields[1], writ.fields[2], writ.fields[3]
   local glyph = GLYPHS[glyphId]
-  if not glyph then return nil, "unknown glyph" end
+  if not glyph then return nil, L.PROBLEM_UNKNOWN_GLYPH end
   local potency, aspect, cp = POTENCY_RUNE[glyph[2]][levelCode], ASPECT_RUNE[quality], LEVEL_CP[levelCode]
-  if not (potency and aspect and cp) then return nil, "unknown glyph level or quality" end
+  if not (potency and aspect and cp) then return nil, L.PROBLEM_UNKNOWN_GLYPH_LEVEL end
   return {
     runes = { potency, glyph[1], aspect },
     quality = quality,

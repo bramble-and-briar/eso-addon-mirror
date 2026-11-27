@@ -120,9 +120,13 @@ function H.ResetAll()
 end
 function H.Initialize()
     H.saved=ZO_SavedVars:NewAccountWide("HUDMoveUISavedVariables",1,nil,
-        {enabled=true,speed=500,layouts={controller={},keyboard={}}})
+        {enabled=true,speed=500,layouts={controller={},keyboard={}},discovered={}})
+    H.RestoreDiscovered()
     H.CreateSettings()
-    EVENT_MANAGER:RegisterForEvent(H.name,EVENT_PLAYER_ACTIVATED,H.Refresh)
+    EVENT_MANAGER:RegisterForEvent(H.name,EVENT_PLAYER_ACTIVATED,function()
+        H.Refresh()
+        if not H.discoveryStarted then H.StartDiscovery() end
+    end)
     EVENT_MANAGER:RegisterForEvent(H.name,EVENT_PLAYER_COMBAT_STATE,function(_,inCombat)
         if inCombat then H.StopMove(false) else H.Refresh() end
     end)

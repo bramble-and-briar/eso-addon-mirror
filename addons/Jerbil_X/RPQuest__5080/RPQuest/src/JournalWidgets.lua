@@ -40,6 +40,7 @@ function Widgets.CreateEditBoxWithBackdrop(name, parent, width, height, maxChars
     bg:SetEdgeColor(0.68, 0.58, 0.36, 0.80)
 
     local edit = WINDOW_MANAGER:CreateControl(name, bg, CT_EDITBOX)
+    edit._bg = bg
     local editWidth = isMultiLine and (width - 24) or (width - 12)
     edit:SetDimensions(editWidth, height - 8)
     edit:SetAnchor(TOPLEFT, bg, TOPLEFT, 6, 4)
@@ -75,8 +76,8 @@ function Widgets.CreateEditBoxWithBackdrop(name, parent, width, height, maxChars
     if isMultiLine then
         scrollbar = WINDOW_MANAGER:CreateControlFromVirtual(name .. "_ScrollBar", bg, "ZO_VerticalScrollbarBase")
         if scrollbar then
-            scrollbar:SetAnchor(TOPRIGHT, bg, TOPRIGHT, -4, 4)
-            scrollbar:SetAnchor(BOTTOMRIGHT, bg, BOTTOMRIGHT, -4, -4)
+            scrollbar:SetAnchor(TOPRIGHT, bg, TOPRIGHT, -4, 20)
+            scrollbar:SetAnchor(BOTTOMRIGHT, bg, BOTTOMRIGHT, -4, -20)
             scrollbar:SetHidden(true)
             scrollbar:SetHandler("OnValueChanged", function(_, value)
                 if syncingScroll then return end
@@ -168,6 +169,53 @@ function Widgets.SetEditBoxEnabled(bg, edit, enabled)
     if bg then
         if bg.SetMouseEnabled then bg:SetMouseEnabled(isEnabled) end
         if bg.SetAlpha then bg:SetAlpha(isEnabled and 1 or 0.45) end
+    end
+end
+
+local function IsControlOrAncestorHidden(ctrl)
+    local current = ctrl
+    while current do
+        if current.IsHidden and current:IsHidden() then
+            return true
+        end
+        current = current.GetParent and current:GetParent() or nil
+    end
+    return false
+end
+
+local function FindNextFocusableEditBox(editBoxes, startIndex, direction)
+    local count = #editBoxes
+    if count == 0 then return nil end
+    local idx = startIndex
+    for _ = 1, count do
+        idx = Widgets.CycleIndex(idx, count, direction)
+        local candidate = editBoxes[idx]
+        if candidate and not IsControlOrAncestorHidden(candidate) and candidate._disabled ~= true then
+            return candidate
+        end
+    end
+    return nil
+end
+
+function Widgets.RegisterTabChain(editBoxes, scrollContainer)
+    if type(editBoxes) ~= "table" or #editBoxes == 0 then return end
+    local count = #editBoxes
+    for i = 1, count do
+        local edit = editBoxes[i]
+        if edit then
+            edit:SetHandler("OnTab", function(ctrl)
+                local direction = IsShiftKeyDown() and -1 or 1
+                local target = FindNextFocusableEditBox(editBoxes, i, direction)
+                if not target or target == ctrl then return end
+                target:TakeFocus()
+                if scrollContainer then
+                    local scrollTarget = target._bg or target
+                    if not ZO_Scroll_IsControlFullyInView(scrollContainer, scrollTarget) then
+                        ZO_Scroll_ScrollControlIntoCentralView(scrollContainer, scrollTarget, false)
+                    end
+                end
+            end)
+        end
     end
 end
 

@@ -1,75 +1,49 @@
-RAMALADNI BUFF & DEBUFF TRACKER — v1.0.0 STABLE
-Автор: Northknightwest (Ramaladni) | 04.11.2026
+РАСКРЫТИЕ ИСПОЛЬЗОВАНИЯ ИИ
+При разработке Ramaladni частично применялся ИИ: отдельные части Lua-кода, исследование API, рефакторинг и автоматизированные тесты. Автор также самостоятельно вносил изменения в код и тестировал аддон в игре. Автономные тесты с эмуляцией API не заменяют полную проверку в ESO.
 
-ОБ АДДОНЕ
-Отдельный трекер баффов, дебаффов, боевых статус-эффектов и классового
-мастерства для The Elder Scrolls Online (ПК).
+RAMALADNI — CLASS MASTERY & BUFF/DEBUFF TRACKER
+Версия: 1.0.1-Stable
+Автор: Northknightwest (Ramaladni)
+Внешние библиотеки не требуются. Платформа: ESO (ПК).
 
 ВОЗМОЖНОСТИ
-- Поиск эффектов по русскому или английскому названию (включая части слова),
-  а также по Ability ID.
-- Для BUFF и DEBUFF эффект добавляется нажатием на результат поиска;
-  кнопки «Добавить» здесь нет.
-- Группы взаимосвязанных ID объединяются в один индикатор, при этом
-  служебные ID не отображаются в обычном интерфейсе.
-- Автоматические игровые иконки, перемещаемые HUD-индикаторы и таймеры.
-- При открытии основных игровых меню индикаторы скрываются, затем
-  возвращаются; игровое отслеживание при этом не останавливается.
-- Class Mastery: все семь классов и 35 пассивных механик; мастерство
-  добавляется отдельной кнопкой.
-- Удаление индикаторов — кнопкой X напротив элемента в нижнем списке
-  или «Удалить всё». Удаление очищает связанные превью и сообщения.
-- Ссылки внизу окна: Buff/Debuff Base, MD, Discord.
-- Встроены 70 именованных групп обычных эффектов, в т. ч. 8 статусных;
-  это НЕ все существующие в ESO способности и эффекты.
+- Автоматическое определение изученных мастерств текущей допустимой сборки: 35 пассивок семи классов. При смене сборки набор иконок обновляется автоматически.
+- Новые иконки мастерств появляются возле центра экрана; перемещённые позиции запоминаются отдельно для каждой пассивки. Мастерства не занимают 12 обычных слотов эффектов.
+- Раздельный поиск: 41 бафф и 33 дебаффа, статусных и специальных эффекта (74 именованных эффекта). Поиск по RU/EN названию, части названия или известному ID. Нажатие на результат добавляет индикатор.
+- Связанные ID объединяются в один индикатор. Автоматические игровые иконки, перемещаемые HUD-индикаторы, таймеры и значения мастерств. Некоторые механики рассчитываются по наблюдаемым событиям.
+- Индикаторы скрываются в основных игровых меню и возвращаются в игровом интерфейсе.
+- Раздельные настройки EU, NA и PTS. Существующие серверные профили имеют приоритет, старые общие настройки импортируются один раз только при отсутствии настроек отдельного сервера.
 
 УСТАНОВКА
-1. Закройте ESO.
-2. Если обновляете старую версию, сохраните резервные копии папки аддона и
-   Documents/Elder Scrolls Online/live/SavedVariables/RamaladniTrackerSaved.lua
-3. Распакуйте папку Ramaladni_buff_debuff_tracker в
-   Documents/Elder Scrolls Online/live/AddOns/
-4. Не оставляйте рядом вторую копию этого же аддона.
-5. Запустите игру. Вызов настроек: /ramaladni.
-
-ИСПОЛЬЗОВАНИЕ
-- BUFF / DEBUFF: введите название RU/EN или ID, затем нажмите на нужный
-  результат. Индикатор добавится сразу.
-- CLASS MASTERY: выберите класс/пассивку/иконку и нажмите
-  «Добавить мастерство».
-- Перемещайте индикаторы ЛКМ; удаляйте через X в списке.
-- Горячие клавиши можно назначить в Settings > Controls > Keybindings > Ramaladni.
+1. Закройте ESO. Сделайте резервную копию старой папки аддона и Documents/Elder Scrolls Online/live/SavedVariables/RamaladniTrackerSaved.lua.
+2. Распакуйте папку Ramaladni_buff_debuff_tracker в Documents/Elder Scrolls Online/live/AddOns/. Оставьте только одну копию аддона.
+3. Запустите игру и введите /ramaladni. Горячие клавиши: Settings > Controls > Keybindings > Ramaladni.
+4. Перемещайте иконки ЛКМ. Удаляйте обычные индикаторы через X или «Удалить баффы/дебаффы». Мастерства следуют текущей сборке.
 
 КОМАНДЫ
-/ramaladni            — открыть или закрыть настройки
-/ramaladni debug      — переключить диагностику
-/ramaladni inspect    — показать эффекты цели
-/ramaladni inspect self — показать эффекты персонажа
+/ramaladni — настройки
+/ramaladni debug — диагностика
+/ramaladni inspect — эффекты цели
+/ramaladni inspect self — эффекты персонажа
 /ramaladni offbalance — диагностика Off Balance
-/ramaladni test       — демонстрация таймера
+/ramaladni test — демонстрация таймера
 
-ТЕХНИЧЕСКАЯ ИНФОРМАЦИЯ
-- ESO Live API: 101051; дополнительно заявлен PTS API: 101052
-  (совместимость с будущей live-версией следует проверять отдельно).
-- Внешние библиотеки не требуются.
-- SavedVariables: RamaladniTrackerSaved; сохранения предыдущих тестовых
-  сборок используют тот же идентификатор.
-- Таймеры зависят от реальных игровых событий и ограничений ESO API.
-- Справочные группы U52 не гарантируют работу каждого ID в любой ситуации.
-- За основу публичного релиза взят игровой тест v1.0.4g RC5.
-- Большой экспериментальный каталог и самообучение из v1.0.5 не включены.
+СОВМЕСТИМОСТЬ И ПРОВЕРКИ
+В манифесте указаны API 101051 и 101052. Используются нативные EventFilters и режим совместимости для сопоставления по имени. Интервал обновления HUD — 200 мс. Финальные изменения g4 проверены автономно; полноценная игровая регрессия, проверка PTS и измерение CPU/памяти в клиенте ещё не завершены. Не каждый игровой эффект доступен через ESO API.
+
+ИСТОЧНИКИ И БЛАГОДАРНОСТИ
+Developed by Northknightwest (Ramaladni).
+- ESO ID Dictionary (Update 52): effect-ID reference data, organized into Ramaladni effect groups from the project’s supplied dataset.
+- ESO Logs (https://www.esologs.com/): ability catalogs and combat-event reference data used for Class Mastery research.
+- ESO-Hub (https://eso-hub.com/): named-effect and Class Mastery mechanics references.
+- MD Community (https://md-eso.ru/): buff/debuff classification reference and community logo. Effect reference: https://md-eso.ru/topic/8229-active-buffs-and-debuffs/
+- Untaunted by Solinur (https://www.esoui.com/downloads/info1475-Untaunted.html).
+- ZeniMax Online Studios and the ESOUI community: ESO UI/API documentation and reference implementation (https://github.com/esoui/esoui).
+- Special thanks to Baertram for technical review and guidance on addon development best practices.
+The referenced addons are not runtime dependencies. The Elder Scrolls Online, game icons and associated marks belong to their respective owners. Ramaladni is not affiliated with or endorsed by ZeniMax Online Studios.
 
 САЙТЫ
-Buff/Debuff Base: https://md-eso.ru/topic/8229-%D0%B1%D0%B0%D1%84%D1%84%D1%8B-%D0%B4%D0%B5%D0%B1%D0%B0%D1%84%D1%84%D1%8B-%D0%B8-%D1%81%D1%82%D0%B0%D1%82%D1%83%D1%81-%D1%8D%D1%84%D1%84%D0%B5%D0%BA%D1%82%D1%8B/
+Buff/Debuff Base: https://md-eso.ru/topic/8229-active-buffs-and-debuffs/
 MD: https://md-eso.ru/
 Discord: https://discord.gg/azr8QDYhyJ
-
-АВТОРСКИЕ ПРАВА И РАЗРАБОТКА
 Copyright (c) 2026 Northknightwest (Ramaladni).
-При разработке частично применялся ИИ для Lua-кода, исследований и тестов;
-автор также участвовал в написании, исправлении и игровом тестировании.
-Источник справочных ID эффектов — ESO ID Dictionary (Update 52).
-На их основе сформированы группы эффектов для Ramaladni.
-Оригинальный логотип сообщества MD использован по запросу автора аддона.
-The Elder Scrolls Online и связанные названия принадлежат их владельцам.
-Аддон не аффилирован с ZeniMax Online Studios.

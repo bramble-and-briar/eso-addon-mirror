@@ -188,19 +188,45 @@ function ZeraUIAttachFonts(A,UI)
         return probe
     end
 
+    local MEASURE_CACHE_LIMIT=512
+    local function rawProbeWidth(probe,value)
+        probe:SetText(value)
+        local ok,width=pcall(probe.GetTextWidth,probe)
+        if ok and type(width)=="number" and width>0 then return width end
+        return nil
+    end
+
     function A:MeasureStringUIWidth(label,value)
-        if not value or value=="" then return 0 end
+        if type(value)~="string" or value=="" then return 0 end
         local probe=getMeasureProbe(self)
         local fontSpec=label and (label.vabAppliedFont or (label.GetFont and label:GetFont()))
         if probe and fontSpec and probe.SetFont and probe.SetText and probe.GetTextWidth then
+            local generation=self.fontGeneration or 0
+            local cache=self.textMeasureCache
+            if not cache or self.textMeasureCacheGen~=generation then
+                cache={}; self.textMeasureCache=cache; self.textMeasureCacheGen=generation; self.textMeasureCacheCount=0
+                probe.vabLastMeasureFont=nil
+            end
+            local byFont=cache[fontSpec]
+            if byFont then
+                local cached=byFont[value]
+                if cached~=nil then return cached end
+            end
             if probe.vabLastMeasureFont~=fontSpec then
                 local ok,res=pcall(probe.SetFont,probe,fontSpec)
                 if ok and res~=false then probe.vabLastMeasureFont=fontSpec end
             end
             if probe.vabLastMeasureFont==fontSpec then
-                probe:SetText(value)
-                local ok,width=pcall(probe.GetTextWidth,probe)
-                if ok and type(width)=="number" and width>0 then return width end
+                local width=rawProbeWidth(probe,value)
+                if width then
+                    if (self.textMeasureCacheCount or 0)>=MEASURE_CACHE_LIMIT then
+                        cache={}; self.textMeasureCache=cache; self.textMeasureCacheCount=0; byFont=nil
+                    end
+                    if not byFont then byFont={}; cache[fontSpec]=byFont end
+                    byFont[value]=width
+                    self.textMeasureCacheCount=(self.textMeasureCacheCount or 0)+1
+                    return width
+                end
             end
         end
         if label and label.GetStringWidth then

@@ -71,10 +71,10 @@ local function LayoutStationTradingTooltip(station, tooltip, itemLink, icon, sta
 	local lastControl = bodySection
 
 	local listingItemsTable = KelaGetItemLinkListingTable(itemLink)
-	local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
+	local trueTTC, trueATT, priceInfoTTC, priceInfoATT, hasPrice = KelaGetPriceInfoTTCATT(itemLink)
 
 	-- basic information
-	if trueTTC or trueATT then
+	if hasPrice then
 		controls.info = controls.info or CreateControlFromVirtual(names.info, tooltip, "KPUI_MainInfo")
 		lastControl = SetSmithTradingInfo(controls.info, lastControl, priceInfoTTC, priceInfoATT, nil, selectedData, stackCount)
 		lastControl = AddClearLine(tooltip, lastControl, 0, 0)
@@ -148,7 +148,7 @@ function ZO_Tooltip:LayoutSmithingCreationTooltip(tooltip, itemLink)
 
 		local _, normalItemLink, fineItemLink, superiorItemLink, epicItemLink, legendaryItemLink = GetItemLinks(itemLink, IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_QUALITY))
 		local listingItemsTable = KelaGetItemLinkListingTable(itemLink)
-		local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
+		local trueTTC, trueATT, priceInfoTTC, priceInfoATT, hasPrice = KelaGetPriceInfoTTCATT(itemLink)
 
 		local bodySection = tooltip:AcquireSection(tooltip:GetStyle("bodySection1"))
 		bodySection:AddLine(GetString(KELA_TRADING_TRADING_INFO))
@@ -157,7 +157,7 @@ function ZO_Tooltip:LayoutSmithingCreationTooltip(tooltip, itemLink)
 		lastControl = bodySection
 		
 		-- basic information
-		if trueTTC or trueATT then
+		if hasPrice then
 			if not ctlCreationInfo then ctlCreationInfo = CreateControlFromVirtual("$(parent)Info", tooltip, "KPUI_MainInfo") end	
 			lastControl = SetSmithTradingInfo(ctlCreationInfo, lastControl, priceInfoTTC, priceInfoATT)
 			lastControl = AddClearLine(tooltip, lastControl, 0, 0)
@@ -249,7 +249,7 @@ function ZO_Tooltip:LayoutSmithingTradingTooltip(tooltip, itemBagId, itemSlotInd
 		
 			local _, normalItemLink, fineItemLink, superiorItemLink, epicItemLink, legendaryItemLink = GetItemLinks(itemLink, IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_QUALITY))
 			local listingItemsTable = KelaGetItemLinkListingTable(itemLink)
-			local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
+			local trueTTC, trueATT, priceInfoTTC, priceInfoATT, hasPrice = KelaGetPriceInfoTTCATT(itemLink)
 
 			-- add the item name
 			local name = GetItemLinkName(itemLink)
@@ -273,7 +273,7 @@ function ZO_Tooltip:LayoutSmithingTradingTooltip(tooltip, itemBagId, itemSlotInd
 			lastControl = bodySection
 
 			-- basic information
-			if trueTTC or trueATT then
+			if hasPrice then
 				if craftingSkillType then -- result tooltip
 					if not ctlResultInfo then ctlResultInfo = CreateControlFromVirtual("$(parent)RInfo", tooltip, "KPUI_MainInfo") end	
 					lastControl = SetSmithTradingInfo(ctlResultInfo, lastControl, priceInfoTTC, priceInfoATT, nil, selectedData)
@@ -465,8 +465,8 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 					isByingItem = true
 				end
 			end			
-			local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(itemLink)
-			local dealRatingText = (trueTTC or trueATT) and KelaGetDealRatingText(priceInfoTTC, priceInfoATT, selectedData, currentScene, stackCount)
+			local trueTTC, trueATT, priceInfoTTC, priceInfoATT, hasPrice = KelaGetPriceInfoTTCATT(itemLink)
+			local dealRatingText = hasPrice and KelaGetDealRatingText(priceInfoTTC, priceInfoATT, selectedData, currentScene, stackCount)
 			local function AddTitle(lastControl)
 				-- Deal evaluation sits above the item name, styled like the
 				-- "Good type:" line. Trading house only.
@@ -515,7 +515,7 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 			
 			-- basic information
 			local effectOfDeal
-			if trueTTC or trueATT then
+			if hasPrice then
 				if not ctlTradingInfo then ctlTradingInfo = CreateControlFromVirtual("$(parent)Info", self, "KPUI_MainInfo") end
 				lastControl, effectOfDeal = SetSmithTradingInfo(ctlTradingInfo, lastControl, priceInfoTTC, priceInfoATT, currentScene, selectedData, stackCount)
 				lastControl = AddClearLine(self, lastControl, 0, 0)
@@ -570,8 +570,8 @@ function ZO_Tooltip:LayoutTradingTooltip(currentScene, itemLink, selectedData, t
 
 			-- Production
 			if resultItemLink and IsKPUITradingHouseSettingEnabled(KELA_SETTING_PANEL_TRADE_TOOLTIP_PRODUCTION) then
-				local trueTTC, trueATT, priceInfoTTC, priceInfoATT = KelaGetPriceInfoTTCATT(resultItemLink)
-				if trueTTC or trueATT then
+				local trueTTC, trueATT, priceInfoTTC, priceInfoATT, hasPrice = KelaGetPriceInfoTTCATT(resultItemLink)
+				if hasPrice then
 					if not ctlProductMaterialInfoRow then ctlProductMaterialInfoRow = CreateControlFromVirtual("$(parent)ctlProductMaterialInfoRow", self, "KPUI_ProductMaterialInfo") end	
 					lastControl = SetProductionPrices(ctlProductMaterialInfoRow, lastControl, resultItemLink, priceInfoTTC, priceInfoATT)
 				else

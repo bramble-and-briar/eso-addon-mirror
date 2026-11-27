@@ -4,7 +4,7 @@
 
 local CGV = _G.CGV
 local BugReport = {}
-local guiRoot, uiCenter, uiTopLeft, uiBottomLeft, uiBottomRight, uiTopRight, ctEditBox = _G.GuiRoot, _G.CENTER, _G.TOPLEFT, _G.BOTTOMLEFT, _G.BOTTOMRIGHT, _G.TOPRIGHT, _G.CT_EDITBOX
+local guiRoot, uiCenter, uiTopLeft, uiBottomLeft, uiBottomRight, uiTopRight = _G.GuiRoot, _G.CENTER, _G.TOPLEFT, _G.BOTTOMLEFT, _G.BOTTOMRIGHT, _G.TOPRIGHT
 local tinsert,type,pairs,ipairs = table.insert,type,pairs,ipairs
 local CHAIN = CGV.Utils.ChainCall
 local UI, WM = CGV.UI, _G.WINDOW_MANAGER
@@ -24,143 +24,233 @@ CGV.BugReport = BugReport
 -----------------------------------------
 -- FUNCTIONS
 -----------------------------------------
-function BugReport:CreateDumpFrameBasic()
-	local name = "CGESO_DumpFrameBasic"
+local LINE_HEIGHT = 22
 
-	local frame = CHAIN(UI:Create("Frame",guiRoot,name))
-		:SetSize(1024,700)
-		:SetPoint(uiCenter)
-		:Hide()
-		:SetCanDrag(true)
-		.__END
-
-	BugReport.BasicFrame = frame
-
-	frame.scroll = CHAIN(WM:CreateControlFromVirtual(name.."_Scroll",frame,"ZO_ScrollContainer"))
-		:SetAnchor(uiTopLeft,frame,uiTopLeft,8,50)
-		:SetAnchor(uiBottomRight,frame,uiBottomRight,-1,-38)
-		.__END
-
-	frame.scroll.scrollchild = CHAIN(getControl(frame.scroll:GetName().."ScrollChild"))
-		:ClearAnchors()
-		:SetAnchor(uiTopLeft,frame.scroll)
-		:SetAnchor(uiTopRight,frame.scroll)
-		:SetHeight(50)
-		.__END
-
-	frame.display = CHAIN(UI:Create("Label",frame.scroll.scrollchild,name.."display"))
-		:SetAnchor(uiTopLeft,frame.scroll.scrollchild)
-		:SetAnchor(uiTopRight,frame.scroll.scrollchild)
-		:SetCanWrap(true)
-		.__END
-
-	-- hidden edit box
-	frame.copybox = CHAIN(WM:CreateControl(name.."copybox",frame,ctEditBox))
-		:SetAnchor(uiTopLeft,frame.scroll)
-		:SetAnchor(uiBottomRight,frame.scroll)
-		:SetMouseEnabled(true)
-		:SetFont("ZoFontGame")
-		:SetMultiLine(true)
-		:SetHandler("OnMouseDown",function(self) self:TakeFocus() end)
-		:SetHandler("OnMouseUp",function(self) self:SelectAll() end)
-		:SetMaxInputChars(999999)
-		:SetHidden(true)
-		.__END
-
-	--[[
-	frame.edit = CHAIN(WM:CreateControlFromVirtual(name.."_edit",frame ,"ZO_DefaultEditMultiLineForBackdrop"))
-		:ClearAnchors()
-		:SetAnchor(TOPLEFT,frame,TOPLEFT,8,50)
-		:SetAnchor(BOTTOMRIGHT,frame,BOTTOMRIGHT,-1,-38)
-		--:SetHeight(500)
-		--:SetAnchorFill(frame.scroll)
-		--:SetHeight(50)
-		:SetMouseEnabled(true)
-		:SetFont("ZoFontGame")
-		:SetMaxInputChars(999999)
-		:SetMultiLine(true)
-		:SetNewLineEnabled(true)
-		:SetEditEnabled(true)
-		:SetHandler("OnMouseWheel", function(me,delta,ctrl,alt,shift,cmd)
-			local curpos = me:GetCursorPosition()
-			local text = me:GetText()
-			local absD = math.abs(delta)
-			local direction = delta/absD	* -1	-- 1 if negative number, -1 if positive
-			local newposition = curpos
-			local char
-
-			-- For each delta move to the next line in the correct direction.
-			while absD > 0 do
-				repeat
-					newposition = newposition + direction		-- move in the right direction
-					char = text:sub(newposition,newposition)	-- Get character at our position
-				until not (char and char~="" and char~="\n")
-
-				absD = absD - 1
-			end
-
-			me:SetCursorPosition(newposition)
-		end)
-	.__END
-	--]]
-
-
-	frame.display.back = UI:Create("SecBackdrop",frame.display,name.."bd")
-
-	frame.close = CHAIN(UI:Create("GuideButton",frame,name.."_Close","Close"))
-		:SetPoint(uiTopRight, frame, -5, 5)
-		:SetHandler("OnClicked",function(self)
-				frame:Hide()
-				BugReport.report = ""
-			end)
-		.__END
-
-	frame.title = CHAIN(UI:Create("Label",frame,name.."_MainText",14,"bold"))
-		:SetPoint(uiTopLeft,frame,10,10)
-		:SetText("No text")
-		.__END
-
-	frame.hint = CHAIN(UI:Create("Label",frame,name.."_Hint",12))
-		:SetPoint(uiTopLeft,frame.title,uiBottomLeft,0,4)
-		:SetWidth(980)
-		:SetCanWrap(true)
-		:SetText("Click the text, press Ctrl+C to copy, then paste into Discord / GitHub / a message to the guide authors. Nothing is sent automatically.")
-		.__END
-
-	frame.CloseButton = CHAIN(UI:Create("Button",frame,name.."_Close2"))
-		:SetSize(100,25)
-		:SetText("Close")
-		:SetPoint(uiBottomRight, frame,-5,-5)
-		:SetHandler("OnClicked",function(...)
-				frame:Hide()
-				BugReport.report = ""
-			end)
-		.__END
+local function CountLines(text)
+	if not text or text == "" then return 1 end
+	local n = 1
+	for _ in tostring(text):gmatch("\n") do
+		n = n + 1
+	end
+	return n
 end
 
+local function ScrollDumpToTop(frame)
+	local scroll = frame and frame.scroll
+	if not scroll then return end
+	local bar = getControl(scroll:GetName() .. "ScrollBar")
+	if bar and bar.SetValue then
+		bar:SetValue(0)
+	end
+	if _G.ZO_Scroll_ResetToTop then
+		_G.ZO_Scroll_ResetToTop(scroll)
+	end
+end
 
--- Show dump in a selectable edit box so the player can Ctrl+C it.
--- Nothing is uploaded — ESO addons cannot send mail/HTTP from here.
-function BugReport:ShowDump(text,title)
-	local frame
+-- NO EditBox — it traps ESO mouselook until PrintScreen. Label + chat copy only.
+local function CloseDumpFrame(frame)
+	if frame then frame:Hide() end
+	BugReport.report = ""
+	BugReport._dumpText = nil
+end
 
-	if not self.BasicFrame then
-		self:CreateDumpFrameBasic()
+local function PrintDumpToChat(text)
+	text = text or ""
+	d("|cfd5b02CGESO dump — use your chat-copy addon on the lines below:|r")
+	local maxChunk = 350
+	local start = 1
+	local n = #text
+	local part = 1
+	while start <= n do
+		local stop = math.min(start + maxChunk - 1, n)
+		-- Prefer breaking on a newline.
+		if stop < n then
+			local nl = text:sub(start, stop):match(".*\n()")
+			if nl and nl > 1 then
+				stop = start + nl - 2
+			end
+		end
+		d(text:sub(start, stop))
+		start = stop + 1
+		part = part + 1
+		if part > 80 then
+			d("|cfd5b02…truncated — dump too long for chat; browse the window instead.|r")
+			break
+		end
+	end
+	d("|cfd5b02— end of dump —|r")
+end
+
+local function RefreshDumpScroll(frame, text)
+	local scroll = frame.scroll
+	local child = frame.scroll.scrollchild
+	local body = frame.body
+	if not (scroll and child and body) then return end
+
+	if frame.hint then
+		local hintBottom = frame.hint:GetBottom()
+		local frameTop = frame:GetTop()
+		local scale = frame:GetScale() or 1
+		if hintBottom and frameTop and scale > 0 then
+			local topPad = ((frameTop - hintBottom) / scale) + 8
+			if topPad < 56 then topPad = 56 end
+			if topPad > 120 then topPad = 120 end
+			scroll:ClearAnchors()
+			scroll:SetAnchor(uiTopLeft, frame, uiTopLeft, 8, topPad)
+			scroll:SetAnchor(uiBottomRight, frame, uiBottomRight, -1, -42)
+		end
 	end
 
-	frame = self.BasicFrame
+	local viewW = scroll:GetWidth()
+	local viewH = scroll:GetHeight()
+	if viewW < 100 then viewW = 1000 end
+	if viewH < 100 then viewH = 600 end
+	local contentW = math.max(100, viewW - 24)
+	local contentH = math.max(viewH, CountLines(text) * LINE_HEIGHT + 64)
 
-	assert(frame,"Could not create a BasicFrame for BugReport")
+	child:ClearAnchors()
+	child:SetAnchor(uiTopLeft, scroll, uiTopLeft, 0, 0)
+	child:SetWidth(contentW)
+	child:SetHeight(contentH)
 
+	body:ClearAnchors()
+	body:SetAnchor(uiTopLeft, child, uiTopLeft, 4, 0)
+	body:SetWidth(contentW - 8)
+	body:SetText(text)
+
+	-- Label height from text; keep scroll child at least that tall.
+	local labelH = body.GetTextHeight and body:GetTextHeight() or contentH
+	if labelH < contentH then labelH = contentH end
+	child:SetHeight(labelH + 16)
+
+	if _G.ZO_Scroll_OnExtentsChanged then
+		_G.ZO_Scroll_OnExtentsChanged(scroll)
+	end
+	ScrollDumpToTop(frame)
+end
+
+function BugReport:CreateDumpFrame()
+	local name = "CGESO_DumpFrameLabel"
+
+	if BugReport.BasicFrame and BugReport.BasicFrame:GetName() ~= name then
+		BugReport.BasicFrame:SetHidden(true)
+		BugReport.BasicFrame = nil
+	end
+
+	local frame = BugReport.BasicFrame
+	if not frame then
+		frame = CHAIN(UI:Create("Frame",guiRoot,name))
+			:SetSize(1024,700)
+			:SetPoint(uiCenter)
+			:Hide()
+			:SetCanDrag(true)
+			:SetMouseEnabled(true)
+			:SetHandler("OnKeyUp", function(me, key)
+					if key == _G.KEY_ESCAPE then
+						CloseDumpFrame(me)
+						return true
+					end
+				end)
+			.__END
+		BugReport.BasicFrame = frame
+	end
+
+	if not frame.scroll then
+		frame.scroll = CHAIN(WM:CreateControlFromVirtual(name.."_Scroll",frame,"ZO_ScrollContainer"))
+			:SetAnchor(uiTopLeft,frame,uiTopLeft,8,72)
+			:SetAnchor(uiBottomRight,frame,uiBottomRight,-1,-42)
+			.__END
+
+		frame.scroll.scrollchild = CHAIN(getControl(frame.scroll:GetName().."ScrollChild"))
+			:ClearAnchors()
+			:SetAnchor(uiTopLeft, frame.scroll, uiTopLeft, 0, 0)
+			:SetWidth(1000)
+			:SetHeight(50)
+			.__END
+	end
+
+	if not frame.body then
+		frame.body = CHAIN(UI:Create("Label",frame.scroll.scrollchild,name.."body",13))
+			:SetAnchor(uiTopLeft, frame.scroll.scrollchild, uiTopLeft, 4, 0)
+			:SetWidth(990)
+			:SetCanWrap(true)
+			:SetMouseEnabled(false)
+			:SetText("")
+			.__END
+	end
+
+	if not frame.close then
+		frame.close = CHAIN(UI:Create("GuideButton",frame,name.."_Close","Close"))
+			:SetPoint(uiTopRight, frame, -5, 5)
+			:SetHandler("OnClicked",function()
+					CloseDumpFrame(frame)
+				end)
+			.__END
+	end
+
+	if not frame.title then
+		frame.title = CHAIN(UI:Create("Label",frame,name.."_MainText",14,"bold"))
+			:SetPoint(uiTopLeft,frame,10,10)
+			:SetText("No text")
+			.__END
+	end
+
+	local hintText = "Mouse-wheel to browse. Print to Chat, then your chat-copy addon. Close dismisses."
+	if not frame.hint then
+		frame.hint = CHAIN(UI:Create("Label",frame,name.."_Hint",12))
+			:SetPoint(uiTopLeft,frame.title,uiBottomLeft,0,4)
+			:SetWidth(980)
+			:SetCanWrap(true)
+			:SetText(hintText)
+			.__END
+	else
+		frame.hint:SetText(hintText)
+	end
+
+	if not frame.PrintButton then
+		frame.PrintButton = CHAIN(UI:Create("Button",frame,name.."_Print"))
+			:SetSize(140,25)
+			:SetText("Print to Chat")
+			:SetPoint(uiBottomLeft, frame, 8, -5)
+			:SetHandler("OnClicked",function()
+					PrintDumpToChat(BugReport._dumpText or "")
+				end)
+			.__END
+	end
+
+	if not frame.CloseButton then
+		frame.CloseButton = CHAIN(UI:Create("Button",frame,name.."_Close2"))
+			:SetSize(100,25)
+			:SetText("Close")
+			:SetPoint(uiBottomRight, frame,-5,-5)
+			:SetHandler("OnClicked",function()
+					CloseDumpFrame(frame)
+				end)
+			.__END
+	end
+end
+
+-- Back-compat alias
+BugReport.CreateDumpFrameBasic = BugReport.CreateDumpFrame
+
+
+-- Scrollable label dump — no EditBox. Copy via Print to Chat + chat-copy addon.
+function BugReport:ShowDump(text,title)
+	self:CreateDumpFrame()
+
+	local frame = self.BasicFrame
+	assert(frame,"Could not create a dump frame")
+
+	text = text or ""
+	BugReport._dumpText = text
 	frame.title:SetText(title or "Bug Report")
-	frame.display:SetText(text)
-	frame.display:SetHidden(true)
-	frame.copybox:SetText(text)
-	frame.copybox:SetHidden(false)
-	frame.copybox:TakeFocus()
-	frame.copybox:SelectAll()
-
 	frame:Show()
+	RefreshDumpScroll(frame, text)
+	_G.zo_callLater(function()
+		if not frame:IsHidden() then
+			RefreshDumpScroll(frame, text)
+		end
+	end, 10)
 end
 
 local lastreport
@@ -177,20 +267,42 @@ function BugReport:GetReport()
 	local GetUnitLevel, GetMapPlayerPosition, GetMapTileTexture, GetCurrentMapZoneIndex = _G.GetUnitLevel, _G.GetMapPlayerPosition, _G.GetMapTileTexture, _G.GetCurrentMapZoneIndex
 	local playerX, playerY = GetMapPlayerPosition("player")
 	local step = CGV.CurrentStep
+	local guide = CGV.CurrentGuide
 	local t = "" -- text
+
+	t = t .. "NOTES: (Print to Chat → copy → paste into the CGESO comments on ESOUI)\n\n"
+	local notes = CGV.Features and CGV.Features:GetBugNotes() or ""
+	if notes ~= "" then
+		t = t .. notes .. "\n\n"
+	end
+	if CGV.Features and CGV.Features.BuildGuideNoteBlock then
+		t = t .. CGV.Features:BuildGuideNoteBlock()
+	end
 
 	t = t .. ("VERSION: %s\n"):format(CGV.version)
 	t = t .. ("FACTION: %s\n"):format(CGV.Utils.GetFaction())
 	t = t .. ("LEVEL: %s\n"):format(GetUnitLevel("player"))
-	t = t .. ("GUIDE: %s\n"):format(CGV.CurrentGuide and CGV.CurrentGuide.title or "NONE")
+	t = t .. ("GUIDE: %s\n"):format(guide and guide.title or "NONE")
+	if guide and guide.title_short then
+		t = t .. ("GUIDE SHORT: %s\n"):format(guide.title_short)
+	end
 	t = t .. "\n"
 	t = t .. ("CURRENT LOCATION:\n")
 	t = t .. ("ARTMAP: %s\n MAP ZONE INDEX: #%d\n COORDINATES: %.3f,%.3f\n"):format( GetMapTileTexture(), GetCurrentMapZoneIndex(), playerX * 100, playerY * 100 )
 	t = t .. "\n"
-	if not step then
-		t = t .. ("STEP: NONE\n")
+
+	-- Always attach guide name, step number, and step text (feature 2).
+	if CGV.Features and CGV.Features.BuildStepTextBlock then
+		t = t .. CGV.Features:BuildStepTextBlock() .. "\n"
+	elseif not step then
+		t = t .. "STEP: NONE\n"
 	else
 		t = t .. ("STEP: %s\n"):format(step.num)
+	end
+
+	if not step then
+		-- already noted above
+	else
 		if not step.goals then
 			t = t .. "\nGOALS: NONE\n"
 		else
@@ -198,8 +310,7 @@ function BugReport:GetReport()
 			for goalIn, goalOut in ipairs(step.goals) do
 				t = t .. (" - %d. %s  <%s> [%s]"):format( goalIn, goalOut:GetText():gsub("|c......",""):gsub("|r",""), goalOut.action, goalOut:GetStatus() )
 				if goalOut.x then  t = t .. (" [%s %.2f,%.2f <%d]"):format( goalOut.map or "?", goalOut.x * 100, goalOut.y * 100, goalOut.dist )  end
-				-- Investigate why no workie
-				-- if goalOut.quest then  t = t .. (" [quest %s##%s/%s/%s/%s]"):format( goalOut.quest, goalOut.questid, goalOut.queststagenum or "-", goalOut.queststepnum or "-", goalOut.questcondnum or "-" )  end
+				if goalOut.quest then t = t .. (" [quest %s]"):format(tostring(goalOut.quest)) end
 				for k,v in pairs(goalOut) do
 					if type(v)~="function"
 					and type(v)~="table"

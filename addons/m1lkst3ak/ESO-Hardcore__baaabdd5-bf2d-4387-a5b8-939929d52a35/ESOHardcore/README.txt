@@ -1,17 +1,49 @@
-ESO Hardcore 0.3.1 — Developer Toolkit (QA only)
-Install over 0.3.0, reload UI. Open Hardcore skills and press L1 from Skills to reach Developer. D-pad up/down selects rows; left/right adjusts values; X applies actions. XP boost multiplies nutrition-adjusted custom XP only. Reset character clears custom progression, not ESO data or account Hall records. Simulated death archives a QA record. Destructive actions require two X presses. Overlay preview closes the window and lasts 30 seconds. No production run should be started on this build. Native inventory security code retained. PS5 runtime unverified.
+v0.9.49: Rank-15 personal resource auras persist at all later ranks, even when depleted. Live detection is additive; matching live and recorded sites share one marker. No marker-count cap. Existing saved locations retained.
 
-0.8.2: experimental ownership grids, sparse virtual bag scan, event diagnostics. Native item actions and exact recipe eligibility not implemented.
+v0.9.48: Direct console settings registration via LibHarvensAddonSettings (LibVotans console distribution), existing LAM fallback, and dependency-free dashboard Settings page (L1 from Skills). Camera module preserved from v0.9.46; PS5 camera API behavior remains unverified. HUD suppression preserved.
 
-0.8.3: Read-only provisioning recipe eligibility and maximum HC craft iterations. Other stations and selected multi-craft quantity not verified. Ledger accuracy still requires QA.
+ESO Hardcore 0.9.44 | PS5
+Five skills: Harvesting, Survivalist, Perception, Endurance, Combat Mastery.
+Core inventory, banking, crafting materials, integrity and difficulty retained.
+Skill alerts use fading tinted edge textures, not text panels. Perception is last-seen only, not live hidden enemy tracking.
+LibRadialMenu optional; user-supplied resource coordinates included for level 99; compatible HarvestMap optional for additional data. No LibMapPins dependency. Disable HarvestMap own map, compass and world markers to preserve Hardcore unlocks.
+Existing retained skill XP is preserved; retired skill XP and active assignments removed.
+Live PS5 validation required.
 
-0.8.4: Optional LibRadialMenu shortcuts Toggle HC Inventory and Toggle HC Menu. Existing menu remains available without the library. PS5 runtime testing pending.
+Private test build: 1129 unique imported gathering locations across 16 zone IDs. No account settings included. Verify data redistribution rights before public release. Not a complete Tamriel database.
 
-0.8.5: Craft Bag sparse iterator zero-argument start, shared cache and direct stack fallback; normalized item link names, virtual slot diagnostics.
+Spawn-only resource beacons require enabled NodeDetection (from HarvestMap). Without it no historical pins are shown. Level 99 shows live signals even without database matches, with estimated elevation. Native compass signals cannot confirm containers or fishing holes. Native uniform fatigue blur is fixed-strength; veil intensity scales. Directional alerts use current/recent reticle world coordinates only.
 
-0.8.7: Shared Craft Bag ownership, observed gold accounting, manual difficulty declaration in Survival page. Native actions remain native; no automatic difficulty detection. Experimental migration and accounting require PS5 QA.
+0.9.32: All positioned live signals at rank 99, no addon count or distance cap. Ranks 30/50/75: 120/220/350m configured radii, personal locations only. Native NodeDetection acquisition range remains limited (190m position measurement threshold in supplied version). Larger distance-scaled beacons for all sources; historical coordinates never establish spawn.
 
-0.8.8: Ports actual Arsenal inventory and bank scenes with action menus, secure requests, native fallback, HC-filtered bank and gold transfer limits. HC Materials read-only tab. Automatic native overland difficulty lookup; base factor if unavailable or disabled. PS5 runtime unverified.
+Native ResourceSense replaces external HarvestMap/NodeDetection dependency. Disable both when testing; they override the same compass pin type. Coordinates are estimates; imported locations supply elevation/type, not spawn verification.
 
+0.9.32: Ground-anchored resource beacons. Live signals without a matching recorded elevation are not rendered; imported sites remain available at Harvesting 99. Independently fitted compass calibration. No HarvestMap code or marker assets added.
 
-0.8.9 — Experimental Crafting Advisor: creation readers for seven disciplines, per-material ownership comparisons, separate physical and virtual caps, quantity detection where exposed. Native gamepad bindings require PS5 testing. No crafting actions intercepted.
+0.9.33: Isolate per-control measurement and rendering failures; refresh marker selection on native presence changes. Duplicate appearance callbacks no longer reset existing measurements.
+
+0.9.37: Icon-free resource aura, distinct category colors, neutral unknowns. Recorded heights preferred; unmatched mastery signals use estimated elevation only within 8m. Detector unchanged.
+
+0.9.37: Native compass description classification; larger icon-free auras; no 8m undocumented visibility cutoff. Unknown types use gold until identified. Approximate elevation may be inaccurate.
+
+0.9.37: Crafting transactions retain the pre-craft snapshot and credit confirmed material outputs when consumed inputs are HC eligible. Previously missed output cannot be reconstructed automatically.
+
+0.9.38: Separate 3D ground anchors and local aura offsets; explicit native world-to-render conversion. Reject suspect high or ambiguous elevation matches and retain colored compass cues at mastery. No change to detector, aura palette, range, crafting ledger or XP. Height verification is conservative, not a live terrain query.
+
+0.9.39: Full-screen stamina veil from Endurance 15 below 45% stamina. Endurance 30 native uniform blur below 30%, refreshed every 0.75 seconds while active; immediate cleanup on recovery, menus and deactivation. Stronger veil as stamina falls. Native blur has fixed strength; PS5 rendering untested. Endurance reward reports include stamina and blur request diagnostics.
+
+0.9.40: Correct native crafting result count API; match extraction/refinement material outputs by canonical item link ID with name/type fallback; delayed result retry; invalidate overlay cache. HC input eligibility still required.
+
+0.9.41: guarded crafting result APIs and delayed callbacks, bounded ledger retries and recoverable inventory rendering errors.
+
+0.9.42: Independent protected station-overlay refresh; live physical counts intersect existing HC ownership; recover on station reopen and draw errors; restore result-link/virtual-slot indexing. No reset; earlier missed credits are not reconstructed.
+
+0.9.43: Honor-based crafting accounting. Completed crafting material gains credited regardless of input ownership or bank source; non-HC inputs still flagged. Actual gains lacking individual native result confirmation are credited and marked for review. No credit on failed crafts or ordinary inventory changes. No historical backfill. Overlay and inventory display code unchanged.
+
+0.9.44: Rank 15–29 displays recorded personal 3D resource sites within 120m, including depleted sites; rank 30+ retains live spawn filtering. Existing 3D records are reused.
+
+0.9.45: Optional Immersive Combat Camera, enabled by default for active HC characters. Ruleset page X toggles. First-person on combat entry, third-person after two seconds out of combat, with context guards and no repeated toggles. Native camera distance and toggle support on PS5 require live verification.
+
+0.9.46: Combat camera event, bounded retries and diagnostics; optional LAM/LibGamepad settings panel. Console camera API behavior unverified.
+
+0.9.47: Restore Hardcore quest tracker suppression and visually suppress compass via alpha while retaining its native resource observer. Restore prior alpha outside active gameplay.

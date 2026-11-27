@@ -35,12 +35,25 @@ local GUILD_CHANNELS = {
 ZO_CreateStringId("SI_BINDING_NAME_FURYGMT_RECRUIT_AD", "Recruit: put the zone ad in chat")
 ZO_CreateStringId("SI_BINDING_NAME_FURYGMT_RECRUIT_TOUR", "Recruit: start/stop the zone tour")
 ZO_CreateStringId("SI_BINDING_NAME_FURYGMT_RECRUIT_NEXT", "Recruit: travel to the next ready zone")
+ZO_CreateStringId("SI_BINDING_NAME_FURYGMT_RECRUIT_NEXTAD", "Recruit: switch to the next saved ad")
+
+local MAX_ADS = 5                   -- 1.34.0: saved ads per guild (ad 1 is the old single ad)
+local SCORE_KEEP_SECONDS = 90 * 86400
 
 Recruit.defaults = {
     -- Every part starts turned off on a new install (Albert's rule).
     enabled = false,          -- zone ads, cooldowns and the zone tour
     guildId = 0,              -- guild you recruit for; 0 = your first guild
-    ads = {},                 -- [guildId] = zone ad text ({guild} = guild name)
+    ads = {},                 -- [guildId] = zone ad text ({guild} = guild name); saved ad 1
+    moreAds = {},             -- 1.34.0: [guildId] = { [2] = text, ..., [5] = text }: saved ads 2 to 5
+    adInUse = {},             -- 1.34.0: [guildId] = number of the saved ad that goes in chat
+    adRotate = "off",         -- 1.34.0: "off", "post" (next saved ad after every post) or "tour" (next ad each tour)
+    score = false,            -- 1.34.0: recruit scoreboard: which zones and ads bring in new members
+    scoreMinutes = 30,        -- a join counts for an ad posted in the new member's zone this many minutes before
+    scoreDays = 30,           -- the scoreboard covers this many days
+    adPosts = {},             -- packed "ts:zoneId:adKey", one per ad post, kept 90 days
+    adJoins = {},             -- packed "ts:zoneId:adKey:how:@name", one per join the scoreboard counted, kept 90 days
+    adNames = {},             -- [adKey] = the ad's words (so the scoreboard can show wordings you have since changed)
     cooldownMinutes = 15,     -- wait this long before posting in the same zone again
     useFriends = true,        -- travel through friends as well as guildmates
     useHouses = true,         -- travel to a house you own when nobody is in the zone
@@ -78,6 +91,7 @@ function Recruit:Initialize(sv)
     self.sv = sv
     self.lastWelcome = {}
     self.badTargets = {}   -- people (and houses) a jump failed on this session
+    self.view = "zones"    -- 1.34.0: or "score" (the scoreboard)
     self:Prune()
     self:RegisterTab()
     EVENT_MANAGER:RegisterForEvent("FurysGuildToolset_Recruit", EVENT_CHAT_MESSAGE_CHANNEL, function(_, channel, _, text, _, fromDisplayName)
@@ -152,6 +166,9 @@ function Recruit:UpdateBar()
     if self.sv.enabled then
         local done, total = self:ZoneProgress()
         parts[#parts + 1] = Gray("Zones ") .. string.format("%d/%d", done, total)
+        if guildId and guildId ~= 0 and self:CountAds(guildId) > 1 then
+            parts[#parts + 1] = Gray("Ad ") .. tostring(self:AdInUse(guildId))
+        end
     end
     if guildId and guildId ~= 0 then
         local apps = GetGuildFinderNumGuildApplications(guildId)
@@ -168,7 +185,7 @@ function Recruit:UpdateBar()
 end
 
 function Recruit:BarTip()
-    return "Recruiting status. Zones: zones you posted in that are still on cooldown, out of every zone the tour can visit. Applications: pending guild applications. Whispers: whether whispers with your keywords become leads. Drag to move; turn it off in /gtsettings under Recruiting."
+    return "Recruiting status. Zones: zones you posted in that are still on cooldown, out of every zone the tour can visit. Ad: which saved ad is in use (shown when you have more than one). Applications: pending guild applications. Whispers: whether whispers with your keywords become leads. Drag to move; turn it off in /gtsettings under Recruiting."
 end
 
 function Recruit:SaveBarPosition()
@@ -212,6 +229,7 @@ function Recruit:Prune()
     for key, job in pairs(self.sv.mailWaiting) do
         if now - job.at > MAIL_KEEP_SECONDS then self.sv.mailWaiting[key] = nil end
     end
+    self:PruneScore(now)
 end
 
 -- Up to 1.5.6 there was one welcome for every guild. It belongs to the guild you set
@@ -394,9 +412,93 @@ end
 
 -- Zone ad --------------------------------------------------------------------
 
-function Recruit:AdText()
+-- Saved ads (1.34.0) ----------------------------------------------------------
+-- Each guild has up to five saved ads. Ad 1 is the one ad of earlier versions (sv.ads), so an
+-- older version still finds it. One of them is "in use": that one goes in the chat box.
+
+function Recruit:SavedAd(guildId, n)
+    if n == 1 then return self.sv.ads[guildId] or "" end
+    local more = self.sv.moreAds[guildId]
+    return more and more[n] or ""
+end
+
+function Recruit:SetSavedAd(guildId, n, text)
+    if n == 1 then
+        self.sv.ads[guildId] = text
+        return
+    end
+    self.sv.moreAds[guildId] = self.sv.moreAds[guildId] or {}
+    self.sv.moreAds[guildId][n] = text
+end
+
+function Recruit:HasAd(guildId, n)
+    return zo_strtrim(self:SavedAd(guildId, n)) ~= ""
+end
+
+-- The number of the ad in use: the one you picked, or the first saved ad when that one is empty.
+function Recruit:AdInUse(guildId)
+    guildId = guildId or self:GuildId()
+    local n = self.sv.adInUse[guildId] or 1
+    if self:HasAd(guildId, n) then return n end
+    for i = 1, MAX_ADS do
+        if self:HasAd(guildId, i) then return i end
+    end
+    return 1
+end
+
+-- The saved ad after the one in use, skipping empty ones (back to the first after the last).
+function Recruit:NextAdNumber()
     local guildId = self:GuildId()
-    return Fill(zo_strtrim(self.sv.ads[guildId] or ""), guildId)
+    local current = self:AdInUse(guildId)
+    for step = 1, MAX_ADS do
+        local n = (current + step - 1) % MAX_ADS + 1
+        if self:HasAd(guildId, n) then return n end
+    end
+    return current
+end
+
+function Recruit:CountAds(guildId)
+    local count = 0
+    for n = 1, MAX_ADS do
+        if self:HasAd(guildId, n) then count = count + 1 end
+    end
+    return count
+end
+
+-- First words of an ad, for chat lines and lists.
+local function Short(text, size)
+    size = size or 60
+    text = zo_strtrim((tostring(text or ""):gsub("|H[^|]*|h(.-)|h", "%1"):gsub("|c%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("%s+", " ")))
+    if #text > size then text = text:sub(1, size - 3) .. "..." end
+    return text
+end
+
+function Recruit:UseAd(n, quiet)
+    local guildId = self:GuildId()
+    if not self:HasAd(guildId, n) then
+        U.Print("Saved ad %d is empty. Write it in /gtsettings under Recruiting.", n)
+        return
+    end
+    self.sv.adInUse[guildId] = n
+    if not quiet then U.Print("Zone ad %d is now in use: \"%s\"", n, Short(self:AdText(n))) end
+    if self.barText then self:RefreshBar() end
+    GT.Report:RefreshIfShown()
+end
+
+-- Keybind and footer: the next saved ad goes in use.
+function Recruit:SwitchAd()
+    local guildId = self:GuildId()
+    if self:CountAds(guildId) < 2 then
+        U.Print("You have %d saved ad for %s. Save more ads in /gtsettings under Recruiting to switch between them.", self:CountAds(guildId), U.GuildName(guildId))
+        return
+    end
+    self:UseAd(self:NextAdNumber())
+end
+
+-- n: a saved ad's number; the ad in use when left out.
+function Recruit:AdText(n)
+    local guildId = self:GuildId()
+    return Fill(zo_strtrim(self:SavedAd(guildId, n or self:AdInUse(guildId))), guildId)
 end
 
 -- How long after the ad goes in the chat box your first post in that zone still counts as the ad.
@@ -423,7 +525,8 @@ function Recruit:PasteAd(skipCheck)
     if #ad > MAX_CHAT then
         U.Print("Your ad is %d characters. ESO cuts chat at %d.", #ad, MAX_CHAT)
     end
-    self.pasted = { zoneId = zoneId, at = GetTimeStamp() }
+    -- Fury's Chat Shortcuts reads pasted.zoneId and pasted.at: keep those names.
+    self.pasted = { zoneId = zoneId, at = GetTimeStamp(), ad = self:AdInUse() }
     self:PutInChatBox(ad)
 end
 
@@ -462,11 +565,18 @@ end
 -- A zone post counts as your ad when it reads the same as the ad, or when it's the first
 -- thing you post in that zone within a few minutes of the addon putting the ad in your chat box.
 
+-- 1.34.0: any saved ad counts, not only the one in use. Returns true and the ad's number.
 function Recruit:IsAdPost(text, zoneId)
-    local ad = self:AdText()
-    if ad ~= "" and Plain(text) == Plain(ad) then return true end
+    local plain = Plain(text)
+    local guildId = self:GuildId()
+    for n = 1, MAX_ADS do
+        if self:HasAd(guildId, n) and plain == Plain(self:AdText(n)) then return true, n end
+    end
     local pasted = self.pasted
-    return pasted ~= nil and pasted.zoneId == zoneId and GetTimeStamp() - pasted.at <= PASTE_WINDOW_SECONDS
+    if pasted ~= nil and pasted.zoneId == zoneId and GetTimeStamp() - pasted.at <= PASTE_WINDOW_SECONDS then
+        return true, pasted.ad or self:AdInUse(guildId)
+    end
+    return false
 end
 
 function Recruit:OnChat(channel, text, fromDisplayName)
@@ -474,10 +584,16 @@ function Recruit:OnChat(channel, text, fromDisplayName)
     if channel == CHAT_CHANNEL_ZONE and fromDisplayName == me then
         if not self.sv.enabled then return end
         local zoneId = self:CurrentZoneId()
-        if not self:IsAdPost(text, zoneId) then return end
+        local isAd, adNumber = self:IsAdPost(text, zoneId)
+        if not isAd then return end
         self.pasted = nil
         self.sv.posted[zoneId] = GetTimeStamp()
+        self:RecordPost(zoneId, adNumber)
         U.Print("Ad posted in %s. It's on cooldown for %d minutes.", self:ZoneName(zoneId), self.sv.cooldownMinutes)
+        if self.sv.adRotate == "post" and self:CountAds(self:GuildId()) > 1 then
+            self:UseAd(self:NextAdNumber(), true)
+            U.Print("Next post uses ad %d.", self:AdInUse())
+        end
         self:RefreshBar()
         GT.Report:RefreshIfShown()
         -- Travel a moment later, once the chat box has closed.
@@ -504,6 +620,10 @@ function Recruit:StartTour()
     if self:AdText() == "" then
         U.Print("You haven't written a zone ad for %s yet. Write one in /gtsettings under Recruiting.", U.GuildName(self:GuildId()))
         return
+    end
+    if self.sv.adRotate == "tour" and self:CountAds(self:GuildId()) > 1 then
+        self:UseAd(self:NextAdNumber(), true)
+        U.Print("This tour uses ad %d: \"%s\"", self:AdInUse(), Short(self:AdText()))
     end
     self.touring = true
     if not self.zones then self:BuildZoneList() end
@@ -817,6 +937,7 @@ end
 -- the roster yet) and again when they accept. Only the second one is a join.
 function Recruit:OnMemberAdded(guildId, name)
     if name == GetDisplayName() or not U.IsMember(guildId, name) then return end
+    if self.sv.score and guildId == self:GuildId() then self:CountJoin(guildId, name) end
     -- Only the guild you recruit for and guilds you turned welcomes on for. Nothing for your other guilds.
     local welcome = self:WelcomeFor(guildId)
     if not welcome and guildId ~= self:GuildId() then return end
@@ -924,7 +1045,7 @@ function Recruit:OpenWelcomeMail(guildId, name)
 end
 
 -- Chat links: [Invite to ...], [Say welcome], [Write welcome mail].
-function Recruit:OnLink(link, button, text, color, linkType, action, guildId, name)
+function Recruit:OnLink(link, button, text, color, linkType, action, guildId, name, extra)
     if linkType ~= LINK_TYPE then return end
     if button ~= MOUSE_BUTTON_INDEX_LEFT then return true end
     -- The game can report one click as both a mouse-up and a click; act once.
@@ -938,8 +1059,261 @@ function Recruit:OnLink(link, button, text, color, linkType, action, guildId, na
         self:WelcomeInChat(guildId, name, true)
     elseif action == "mail" then
         self:OpenWelcomeMail(guildId, name)
+    elseif action == "congrats" then
+        GT.Milestones:FromLink(guildId, name, extra)   -- 1.34.0: member anniversaries
     end
     return true
+end
+
+-- Recruit scoreboard (1.34.0) ------------------------------------------------------
+-- Every ad you post is noted (when, which zone, which wording). When someone joins the guild
+-- you recruit for, the join counts for an ad when:
+--   * you posted an ad in the zone they are in, within the last scoreMinutes, or
+--   * you invited them or accepted their application, and you posted an ad within the last
+--     scoreMinutes (they may have moved on to another zone since).
+-- The newest matching post gets the join. Other joins are counted as "not from an ad".
+-- An ad is known by its words: change the words and it counts as a new ad, so the scoreboard
+-- shows which wording works. Saved as short text lines to keep the saved file small.
+
+local function AdKey(text)
+    local plain = Plain(text)
+    local h = 5381
+    for i = 1, #plain do h = (h * 33 + plain:byte(i)) % 4294967296 end
+    return string.format("%08x", h)
+end
+
+local function SplitPost(line)
+    local ts, zoneId, key = line:match("^(%d+):(%d+):(%w*)$")
+    return tonumber(ts), tonumber(zoneId), key
+end
+
+local function SplitJoin(line)
+    local ts, zoneId, key, how, name = line:match("^(%d+):(%d+):(%w*):(%a+):(.*)$")
+    return tonumber(ts), tonumber(zoneId), key, how, name
+end
+
+-- The zone as the tour counts it (a delve or city counts as the zone it is in).
+function Recruit:TourZoneId(zoneId)
+    if self.zoneIds and self.zoneIds[zoneId] then return zoneId end
+    return GetParentZoneId(zoneId)
+end
+
+function Recruit:RecordPost(zoneId, adNumber)
+    if not self.sv.score then return end
+    local text = self:AdText(adNumber)
+    local key = AdKey(text)
+    self.sv.adNames[key] = Short(text, 120)
+    self.sv.adPosts[#self.sv.adPosts + 1] = string.format("%d:%d:%s", GetTimeStamp(), zoneId, key)
+end
+
+-- Was this person invited by you, or did you accept their application just now? (Doesn't
+-- clear anything: the welcome asks the same question right after.)
+function Recruit:BroughtInByYou(guildId, name)
+    if self.sv.invited[guildId .. ":" .. name] then return true end
+    local at = self.acceptedAt[guildId]
+    return at ~= nil and GetTimeStamp() - at <= 60
+end
+
+function Recruit:CountJoin(guildId, name)
+    local index = GetGuildMemberIndexFromDisplayName(guildId, name)
+    if not index then return end
+    local now = GetTimeStamp()
+    local window = self.sv.scoreMinutes * 60
+    local _, _, _, _, _, _, _, theirZone = GetGuildMemberCharacterInfo(guildId, index)
+    if theirZone and theirZone ~= 0 then theirZone = self:TourZoneId(theirZone) else theirZone = nil end
+    local mine = self:BroughtInByYou(guildId, name)
+    local posts = self.sv.adPosts
+    local found, how
+    for i = #posts, 1, -1 do
+        local ts, zoneId = SplitPost(posts[i])
+        if ts and now - ts > window then break end
+        if ts and theirZone and zoneId == theirZone then found, how = posts[i], "zone"; break end
+        if ts and mine and not found then found, how = posts[i], "invite" end
+    end
+    local line
+    if found then
+        local _, zoneId, key = SplitPost(found)
+        line = string.format("%d:%d:%s:%s:%s", now, zoneId, key, how, name)
+        U.Print("Scoreboard: %s's join counts for your ad in %s.", name, self:ZoneName(zoneId))
+    else
+        line = string.format("%d:%d::other:%s", now, theirZone or 0, name)
+    end
+    self.sv.adJoins[#self.sv.adJoins + 1] = line
+    GT.Report:RefreshIfShown()
+end
+
+function Recruit:PruneScore(now)
+    local sv = self.sv
+    local function Keep(list, split)
+        local kept = {}
+        for _, line in ipairs(list) do
+            local ts = split(line)
+            if ts and now - ts <= SCORE_KEEP_SECONDS then kept[#kept + 1] = line end
+        end
+        return kept
+    end
+    sv.adPosts = Keep(sv.adPosts, SplitPost)
+    sv.adJoins = Keep(sv.adJoins, SplitJoin)
+    -- Wordings no post refers to any more.
+    local used = {}
+    for _, line in ipairs(sv.adPosts) do
+        local _, _, key = SplitPost(line)
+        used[key] = true
+    end
+    for key in pairs(sv.adNames) do
+        if not used[key] then sv.adNames[key] = nil end
+    end
+end
+
+-- Totals over the last scoreDays: by zone, by ad wording, and joins not from an ad.
+function Recruit:Score()
+    return GT.Report:Cached("recruit:score", function()
+        local since = GetTimeStamp() - self.sv.scoreDays * 86400
+        local zones, ads = {}, {}
+        local function Zone(zoneId)
+            zones[zoneId] = zones[zoneId] or { id = zoneId, posts = 0, joins = 0 }
+            return zones[zoneId]
+        end
+        local function Ad(key)
+            ads[key] = ads[key] or { key = key, posts = 0, joins = 0, last = 0 }
+            return ads[key]
+        end
+        local total = { posts = 0, joins = 0, other = 0 }
+        for _, line in ipairs(self.sv.adPosts) do
+            local ts, zoneId, key = SplitPost(line)
+            if ts and ts >= since then
+                Zone(zoneId).posts = Zone(zoneId).posts + 1
+                local ad = Ad(key)
+                ad.posts = ad.posts + 1
+                if ts > ad.last then ad.last = ts end
+                total.posts = total.posts + 1
+            end
+        end
+        for _, line in ipairs(self.sv.adJoins) do
+            local ts, zoneId, key, how = SplitJoin(line)
+            if ts and ts >= since then
+                if how == "other" then
+                    total.other = total.other + 1
+                else
+                    Zone(zoneId).joins = Zone(zoneId).joins + 1
+                    Ad(key).joins = Ad(key).joins + 1
+                    total.joins = total.joins + 1
+                end
+            end
+        end
+        return { zones = zones, ads = ads, total = total }
+    end)
+end
+
+-- "12 posts, 3 joins (1 in 4)"
+local function ScoreText(posts, joins)
+    local text = string.format("%d %s, %d %s", posts, posts == 1 and "post" or "posts", joins, joins == 1 and "join" or "joins")
+    if joins > 0 and posts > 0 then text = text .. string.format(" |cB4B0D8(1 join per %.1f posts)|r", posts / joins) end
+    return text
+end
+
+-- Best first: more joins, then fewer posts for them, then more posts.
+local function Better(a, b)
+    if a.joins ~= b.joins then return a.joins > b.joins end
+    local ra, rb = a.joins / math.max(a.posts, 1), b.joins / math.max(b.posts, 1)
+    if ra ~= rb then return ra > rb end
+    return a.posts > b.posts
+end
+
+function Recruit:ScoreSummary()
+    local t = self:Score().total
+    return string.format("Scoreboard, last %d days: %d ad %s, %d %s from your ads, %d other %s.  Best first.",
+        self.sv.scoreDays, t.posts, t.posts == 1 and "post" or "posts", t.joins, t.joins == 1 and "join" or "joins",
+        t.other, t.other == 1 and "join" or "joins")
+end
+
+function Recruit:ScoreRows()
+    local rows = {}
+    local score = self:Score()
+    local guildId = self:GuildId()
+    -- Saved ads first (even unposted ones), then older wordings that were posted.
+    local inUse = self:AdInUse(guildId)
+    local list, seen = {}, {}
+    for n = 1, MAX_ADS do
+        if self:HasAd(guildId, n) then
+            local key = AdKey(self:AdText(n))
+            seen[key] = true
+            local s = score.ads[key] or { posts = 0, joins = 0, last = 0 }
+            list[#list + 1] = { n = n, key = key, posts = s.posts, joins = s.joins, last = s.last, text = self:AdText(n) }
+        end
+    end
+    for key, s in pairs(score.ads) do
+        if not seen[key] then
+            list[#list + 1] = { key = key, posts = s.posts, joins = s.joins, last = s.last, text = self.sv.adNames[key] or "?" }
+        end
+    end
+    table.sort(list, Better)
+    for _, ad in ipairs(list) do
+        local label
+        if ad.n then
+            label = string.format("|cA08CFFAd %d|r%s", ad.n, ad.n == inUse and " |c5EE6A0(in use)|r" or "")
+        else
+            label = "|c8A86B0Old wording|r"
+        end
+        local row = { text = string.format("%s  %s  \"%s\"%s", label, ScoreText(ad.posts, ad.joins), Short(ad.text, 50),
+                ad.last > 0 and ("  |cB4B0D8last posted " .. U.FormatAgo(ad.last) .. "|r") or "  |cB4B0D8never posted|r"),
+            tooltip = ad.text .. (ad.n and "" or "\n\nThis wording isn't saved any more: you changed or removed it.") }
+        if ad.n then
+            rows[#rows + 1] = GT.Report.AddMenu(row, {
+                { label = ad.n == inUse and "In use" or "Use this ad", fn = function() self:UseAd(ad.n) end },
+                { label = "Edit saved ads", fn = function() self:OpenSettings() end },
+            })
+        else
+            rows[#rows + 1] = row
+        end
+    end
+    -- Zones with posts or joins.
+    local zones = {}
+    for _, z in pairs(score.zones) do zones[#zones + 1] = z end
+    table.sort(zones, Better)
+    for _, z in ipairs(zones) do
+        local zoneId = z.id
+        local row = { text = string.format("Zone  %s  %s%s", zoneId ~= 0 and self:ZoneName(zoneId) or "Unknown zone", ScoreText(z.posts, z.joins),
+            self.sv.skipZones[zoneId] and "  |c8A86B0skipped in the tour|r" or "") }
+        local items = {}
+        if zoneId ~= 0 then
+            items[#items + 1] = { label = "Travel here", fn = function() self:TravelToZone(zoneId) end }
+            if self.sv.skipZones[zoneId] then
+                items[#items + 1] = { label = "Include in the tour", fn = function() self.sv.skipZones[zoneId] = nil; GT.Report:RefreshIfShown() end }
+            else
+                items[#items + 1] = { label = "Skip in the tour", fn = function() self.sv.skipZones[zoneId] = true; GT.Report:RefreshIfShown() end }
+            end
+        end
+        rows[#rows + 1] = #items > 0 and GT.Report.AddMenu(row, items) or row
+    end
+    return rows
+end
+
+function Recruit:ScoreExportLines()
+    local lines = { "Type\tName\tPosts\tJoins" }
+    local score = self:Score()
+    for key, s in pairs(score.ads) do
+        lines[#lines + 1] = table.concat({ "Ad", self.sv.adNames[key] or key, s.posts, s.joins }, "\t")
+    end
+    for zoneId, z in pairs(score.zones) do
+        lines[#lines + 1] = table.concat({ "Zone", zoneId ~= 0 and self:ZoneName(zoneId) or "Unknown zone", z.posts, z.joins }, "\t")
+    end
+    lines[#lines + 1] = table.concat({ "Other joins", "", "", score.total.other }, "\t")
+    return lines
+end
+
+function Recruit:ConfirmClearScore()
+    A.Confirm("Clear the scoreboard", "Forget every ad post and join the scoreboard has counted? Your saved ads stay.", function()
+        self.sv.adPosts, self.sv.adJoins, self.sv.adNames = {}, {}, {}
+        U.Print("Scoreboard cleared.")
+        GT.Report:RefreshIfShown()
+    end)
+end
+
+-- Number of the zone's joins over the scoreboard days, for the zone rows.
+function Recruit:ZoneJoins(zoneId)
+    local z = self:Score().zones[zoneId]
+    return z and z.joins or 0
 end
 
 -- Recruit tab ----------------------------------------------------------------
@@ -955,6 +1329,7 @@ function Recruit:TabOffText()
 end
 
 function Recruit:TabSummary()
+    if self.view == "score" and self.sv.score then return self:ScoreSummary() end
     local guildId = self:GuildId()
     if not guildId or guildId == 0 then return "You aren't in a guild." end
     local open, numMembers = self:OpenSlots(guildId)
@@ -977,6 +1352,7 @@ function Recruit:TabSummary()
 end
 
 function Recruit:TabRows()
+    if self.view == "score" and self.sv.score then return self:ScoreRows() end
     local rows = {}
     local guildId = self:GuildId()
     local leads = {}
@@ -1013,6 +1389,10 @@ function Recruit:TabRows()
             else
                 status = "|c5EE6A0ready|r" .. (self.sv.posted[zoneId] and (" (posted " .. U.FormatAgo(self.sv.posted[zoneId]) .. ")") or "")
             end
+            if self.sv.score then
+                local joins = self:ZoneJoins(zoneId)
+                if joins > 0 then status = status .. string.format("  |cB4B0D8%d %s|r", joins, joins == 1 and "join" or "joins") end
+            end
             local row = { text = string.format("Zone  %s%s  %s", zone.name, zoneId == here and " |c5CC2FF(you are here)|r" or "", status) }
             local items = {}
             if zoneId == here then
@@ -1040,10 +1420,18 @@ function Recruit:TabRows()
 end
 
 function Recruit:TabFooter()
+    if self.view == "score" and self.sv.score then
+        return {
+            { label = "Back to zones", tip = "Shows the zones, leads and welcome mails again.", fn = function() self.view = "zones"; GT.Report:Refresh() end },
+            { label = "Switch ad", tip = "Puts the next saved ad in use (you can save up to five in /gtsettings under Recruiting). Right-click an ad above to pick one.",
+              fn = function() self:SwitchAd() end },
+            { label = "Clear scoreboard", tip = "Forgets every ad post and join counted so far. Asks first.", fn = function() self:ConfirmClearScore() end },
+        }
+    end
     if not self.sv.enabled then
         return { { label = "Clear leads", tip = "Removes every lead from the list.", fn = function() self:ClearLeads() end } }
     end
-    return {
+    local footer = {
         { label = self.touring and "Stop tour" or "Start tour",
           tip = "Zone tour: the ad goes in the chat box, and each time you press Enter to post it you travel to the next ready zone. Click again to stop.",
           fn = function() self:ToggleTour() end },
@@ -1051,8 +1439,46 @@ function Recruit:TabFooter()
           fn = function() self:PasteAd() end },
         { label = "Next zone", tip = "Travels once to the next ready zone through a guildmate, friend or house of yours.",
           fn = function() self:TravelNext() end },
-        { label = "Clear leads", tip = "Removes every lead from the list.", fn = function() self:ClearLeads() end },
+        { label = "Reset zone timers", tip = "Clears the cooldown on every zone so the tour can visit them all again right away. Asks first.",
+          fn = function() self:ConfirmResetTimers() end },
     }
+    -- 1.34.0: only while there are leads, to leave room for Switch ad and Scoreboard.
+    if next(self.sv.leadList) then
+        footer[#footer + 1] = { label = "Clear leads", tip = "Removes every lead from the list.", fn = function() self:ClearLeads() end }
+    end
+    if self:CountAds(self:GuildId()) > 1 then
+        table.insert(footer, 3, { label = "Switch ad", tip = function() return string.format("Ad %d is in use. Click to use the next saved ad instead.", self:AdInUse()) end,
+            fn = function() self:SwitchAd() end })
+    end
+    if self.sv.score then
+        footer[#footer + 1] = { label = "Scoreboard", tip = "Which zones and which ads bring in new members, best first.", fn = function() self.view = "score"; GT.Report:Refresh() end }
+    end
+    -- Seven buttons (with Export / copy) only fit when they are a little narrower.
+    if #footer >= 6 then
+        for _, button in ipairs(footer) do button.width = 152 end
+    end
+    return footer
+end
+
+-- 1.33.5: clears every zone cooldown by hand, after a confirm.
+function Recruit:ConfirmResetTimers()
+    local count = 0
+    for zoneId in pairs(self.sv.posted) do
+        if self:CooldownLeft(zoneId) > 0 then count = count + 1 end
+    end
+    if count == 0 then
+        U.Print("No zones are on cooldown.")
+        return
+    end
+    A.Confirm("Reset zone timers", string.format("Clear the cooldown on %d zone%s? The tour can then post in every zone again right away.",
+        count, count == 1 and "" or "s"), function() self:ResetTimers() end)
+end
+
+function Recruit:ResetTimers()
+    self.sv.posted = {}
+    U.Print("Zone timers reset. Every zone is ready for your ad.")
+    if self.UpdateBar then self:UpdateBar() end
+    GT.Report:RefreshIfShown()
 end
 
 function Recruit:ClearLeads()
@@ -1061,6 +1487,7 @@ function Recruit:ClearLeads()
 end
 
 function Recruit:TabExportLines()
+    if self.view == "score" and self.sv.score then return self:ScoreExportLines() end
     local lines = { "Type\tName\tDetail" }
     for name, lead in pairs(self.sv.leadList) do lines[#lines + 1] = table.concat({ "Lead", name, lead.text }, "\t") end
     for _, job in pairs(self.sv.mailWaiting) do lines[#lines + 1] = table.concat({ "Welcome mail", job.name, U.GuildName(job.guildId) }, "\t") end
@@ -1082,6 +1509,7 @@ function Recruit:RegisterTab()
         about = {
             "Helps you advertise in zone chat: which zones are ready for an ad, a tour from zone to zone, and people who whispered you about joining.",
             "An ad is put in your chat box and waits for your Enter. Nothing is posted by itself.",
+            "Save up to five ads and switch between them (by hand or after every post), and turn on the scoreboard to see which zones and ads bring in new members.",
             "Welcome messages, welcome mails and whisper leads are turned on separately on the Recruiting settings page.",
         },
         emptyText = "No whisper leads or welcome mails are waiting.",
@@ -1128,9 +1556,29 @@ function Recruit:BuildSettings(options)
         { type = "dropdown", name = "Recruit for", choices = names, choicesValues = ids,
           tooltip = "The guild your zone ad, whisper leads and the Recruit tab are for.",
           getFunc = function() return sv.guildId end, setFunc = function(v) sv.guildId = v; refresh() end, default = d.guildId },
-        { type = "editbox", name = "Zone ad", isMultiline = true, isExtraWide = true,
-          tooltip = "The ad for the guild picked above. {guild} becomes the guild's name. ESO cuts chat at 350 characters.",
-          getFunc = function() return sv.ads[self:GuildId()] or "" end, setFunc = function(v) sv.ads[self:GuildId()] = v end, default = "" },
+        { type = "description", text = "Save up to five zone ads for the guild picked above and pick the one to use, or let the addon switch to the next one by itself. {guild} becomes the guild's name. ESO cuts chat at 350 characters. Empty ads are skipped." },
+        { type = "editbox", name = "Zone ad 1", isMultiline = true, isExtraWide = true,
+          tooltip = "Saved ad 1 for the guild picked above. Since this addon had one ad, this is the ad you wrote before.",
+          getFunc = function() return self:SavedAd(self:GuildId(), 1) end, setFunc = function(v) self:SetSavedAd(self:GuildId(), 1, v); refresh() end, default = "" },
+        { type = "editbox", name = "Zone ad 2", isMultiline = true, isExtraWide = true,
+          tooltip = "Saved ad 2 for the guild picked above.",
+          getFunc = function() return self:SavedAd(self:GuildId(), 2) end, setFunc = function(v) self:SetSavedAd(self:GuildId(), 2, v); refresh() end, default = "" },
+        { type = "editbox", name = "Zone ad 3", isMultiline = true, isExtraWide = true,
+          tooltip = "Saved ad 3 for the guild picked above.",
+          getFunc = function() return self:SavedAd(self:GuildId(), 3) end, setFunc = function(v) self:SetSavedAd(self:GuildId(), 3, v); refresh() end, default = "" },
+        { type = "editbox", name = "Zone ad 4", isMultiline = true, isExtraWide = true,
+          tooltip = "Saved ad 4 for the guild picked above.",
+          getFunc = function() return self:SavedAd(self:GuildId(), 4) end, setFunc = function(v) self:SetSavedAd(self:GuildId(), 4, v); refresh() end, default = "" },
+        { type = "editbox", name = "Zone ad 5", isMultiline = true, isExtraWide = true,
+          tooltip = "Saved ad 5 for the guild picked above.",
+          getFunc = function() return self:SavedAd(self:GuildId(), 5) end, setFunc = function(v) self:SetSavedAd(self:GuildId(), 5, v); refresh() end, default = "" },
+        { type = "dropdown", name = "Ad in use", choices = { "Ad 1", "Ad 2", "Ad 3", "Ad 4", "Ad 5" }, choicesValues = { 1, 2, 3, 4, 5 },
+          tooltip = "The saved ad that goes in the chat box. If it is empty, the first saved ad is used. The Switch ad button on the Recruit tab and the \"switch to the next saved ad\" keybind change it too.",
+          getFunc = function() return self:AdInUse() end, setFunc = function(v) self:UseAd(v, true) end, default = 1 },
+        { type = "dropdown", name = "Switch ads by themselves", choices = { "Off: always the ad in use", "Next ad after every post", "Next ad each time you start the tour" },
+          choicesValues = { "off", "post", "tour" },
+          tooltip = "Rotates through your saved ads so zone chat doesn't see the same words every time. Off: the ad in use stays until you change it.",
+          getFunc = function() return sv.adRotate end, setFunc = function(v) sv.adRotate = v end, default = d.adRotate },
         { type = "slider", name = "Zone cooldown (minutes)", min = 5, max = 240, step = 5,
           tooltip = "After you post the ad in a zone, wait this long before posting there again. The tour leaves zones on cooldown out. The time counts from each post, so if a whole tour takes longer than this, the first zones are ready again by the end.",
           getFunc = function() return sv.cooldownMinutes end, setFunc = function(v) sv.cooldownMinutes = v; refresh() end, default = d.cooldownMinutes },
@@ -1144,6 +1592,18 @@ function Recruit:BuildSettings(options)
           func = function() self:ResetBarPosition() end },
         { type = "checkbox", name = "Travel to my houses when nobody is there", tooltip = "If no guildmate or friend is in a zone, the tour travels to a house you own there (you arrive outside).",
           getFunc = function() return sv.useHouses end, setFunc = function(v) sv.useHouses = v end, default = d.useHouses },
+        { type = "header", name = "Recruit scoreboard" },
+        { type = "checkbox", name = "Turn on the recruit scoreboard",
+          tooltip = "Counts your ad posts, and which of them bring in new members of the guild you recruit for, by zone and by ad. A join counts for your ad when you posted it in the zone the new member is in, or when you invited or accepted them, within the minutes below. See it with the Scoreboard button on the Recruit tab.",
+          getFunc = function() return sv.score end, setFunc = function(v) sv.score = v; if not v then self.view = "zones" end; refresh() end, default = d.score },
+        { type = "slider", name = "A join counts for an ad posted up to (minutes) before", min = 5, max = 120, step = 5,
+          tooltip = "How long after an ad post a new member still counts for that ad.",
+          getFunc = function() return sv.scoreMinutes end, setFunc = function(v) sv.scoreMinutes = v end, default = d.scoreMinutes,
+          disabled = function() return not sv.score end },
+        { type = "slider", name = "Scoreboard covers the last (days)", min = 1, max = 90, step = 1,
+          tooltip = "The scoreboard adds up this many days. Posts and joins are kept for 90 days.",
+          getFunc = function() return sv.scoreDays end, setFunc = function(v) sv.scoreDays = v; refresh() end, default = d.scoreDays,
+          disabled = function() return not sv.score end },
         { type = "header", name = "Invites" },
         { type = "checkbox", name = "Invite from player names in chat",
           tooltip = "Right-click a player's name in chat for \"Invite to (guild)\", for each guild where your rank can invite.",
@@ -1219,5 +1679,6 @@ end
 -- Keybinds
 function Recruit.KeyAd() Recruit:PasteAd() end
 function Recruit.KeyTour() Recruit:ToggleTour() end
+function Recruit.KeyNextAd() Recruit:SwitchAd() end
 function Recruit.KeyNext() if Recruit.sv.enabled then Recruit:TravelNext() else U.Print("Zone ads are turned off. Turn on Recruiting in /gtsettings.") end end
 GT.Recruit = Recruit

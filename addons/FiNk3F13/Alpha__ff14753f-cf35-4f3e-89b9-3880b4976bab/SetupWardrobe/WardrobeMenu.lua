@@ -7,17 +7,24 @@ end
 local function skillRow(setup, bar, size)
     local row = {}
     for slot = 3, 8 do
-        local id = setup.skills[bar][slot]
+        local id = setup.skills and setup.skills[bar] and setup.skills[bar][slot]
         row[#row+1] = (slot == 8 and "  " or "") .. icon(id and id > 0 and GetAbilityIcon(id), size)
     end
     return table.concat(row)
 end
 
-function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, locate, refreshHud, pending)
+function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, locate, refreshHud, pending, cancel)
     local lib = LibHarvensAddonSettings
     state.pages = state.pages or {{ name = "Seite 1", ids = {1, 2, 3, 4} }}
     state.nextId = state.nextId or 5
-    local pageIndex = math.min(state.pageIndex or 1, #state.pages)
+    if #state.pages == 0 then state.pages[1] = {name="Seite 1", ids={1,2,3,4}} end
+    for id in pairs(state.setups) do
+        if type(id)=="number" then state.nextId=math.max(state.nextId,id+1) end
+    end
+    for _,p in ipairs(state.pages) do
+        for _,id in ipairs(p.ids) do state.nextId=math.max(state.nextId,id+1) end
+    end
+    local pageIndex = math.max(1, math.min(state.pageIndex or 1, #state.pages))
     local function page() return state.pages[pageIndex] end
     local position = 1
     local function current() return page().ids[position] end
@@ -180,14 +187,15 @@ function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, 
         local p = page()
         local start = 0
         local cursor = state.last
-        if cursor == p.padTarget then cursor = p.padPrevious end
+        if cursor == p.padReturnFromTarget then cursor = p.padPrevious end
         for i,id in ipairs(p.ids) do if id == cursor then start=i; break end end
         for offset=1,#p.ids do
             local i=(start+offset-1)%#p.ids+1
             local id=p.ids[i]
             if state.setups[id] then
                 position=i
-                p.padPrevious=id
+                p.padReturnFromTarget=nil
+        p.padPrevious=id
                 loadSetup(id)
                 return
             end
@@ -201,6 +209,7 @@ function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, 
             return
         end
         if state.last~=p.padTarget then p.padPrevious=state.last end
+        p.padReturnFromTarget=p.padTarget
         loadSetup(p.padTarget)
     end)
     local function targetEntries()
@@ -237,6 +246,7 @@ function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, 
     end
     local function forget(id)
         if page().padTarget==id then page().padTarget=nil end
+        if page().padReturnFromTarget==id then page().padReturnFromTarget=nil end
         if page().padPrevious==id then page().padPrevious=nil end
         if page().encounters then page().encounters[id]=nil end
         state.setups[id],state.names[id]=nil,nil
@@ -261,20 +271,53 @@ function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, 
     sv:AddSettings(controls,nil,false)
     if LibRadialMenu then
         local texture="/esoui/art/icons/gear_breton_heavy_chest_d.dds"
+        local function loadPosition(index)
+            if pending() then d("SetupWardrobe – Bitte den Wechsel abwarten."); return end
+            local id=page().ids[index]
+            if not id or not state.setups[id] then
+                d("SetupWardrobe – Dieser Platz auf der ausgewählten Raid-Seite ist leer.")
+                return
+            end
+            position=index
+            page().padReturnFromTarget=nil
+            loadSetup(id)
+            redraw()
+        end
         for i=1,4 do
             LibRadialMenu:RegisterEntry("ControllerWardrobe","Setup "..i,"setup"..i,texture,
                 function() loadSetup(i) end,"Ursprünglicher Schnellplatz "..i)
         end
+        for i=1,14 do
+            LibRadialMenu:RegisterEntry("ControllerWardrobe","Raid-Seite · Setup "..i,"pageSetup"..i,texture,
+                function() loadPosition(i) end,"Platz "..i.." der ausgewählten Raid-Seite laden.")
+        end
         for _,delta in ipairs({-1,1}) do
             local text=delta==1 and "Nächstes Setup" or "Vorheriges Setup"
             LibRadialMenu:RegisterEntry("ControllerWardrobe",text,"cycle"..delta,texture,function()
+                if pending() then d("SetupWardrobe – Bitte den Wechsel abwarten."); return end
                 local ids=page().ids
+                local start=position
+                for i,id in ipairs(ids) do if id==state.last then start=i; break end end
                 for offset=1,#ids do
-                    local i=(position-1+offset*delta)%#ids+1
-                    if state.setups[ids[i]] then position=i; loadSetup(ids[i]); redraw(); return end
+                    local i=(start-1+offset*delta)%#ids+1
+                    if state.setups[ids[i]] then loadPosition(i); return end
                 end
                 d("SetupWardrobe – Diese Seite enthält kein gespeichertes Setup.")
             end,text.." der ausgewählten Seite laden")
         end
+        LibRadialMenu:RegisterEntry("ControllerWardrobe","Zum ersten Setup zurück","resetSequence",texture,function()
+            if pending() then d("SetupWardrobe – Bitte den Wechsel abwarten."); return end
+            for i,id in ipairs(page().ids) do
+                if state.setups[id] then
+                    page().padPrevious=nil
+                    loadPosition(i)
+                    return
+                end
+            end
+            d("SetupWardrobe – Diese Seite enthält kein gespeichertes Setup.")
+        end,"Reihenfolge neu beginnen und das erste gespeicherte Setup der ausgewählten Seite laden.")
+        LibRadialMenu:RegisterEntry("ControllerWardrobe","Wechsel abbrechen","cancelSwap",texture,function()
+            if cancel then cancel() end
+        end,"Einen laufenden oder im Kampf vorgemerkten Wechsel beenden. Bereits angelegte Teile bleiben angelegt.")
     end
 end

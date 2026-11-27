@@ -1,6 +1,51 @@
 -- Ramaladni Tracker v0.9.23 — Arcanist isolated runtime.
 -- Mechanics copied from the v0.9.22 reference; other classes are not modified.
 local M=RamaladniMastery
+local d = d
+local math = math
+local pairs = pairs
+local string = string
+local tonumber = tonumber
+local tostring = tostring
+local type = type
+local ACTION_RESULT_BLOCKED_DAMAGE = ACTION_RESULT_BLOCKED_DAMAGE
+local ACTION_RESULT_CRITICAL_DAMAGE = ACTION_RESULT_CRITICAL_DAMAGE
+local ACTION_RESULT_CRITICAL_HEAL = ACTION_RESULT_CRITICAL_HEAL
+local ACTION_RESULT_DAMAGE = ACTION_RESULT_DAMAGE
+local ACTION_RESULT_DOT_TICK = ACTION_RESULT_DOT_TICK
+local ACTION_RESULT_DOT_TICK_CRITICAL = ACTION_RESULT_DOT_TICK_CRITICAL
+local ACTION_RESULT_HEAL = ACTION_RESULT_HEAL
+local ACTION_RESULT_HOT_TICK = ACTION_RESULT_HOT_TICK
+local ACTION_RESULT_HOT_TICK_CRITICAL = ACTION_RESULT_HOT_TICK_CRITICAL
+local COMBAT_UNIT_TYPE_PLAYER = COMBAT_UNIT_TYPE_PLAYER
+local DoesUnitExist = DoesUnitExist
+local EFFECT_RESULT_FADED = EFFECT_RESULT_FADED
+local EFFECT_RESULT_FULL_REFRESH = EFFECT_RESULT_FULL_REFRESH
+local EFFECT_RESULT_GAINED = EFFECT_RESULT_GAINED
+local EFFECT_RESULT_UPDATED = EFFECT_RESULT_UPDATED
+local EVENT_ACTION_SLOT_ABILITY_USED = EVENT_ACTION_SLOT_ABILITY_USED
+local EVENT_COMBAT_EVENT = EVENT_COMBAT_EVENT
+local EVENT_EFFECT_CHANGED = EVENT_EFFECT_CHANGED
+local EVENT_MANAGER = EVENT_MANAGER
+local EVENT_PLAYER_COMBAT_STATE = EVENT_PLAYER_COMBAT_STATE
+local GetAbilityName = GetAbilityName
+local GetNumBuffs = GetNumBuffs
+local GetNumSkillAbilities = GetNumSkillAbilities
+local GetNumSkillLines = GetNumSkillLines
+local GetSkillAbilityId = GetSkillAbilityId
+local GetSkillAbilityInfo = GetSkillAbilityInfo
+local GetSlotBoundId = GetSlotBoundId
+local GetUnitBuffInfo = GetUnitBuffInfo
+local GetUnitClassId = GetUnitClassId
+local IsUnitInCombat = IsUnitInCombat
+local IsUnitPlayer = IsUnitPlayer
+local REGISTER_FILTER_ABILITY_ID = REGISTER_FILTER_ABILITY_ID
+local REGISTER_FILTER_COMBAT_RESULT = REGISTER_FILTER_COMBAT_RESULT
+local REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE = REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE
+local REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE = REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE
+local REGISTER_FILTER_UNIT_TAG = REGISTER_FILTER_UNIT_TAG
+local SKILL_TYPE_CLASS = SKILL_TYPE_CLASS
+local SLASH_COMMANDS = SLASH_COMMANDS
 local shared=M.shared
 local SkillState,LeadNow,HideState=shared.SkillState,shared.LeadNow,shared.HideState
 local lead=shared.lead
@@ -8,33 +53,33 @@ local runtime={}
 M.modules["Arcanist"]=runtime
 do
 local e={key="Arcanist:Abyssal Emergence",class="Arcanist",en="Abyssal Emergence",title="Восхождение из бездны / Abyssal Emergence",passiveId=263316,candidateIDs={263334,263369},model="timed_number",value=666,cap=0,target=false,kind="numeric+timer",mechanic="+666 Weapon/Spell Damage and maximum Crux from Ultimate",durationRule="15 sec"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Arcanist:Fate Realigned",class="Arcanist",en="Fate Realigned",title="Переписанная судьба / Fate Realigned",passiveId=263398,candidateIDs={263407,263409,268372},model="timed_number",value=300,cap=0,target=false,kind="numeric+timer+cooldown",mechanic="+300 Weapon/Spell Damage; maximum Crux proc",durationRule="25 sec buff; proc at most once per 15 sec"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Arcanist:Unbound Potential",class="Arcanist",en="Unbound Potential",title="Раскрепощённый потенциал / Unbound Potential",passiveId=263410,candidateIDs={263411},model="timed_percent",value=30,cap=0,target=false,kind="percent+conditional_timer",mechanic="Fated Fortune rank 2: on Crux gain or consume, 12% crit damage/healing plus Unbound +30% damage (15% PvP)",durationRule="7 sec; resets on actual Crux gain or spending, not Crux own 30 sec expiry"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Arcanist:Erudite's Rigor",class="Arcanist",en="Erudite's Rigor",title="Строгость эрудита / Erudite's Rigor",passiveId=263412,candidateIDs={263413,263414,263415},model="timed_percent",value=12,cap=0,target=false,kind="group_timer+target_debuff_timer",mechanic="On damage while Fatewoven Armor (or morph) is active: Minor Cowardice on attacker, Major Vitality +12% to group for 4 seconds, 1 Ultimate per Crux, max once per 2 seconds",durationRule="4 sec Major Vitality; internal proc cooldown 2 sec; no cast-only trigger"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Arcanist:Ink-Scribe's Verve",class="Arcanist",en="Ink-Scribe's Verve",title="Рвение чернильного писца / Ink-Scribe's Verve",passiveId=263416,candidateIDs={263418,263419,263420},model="healing_counter",value=100000,cap=0,target=false,kind="healing_counter+group_timer",mechanic="Progress 0..100000 healing/overhealing; generates Crux and Major Force +20% critical damage",durationRule="10 sec Major Force"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 
 local ABYSSAL_EMERGENCE="Arcanist:Abyssal Emergence"
@@ -47,11 +92,10 @@ local INK_SCRIBES_VERVE="Arcanist:Ink-Scribe's Verve"
 local FATED_FORTUNE_IDS={ [184844]=1, [184847]=2 }
 local fatedCache
 local function HasFatedFortuneRank2(force)
-  if GetUnitClassId and GetUnitClassId('player')~=117 then return false end
+  if GetUnitClassId('player')~=117 then return false end
   local now=LeadNow()
   if not force and fatedCache and now-fatedCache.at<3 then return fatedCache.value end
-  if not (SKILL_TYPE_CLASS and GetNumSkillLines and GetNumSkillAbilities and
-          GetSkillAbilityId and GetSkillAbilityInfo) then return nil end
+
   for line=1,GetNumSkillLines(SKILL_TYPE_CLASS) do
     for idx=1,GetNumSkillAbilities(SKILL_TYPE_CLASS,line) do
       local id=GetSkillAbilityId(SKILL_TYPE_CLASS,line,idx,false)
@@ -75,10 +119,9 @@ local ARC_DURATION=7
 local arc={lastStacks=nil,buffEnd=nil,lastCruxAt=nil,untilTime=0,debug=false,
            lastTrigger=nil,lastChange=nil,ignored=nil}
 local function ArcPrint(msg)
-  if d then d('|c73D1FFRamaladni Arc|r '..tostring(msg)) end
+  d('|c73D1FFRamaladni Arc|r '..tostring(msg))
 end
 local function SnapshotCrux()
-  if not GetNumBuffs or not GetUnitBuffInfo then return end
   for i=1,(GetNumBuffs('player') or 0) do
     local _,_,finish,_,stacks,_,_,_,_,_,id=GetUnitBuffInfo('player',i)
     if id==CRUX_EFFECT_ID then
@@ -91,7 +134,7 @@ local function SnapshotCrux()
   arc.lastStacks=0
 end
 local function ArcTrigger(reason,now)
-  local mastery=SkillState(RamaladniMastery.byKey[UNBOUND_POTENTIAL])
+  local mastery=SkillState(M.byKey[UNBOUND_POTENTIAL])
   local fated=HasFatedFortuneRank2()
   if mastery~=true or fated~=true then
     arc.ignored='Unbound='..tostring(mastery)..' FatedII='..tostring(fated)
@@ -105,7 +148,7 @@ end
 local function OnCruxEffect(_,change,_,effectName,unitTag,beginTime,endTime,stackCount,
                             _,_,_,_,_,_,_,abilityId)
   if unitTag~='player' or abilityId~=CRUX_EFFECT_ID then return end
-  if GetUnitClassId and GetUnitClassId('player')~=117 then return end
+  if GetUnitClassId('player')~=117 then return end
   local now=LeadNow()
   local old=arc.lastStacks
   local oldEnd=arc.buffEnd
@@ -117,8 +160,7 @@ local function OnCruxEffect(_,change,_,effectName,unitTag,beginTime,endTime,stac
     -- Use server-reported Crux expiry to avoid false seven-second procs.
     if old and old>0 and oldEnd and oldEnd>now+0.45 then
       reason='consumed '..old..'->0'
-    elseif old and old>0 and not oldEnd and IsUnitInCombat and
-           IsUnitInCombat('player') and arc.lastCruxAt and now-arc.lastCruxAt<25 then
+    elseif old and old>0 and not oldEnd and IsUnitInCombat('player') and arc.lastCruxAt and now-arc.lastCruxAt<25 then
       reason='probable consumption '..old..'->0'
     end
   elseif old~=nil and stacks~=old then
@@ -143,7 +185,7 @@ end
 local function ArcDebug(input)
   local cmd=(input or ''):lower():match('^%s*(.-)%s*$')
   if cmd=='debug' then arc.debug=not arc.debug; ArcPrint('debug '..(arc.debug and 'ON' or 'OFF')); return end
-  local owned=SkillState(RamaladniMastery.byKey[UNBOUND_POTENTIAL],true)
+  local owned=SkillState(M.byKey[UNBOUND_POTENTIAL],true)
   local fated=HasFatedFortuneRank2(true)
   local now=LeadNow()
   ArcPrint(string.format('Unbound=%s Fated Fortune II=%s Crux=%s active=%.1fs last=%s ignore=%s',
@@ -173,15 +215,15 @@ local RIGOR_ICD=2
 local rigor={armorUntil=0,untilTime=0,nextProcAt=0,lastHitAt=0,
              lastProcAt=0,source=nil,debug=false,lastReason=nil}
 local function RigorPrint(message)
-  if d then d('|c73D1FFRamaladni Rigor|r '..tostring(message)) end
+  d('|c73D1FFRamaladni Rigor|r '..tostring(message))
 end
 local function IsRigorLearned()
-  return GetUnitClassId and GetUnitClassId('player')==117 and
-    SkillState(RamaladniMastery.byKey[ERUDITES_RIGOR])==true
+  return GetUnitClassId('player')==117 and
+    SkillState(M.byKey[ERUDITES_RIGOR])==true
 end
 local function RigorArmorCast(_,slot)
-  if GetUnitClassId and GetUnitClassId('player')~=117 then return end
-  if not GetSlotBoundId then return end
+  if GetUnitClassId('player')~=117 then return end
+
   local abilityId=GetSlotBoundId(slot)
   local duration=RIGOR_ARMOR_CASTS[abilityId]
   if not duration then return end
@@ -229,9 +271,9 @@ for _,result in ipairs({ACTION_RESULT_DAMAGE, ACTION_RESULT_CRITICAL_DAMAGE,
   if result~=nil then RIGOR_DAMAGE_RESULTS[result]=true end
 end
 local function RigorOnIncomingDamage(_,result,isError,_,_,_,_,_,_,targetType,
-                                     hitValue,_,_,_,_,_,_,abilityId)
+                                     hitValue,_,_,_,_,_,abilityId)
   if isError or not RIGOR_DAMAGE_RESULTS[result] then return end
-  if COMBAT_UNIT_TYPE_PLAYER and targetType~=COMBAT_UNIT_TYPE_PLAYER then return end
+  if targetType~=COMBAT_UNIT_TYPE_PLAYER then return end
   if type(hitValue)~='number' or hitValue<=0 then return end
   local now=LeadNow()
   if rigor.armorUntil<=now or now<rigor.nextProcAt then return end
@@ -278,11 +320,11 @@ end
 local ink={progress=0,untilTime=0,lastProcAt=0,source=nil,debug=false,
            lastHeal=0,lastOverflow=0,procCount=0,lastIgnored=nil}
 local function InkPrint(msg)
-  if d then d('|c73D1FFRamaladni Ink|r '..tostring(msg)) end
+  d('|c73D1FFRamaladni Ink|r '..tostring(msg))
 end
 local function IsInkLearned(force)
-  return GetUnitClassId and GetUnitClassId('player')==117 and
-    SkillState(RamaladniMastery.byKey[INK_SCRIBES_VERVE],force)==true
+  return GetUnitClassId('player')==117 and
+    SkillState(M.byKey[INK_SCRIBES_VERVE],force)==true
 end
 local function InkOnCombatState(_,inCombat)
   if not inCombat then
@@ -292,10 +334,10 @@ local function InkOnCombatState(_,inCombat)
   end
 end
 local function InkOnHeal(_,result,isError,_,_,_,_,sourceType,_,_,hitValue,
-                         _,_,_,_,_,_,_,overflow)
+                         _,_,_,_,_,_,overflow)
   if isError or not INK_HEAL_RESULTS[result] then return end
-  if COMBAT_UNIT_TYPE_PLAYER and sourceType~=COMBAT_UNIT_TYPE_PLAYER then return end
-  if IsUnitInCombat and not IsUnitInCombat('player') then return end
+  if sourceType~=COMBAT_UNIT_TYPE_PLAYER then return end
+  if not IsUnitInCombat('player') then return end
   if not IsInkLearned() then return end
   local effective=math.max(0,tonumber(hitValue) or 0)
   local overheal=math.max(0,tonumber(overflow) or 0)
@@ -361,11 +403,10 @@ local ARCANIST_ULTIMATE_IDS={
 }
 local function IsArcanistClassUltimate(abilityId)
   if ARCANIST_ULTIMATE_IDS[abilityId] then return true end
-  if not (SKILL_TYPE_CLASS and GetNumSkillLines and GetNumSkillAbilities and
-          GetSkillAbilityId and GetSkillAbilityInfo) then return false end
+
   -- Discover all current Arcanist class Ultimates by active skillbook.
   -- Morphs can use IDs different from their parent ability.
-  local actualName=GetAbilityName and GetAbilityName(abilityId)
+  local actualName=GetAbilityName(abilityId)
   for line=1,GetNumSkillLines(SKILL_TYPE_CLASS) do
     for i=1,GetNumSkillAbilities(SKILL_TYPE_CLASS,line) do
       local name,_,_,_,isUltimate,purchased=GetSkillAbilityInfo(SKILL_TYPE_CLASS,line,i)
@@ -382,50 +423,65 @@ end
 
 runtime.IsClassUltimate=IsArcanistClassUltimate
 runtime.Invalidate=function() fatedCache=nil end
+local syncEvents=M.NewEventSet()
+local previousSelection={}
+runtime.SyncEvents=function(selected)
+  if selected[UNBOUND_POTENTIAL] and not previousSelection[UNBOUND_POTENTIAL] then SnapshotCrux() end
+  if selected[ERUDITES_RIGOR] and not previousSelection[ERUDITES_RIGOR] then
+    -- The build may already have a real armor aura when this listener starts.
+    -- Only restore an observed expiry, never manufacture a cast/proc.
+    local now=LeadNow()
+    rigor.armorUntil=0
+    for i=1,GetNumBuffs('player') do
+      local _,_,finish,_,_,_,_,_,_,_,id=GetUnitBuffInfo('player',i)
+      if RIGOR_ARMOR_EFFECTS[id] and type(finish)=='number' and finish>now then
+        rigor.armorUntil=math.max(rigor.armorUntil,finish)
+      end
+    end
+  end
+  if not selected[UNBOUND_POTENTIAL] then arc.lastStacks=nil;arc.buffEnd=nil;arc.lastCruxAt=nil;arc.untilTime=0 end
+  if not selected[INK_SCRIBES_VERVE] then ink.progress=0;ink.untilTime=0;ink.lastProcAt=0 end
+  if not selected[ERUDITES_RIGOR] then
+    rigor.armorUntil=0;rigor.untilTime=0;rigor.nextProcAt=0;rigor.lastHitAt=0;rigor.lastProcAt=0
+  end
+  syncEvents(function(Add)
+    if selected[UNBOUND_POTENTIAL] then
+      Add('RamaladniMastery_Crux',EVENT_EFFECT_CHANGED,OnCruxEffect,
+        REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_ABILITY_ID,CRUX_EFFECT_ID)
+    end
+    if selected[INK_SCRIBES_VERVE] then
+      Add('RamaladniMastery_InkCombat',EVENT_PLAYER_COMBAT_STATE,InkOnCombatState)
+      for result in pairs(INK_HEAL_RESULTS) do
+        Add('RamaladniMastery_InkHeal_'..result,EVENT_COMBAT_EVENT,InkOnHeal,
+          REGISTER_FILTER_COMBAT_RESULT,result,REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
+      end
+      for abilityId in pairs(INK_PROC_IDS) do
+        Add('RamaladniMastery_InkProc_'..abilityId,EVENT_EFFECT_CHANGED,InkProcEffect,
+          REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_ABILITY_ID,abilityId)
+      end
+    end
+    if selected[ERUDITES_RIGOR] then
+      Add('RamaladniMastery_RigorArmorCast',EVENT_ACTION_SLOT_ABILITY_USED,RigorArmorCast)
+      for abilityId in pairs(RIGOR_ARMOR_EFFECTS) do
+        Add('RamaladniMastery_RigorArmorBuff_'..abilityId,EVENT_EFFECT_CHANGED,RigorArmorEffect,
+          REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_ABILITY_ID,abilityId)
+      end
+      for abilityId in pairs(RIGOR_PROC_EFFECTS) do
+        Add('RamaladniMastery_RigorProcBuff_'..abilityId,EVENT_EFFECT_CHANGED,RigorProcEffect,
+          REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_ABILITY_ID,abilityId)
+      end
+      for result in pairs(RIGOR_DAMAGE_RESULTS) do
+        Add('RamaladniMastery_RigorDamage_'..result,EVENT_COMBAT_EVENT,RigorOnIncomingDamage,
+          REGISTER_FILTER_COMBAT_RESULT,result,REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
+      end
+    end
+  end)
+  previousSelection=selected
+end
 runtime.Init=function()
-  SnapshotCrux()
-  EVENT_MANAGER:RegisterForEvent('RamaladniMastery_Crux',EVENT_EFFECT_CHANGED,OnCruxEffect)
-  EVENT_MANAGER:AddFilterForEvent('RamaladniMastery_Crux',EVENT_EFFECT_CHANGED,
-      REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_ABILITY_ID,CRUX_EFFECT_ID)
   SLASH_COMMANDS['/rmarc']=ArcDebug
   SLASH_COMMANDS['/rmrigor']=RigorDebug
   SLASH_COMMANDS['/rmink']=InkDebug
-  if EVENT_PLAYER_COMBAT_STATE then
-    EVENT_MANAGER:RegisterForEvent('RamaladniMastery_InkCombat',EVENT_PLAYER_COMBAT_STATE,InkOnCombatState)
-  end
-  for result in pairs(INK_HEAL_RESULTS) do
-    local namespace='RamaladniMastery_InkHeal_'..tostring(result)
-    EVENT_MANAGER:RegisterForEvent(namespace,EVENT_COMBAT_EVENT,InkOnHeal)
-    if REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE and COMBAT_UNIT_TYPE_PLAYER then
-      EVENT_MANAGER:AddFilterForEvent(namespace,EVENT_COMBAT_EVENT,
-          REGISTER_FILTER_COMBAT_RESULT,result,
-          REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
-    else
-      EVENT_MANAGER:AddFilterForEvent(namespace,EVENT_COMBAT_EVENT,
-          REGISTER_FILTER_COMBAT_RESULT,result)
-    end
-  end
-  for abilityId in pairs(INK_PROC_IDS) do
-    local namespace='RamaladniMastery_InkProc_'..tostring(abilityId)
-    EVENT_MANAGER:RegisterForEvent(namespace,EVENT_EFFECT_CHANGED,InkProcEffect)
-    EVENT_MANAGER:AddFilterForEvent(namespace,EVENT_EFFECT_CHANGED,
-        REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_ABILITY_ID,abilityId)
-  end
-  EVENT_MANAGER:RegisterForEvent('RamaladniMastery_RigorArmorCast',EVENT_ACTION_SLOT_ABILITY_USED,RigorArmorCast)
-  EVENT_MANAGER:RegisterForEvent('RamaladniMastery_RigorArmorBuff',EVENT_EFFECT_CHANGED,RigorArmorEffect)
-  EVENT_MANAGER:RegisterForEvent('RamaladniMastery_RigorProcBuff',EVENT_EFFECT_CHANGED,RigorProcEffect)
-  if REGISTER_FILTER_UNIT_TAG then
-    -- Both handlers explicitly reject non-player unitTags already.
-    EVENT_MANAGER:AddFilterForEvent('RamaladniMastery_RigorArmorBuff',EVENT_EFFECT_CHANGED,
-      REGISTER_FILTER_UNIT_TAG,'player')
-    EVENT_MANAGER:AddFilterForEvent('RamaladniMastery_RigorProcBuff',EVENT_EFFECT_CHANGED,
-      REGISTER_FILTER_UNIT_TAG,'player')
-  end
-  EVENT_MANAGER:RegisterForEvent('RamaladniMastery_RigorDamage',EVENT_COMBAT_EVENT,RigorOnIncomingDamage)
-  if REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE and COMBAT_UNIT_TYPE_PLAYER then
-    EVENT_MANAGER:AddFilterForEvent('RamaladniMastery_RigorDamage',EVENT_COMBAT_EVENT,
-      REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
-  end
 end
 runtime.Display=function(key,state,now)
   if key==ERUDITES_RIGOR then
@@ -460,7 +516,7 @@ runtime.Display=function(key,state,now)
       state.untilTime=arc.untilTime
       state.activeFlag=true
       state.timerEstimated=true
-      local pvpTarget=DoesUnitExist and IsUnitPlayer and DoesUnitExist('reticleover') and IsUnitPlayer('reticleover')
+      local pvpTarget=DoesUnitExist('reticleover') and IsUnitPlayer('reticleover')
       return true,(pvpTarget and '15%' or '30%')
     end
     HideState(state);return true,nil

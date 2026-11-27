@@ -27,7 +27,19 @@ local function hidden(c,v)
     if c.IsControlHidden then h=c:IsControlHidden() else h=c:IsHidden() end
     if h~=v then c:SetHidden(v) end
 end
-local function clean(n) return type(n)=="string" and n:gsub("%^.*$", ""):lower() or "" end
+local CLEAN_CACHE,cleanCacheCount={},0
+local function clean(n)
+    if type(n)~="string" or n=="" then return "" end
+    local cached=CLEAN_CACHE[n]
+    if cached~=nil then return cached end
+    local v=n:gsub("%^.*$",""):lower()
+    if cleanCacheCount>=BALANCE_CACHE_LIMIT then CLEAN_CACHE={}; cleanCacheCount=0 end
+    CLEAN_CACHE[n]=v; cleanCacheCount=cleanCacheCount+1
+    return v
+end
+local DEC_STR,INT_STR={},{}
+for i=0,100 do DEC_STR[i]=string.format("%.1f",i/10) end
+for i=0,120 do INT_STR[i]=tostring(i) end
 local EMPTY={}
 local GOLD={.91,.77,.42}
 -- Mages Guild healing/shield penalty is mislabeled as BUFF by ESO.
@@ -207,7 +219,7 @@ function H:Slot(g,i)
         -- Created with the slot (pool warm-up), so the first reorder in
         -- combat does not have to grow every control table.
         rebindClaimed=false}
-    t.fill:ClearAnchors(); t.fill:SetAnchor(BOTTOMLEFT,p,BOTTOMLEFT,4,-4); t.fill:SetHidden(true)
+    t.fill:ClearAnchors(); t.fill:SetAnchor(BOTTOMLEFT,p,BOTTOMLEFT,4,-4); t.fill:SetHidden(true); t.fillHidden=true
     -- Native rectangular surfaces, not an additional DDS glow. The outline
     -- sits above the dark slot frame and stays legible against bright terrain.
     if g==self.ob then self:Signal(t,true)
@@ -222,7 +234,7 @@ function H:Slot(g,i)
         end)
         p:SetMouseEnabled(g.interactive==true)
     end
-    t.p:SetHidden(true); g.pool[i]=t
+    t.p:SetHidden(true); t.pHidden=true; g.pool[i]=t
     return t
 end
 -- All values used by a slot are resolved once per settings generation.
@@ -452,7 +464,7 @@ function H:EnsureLayout(g,count)
     end
     local placedAll=false
     if count~=oldShown or reflow or g.layoutDirty then
-        for i=count+1,oldShown do hidden(g.pool[i].p,true) end
+        for i=count+1,oldShown do local slot=g.pool[i]; if slot.pHidden~=true then slot.p:SetHidden(true); slot.pHidden=true end end
         for i=oldShown+1,count do g.pool[i].nextPaintAt=nil end
         g.shown=count
         g.window:SetDimensions(cols*g.size+(cols-1)*g.gap,math.max(1,math.ceil(count/cols))*(g.size+g.gap)-g.gap)
@@ -830,13 +842,13 @@ function H:Paint(t,r,now,group,mode,timerOnly,visual)
     if mode=="ready" then kind,bucket="ready",0 end
     local estimated=r.estimated and true or false
     if t.timeKind~=kind or t.timeBucket~=bucket or t.timeEstimated~=estimated then
-        local label=kind=="ready" and "∞" or kind=="" and "" or kind=="d" and string.format("%.1f",bucket/10) or tostring(bucket)..(kind=="s" and "" or kind)
-        u.setText(t.timer,(estimated and "~" or "")..label)
+        local label=kind=="ready" and "∞" or kind=="" and "" or kind=="d" and (DEC_STR[bucket] or string.format("%.1f",bucket/10)) or kind=="s" and (INT_STR[bucket] or tostring(bucket)) or (INT_STR[bucket] or tostring(bucket))..kind
+        u.setText(t.timer,estimated and ("~"..label) or label)
         t.timeKind,t.timeBucket,t.timeEstimated=kind,bucket,estimated
     end
     if not timerOnly then
         local stacks=r.stacks and r.stacks>1 and v.stacks and r.stacks or 0
-        if t.stackNumber~=stacks then u.setText(t.stack,stacks>0 and tostring(stacks) or ""); t.stackNumber=stacks end
+        if t.stackNumber~=stacks then u.setText(t.stack,stacks>0 and (INT_STR[stacks] or tostring(stacks)) or ""); t.stackNumber=stacks end
     end
     local warn=timed and left>0 and left<=v.flashMs and v.flash
     local alpha=warn and not mode and (math.floor(now/250)%2==0 and .4 or 1) or 1
@@ -873,11 +885,13 @@ function H:Paint(t,r,now,group,mode,timerOnly,visual)
     local fill=v.fill and timed and left>0 and r.finish>r.start
     local height=fill and math.max(1,math.floor(56*clamp(left/(r.finish-r.start),0,1)+.5)) or 0
     if t.height~=height then
-        t.height=height; hidden(t.fill,height==0)
+        t.height=height
+        local fillHidden=height==0
+        if t.fillHidden~=fillHidden then t.fill:SetHidden(fillHidden); t.fillHidden=fillHidden end
         if height>0 then t.fill:SetHeight(height); t.fill:SetTextureCoords(0,1,1-height/56,1) end
     end
     if not timerOnly then
-        hidden(t.p,false)
+        if t.pHidden~=false then t.p:SetHidden(false); t.pHidden=false end
         -- Dirty-state signatures are stored on the rendered slot, NOT on the
         -- reusable scan record. Sorting/reusing records cannot hide changes.
         t.effectID,t.effectSlot,t.effectIcon=r.id,r.slot,r.icon

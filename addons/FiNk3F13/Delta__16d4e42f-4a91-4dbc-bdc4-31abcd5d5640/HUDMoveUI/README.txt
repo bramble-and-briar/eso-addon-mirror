@@ -1,4 +1,4 @@
-HUD Move UI 1.0.0-test
+HUD Move UI 1.1.0-test
 ======================
 Eigenstaendiges ESO-HUD-Addon fuer den Konsolentest.
 Ein Addon-Ordner, keine eingebettete LibAPH und keine Messfunktionen.
@@ -34,8 +34,8 @@ UNTERSTUETZTE ZIELE DIESER TESTFASSUNG
 05 Gruppe und Aufgaben: Questanzeige und kleine Gruppenanzeige.
 06 Eigene Addons: Obsidian HUD Ressourcenblock, wenn ObsidianHUD.root existiert.
 
-Es handelt sich um eine explizite Liste unterstuetzter Steuerelemente, nicht
-um einen beliebigen Editor aller Menues oder aller Drittanbieter-Addon-Fenster.
+Die native Liste enthaelt ausdruecklich unterstuetzte Steuerelemente.
+Weitere benannte Addon-Fenster werden ueber die Fenster-Suche erkannt.
 Die Skillleiste wird als Einheit bewegt und skaliert. Raid-Spalten, weitere
 Aufgabenfenster sowie einzelne Skill-Slots sind in dieser Fassung nicht enthalten.
 Einige native Elemente sind je nach Client/Spielzustand nicht vorhanden.
@@ -73,3 +73,33 @@ UPLOAD
 Nur den Ordner HUDMoveUI auswaehlen. LibHarvensAddonSettings muss als Abhaengigkeit
 auf der Konsole verfuegbar/aktiviert sein. Es wurde kein Upload vorgenommen.
 Die Fassung zielt auf ESO API 101051 und 101052.
+
+ADDON-FENSTER ERKENNEN (1.1)
+Unter Einstellungen > Addons > HUD Move UI > Erkannte Addon-Fenster:
+1. Das gewuenschte Fenster zuerst im jeweiligen Addon oeffnen/anzeigen.
+2. Fensterliste aktualisieren waehlen. Die Suche laeuft in kleinen Schritten.
+3. Addon-Fenster auswaehlen.
+4. Move UI: Addon-Fenster waehlen und mit rechtem Stick verschieben.
+5. Kreuz oder drei Sekunden Stillstand speichern; Kreis stellt den alten Stand her.
+6. Groesse des Addon-Fensters und Zuruecksetzen befinden sich im selben Abschnitt.
+
+Die erste Suche startet nach dem Einloggen automatisch. Spaeter erzeugte Fenster
+koennen erneut gesucht werden. Jeder gefundene Eintrag bleibt standardmaessig
+unveraendert, bis du seine Anpassung einschaltest oder Move UI startest.
+Fensternamen werden, soweit moeglich, installierten Addon-Namen zugeordnet.
+Nicht eindeutig zuordenbare benannte Fenster erscheinen mit ihrem Fensternamen.
+Gespeicherte Positionen sind an den Namen des Fensters gebunden.
+
+Grenzen der automatischen Erkennung:
+- Keine vollstaendige Erkennung aller Addons. Hintergrund-Addons haben kein HUD.
+- Unbenannte oder erst spaeter erzeugte Fenster sind nicht sofort auffindbar.
+- Native Menues, Tooltips, Bibliotheksfenster und Vollbild-Overlays werden gefiltert.
+- Die Suche ist auf 6000 Steuerelemente und 120 benannte Fenster begrenzt.
+- Setzt ein anderes Addon seine Position staendig selbst zurueck, koennen sich
+  die Mover gegenseitig stoeren. Dessen eigene Verschiebefunktion dann deaktivieren.
+- Verschachtelte oder geschuetzte Steuerelemente sind nicht beliebig anpassbar.
+- Es wird keine Sichtbarkeit, kein Spielinhalt und keine Kampffunktion geaendert.
+
+Die Erkennung, Auswahl, Persistenz, Groessenanpassung, Ruecksetzung und der
+Kampf-Abbruch der Suche wurden mit simulierten ESO-Fenstern geprueft. Auf echter
+Konsole und mit den konkreten Fenstern deiner Addons ist der Test noch offen.

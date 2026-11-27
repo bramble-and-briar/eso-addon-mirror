@@ -1,0 +1,18 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc.
+; or its affiliates. The Elder Scrolls® and related logos are registered trademarks
+; or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+; All rights reserved.
+
+## Title: MANA Junk
+## Description: Marks unwanted items as junk on pickup by smart filters and your rules, and sells junk at merchants after a confirmation with a full list.
+## Author: Beardborn
+## Version: 1.0.1
+## AddOnVersion: 10001
+## APIVersion: 101051 101052
+## SavedVariables: MANAJunk_SV
+## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730
+## OptionalDependsOn: FCOItemSaver
+
+lang/en.lua
+lang/$(language).lua
+MANAJunk.lua

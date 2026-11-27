@@ -27,7 +27,7 @@ local GUIDEMENU_TAB_ID = "guides"
 local SETTINGS_TAB_ID = "settings"
 
 local DEFAULT_WIDTH = 980
-local DEFAULT_HEIGHT = 720
+local DEFAULT_HEIGHT = 760
 local HEADER_HEIGHT = 60
 local FOOTER_HEIGHT = 25
 local LEFT_COLUMN_WIDTH = 250
@@ -39,13 +39,13 @@ local WELCOME_GUIDE_IMAGE = (CGV.DIR or "CGESO").."/Viewer/Skins/Stealth/cgeso-S
 local OPTIONS_LEFT_OFFSET = 15
 local OPTIONS_VERT_OFFSET = 8
 -- Gap between last option (e.g. tip text) and Default/Accept buttons.
-local OPTIONS_BOTTOM_PAD = 12
+local OPTIONS_BOTTOM_PAD = 36
 local DEFAULT_ANCHOR= {	CENTER, }
--- Guide Home list math (DEFAULT_HEIGHT 720, HEADER 60, FOOTER 25 → mainBackdrop ~635):
+-- Guide Home list math (DEFAULT_HEIGHT 760, HEADER 60, FOOTER 25 → mainBackdrop ~675):
 --   header≈30 + search 22+4 + pads ≈ 60 → list grows with frame; RefreshUI measures fit.
 -- Pool is larger; RefreshUI hides any row past the measured fit.
 local GUIDE_LIST_ROW_HEIGHT = 22
--- Tall enough for DEFAULT_HEIGHT 720 (list host ≈ 550px → ~25 rows).
+-- Tall enough for DEFAULT_HEIGHT 760 (list host ≈ 590px → ~26 rows).
 local GUIDE_MENU_BUTTON_POOL = 28
 local GUIDE_MENU_FALLBACK_LINES = 16 -- if host height not ready yet
 -- Settings left category list (same row height; scrolls when groups > visible lines)
@@ -103,14 +103,20 @@ local function GetOpinionFrame(parent,name,opt,notooltip)
 		:SetResizeToFitDescendents(true)
 		:SetMouseEnabled(true)
 		.__END
+	if opt_frame.SetClampedToScreen then
+		opt_frame:SetClampedToScreen(false)
+	end
 
 	if not notooltip then
 		opt_frame:AddTooltip(opt.title,opt.desc)
 	end
 
-	-- Just need an invisble backdrop so that ResizeToFitDescendents works to maintain desired width with adjusting height dynamically.
+	-- Invisible sizing backdrop for ResizeToFitDescendents. SecBackdrop IS the CT_BACKDROP
+	-- (no .bd child), so SetBackdropColor is a no-op — must SetCenterColor or rows stay
+	-- opaque gray and paint under the HUD when options overflow the Home frame.
 	opt_frame.bd = CHAIN(ui:Create("SecBackdrop",opt_frame,name and name.."_BD"))
-		:SetBackdropColor(1,0,0,0)
+		:SetCenterColor(0,0,0,0)
+		:SetEdgeColor(0,0,0,0)
 		:SetExcludeFromResizeToFitExtents(false)
 		.__END
 
@@ -231,6 +237,16 @@ function Menu:CreateBaseMenu()
 		:SetPoint(BOTTOMRIGHT,frame,BOTTOMRIGHT,-1,-FOOTER_HEIGHT)
 		:SetBackdropColor(.15,.15,.15,1) -- #252526; alpha set via SetBackdropOpacity
 		.__END
+	-- Nested SecFrames default ClampToScreen; that shoves settings past Home after alt-tab.
+	if frame.mainBackdrop.SetClampedToScreen then
+		frame.mainBackdrop:SetClampedToScreen(false)
+	end
+	if frame.mainBackdrop.SetClipsChildren then
+		frame.mainBackdrop:SetClipsChildren(true)
+	end
+	if frame.SetClipsChildren then
+		frame:SetClipsChildren(true)
+	end
 
 	-- Soft 2px accent under header (SecFrame so color tints correctly — plain Texture looked red)
 	frame.headerAccent = CHAIN(ui:Create("SecFrame",frame,name.."_HeaderAccent"))
@@ -300,6 +316,17 @@ end
 -- Re-paint whole Home/Settings chrome after alt-tab / resize (backdrops can go blank).
 function Menu:RefreshChrome()
 	if not self.Frame or self.Frame:IsHidden() then return end
+	-- Nested Invis/SecFrames default to SetClampedToScreen — after alt-tab ESO can shove
+	-- them past the Home frame. Re-pin size + Settings anchors before redrawing.
+	if self.Frame.SetDimensions then
+		self.Frame:SetDimensions(DEFAULT_WIDTH, DEFAULT_HEIGHT)
+	end
+	if self.Frame.mainBackdrop and self.Frame.mainBackdrop.SetClampedToScreen then
+		self.Frame.mainBackdrop:SetClampedToScreen(false)
+	end
+	if Settings.LayoutChrome then
+		Settings:LayoutChrome()
+	end
 	self:SetBackdropOpacity()
 	if GuideMenu.Frame and not GuideMenu.Frame:IsHidden() and GuideMenu.RefreshUI then
 		GuideMenu:RefreshUI()
@@ -735,6 +762,14 @@ function GuideMenu:GetGuideRowLabel(guide, statuscolor)
 			name = "|cffaaaa["..info.tag.."]|r "..name
 		end
 	end
+	-- Progress % on Favorites / Suggested / search rows (cheap when already parsed).
+	if self:ShouldShowGuideKind() and guide.GetCompletionText
+		and (CGV.db and CGV.db.profile and CGV.db.profile.home_progress ~= false) then
+		local pct = guide:GetCompletionText("steps")
+		if pct and pct ~= "..." and pct ~= "?" and pct ~= "-" then
+			name = name.." |cffaaaa"..pct.."|r"
+		end
+	end
 	return "|c"..(statuscolor or "ffffff")..name
 end
 
@@ -1013,6 +1048,12 @@ function Settings:Create()
 		:SetAllPoints()
 		:Hide()
 		.__END
+	if frame.SetClampedToScreen then
+		frame:SetClampedToScreen(false)
+	end
+	if frame.SetClipsChildren then
+		frame:SetClipsChildren(true)
+	end
 
 	self.Frame = frame
 
@@ -1021,6 +1062,9 @@ function Settings:Create()
 		:SetPoint(BOTTOMLEFT)
 		:SetWidth(LEFT_COLUMN_WIDTH)
 		.__END
+	if frame.optionTypesBox.SetClampedToScreen then
+		frame.optionTypesBox:SetClampedToScreen(false)
+	end
 
 	-- Real vertical scrollbar for the category list (same pattern as Guide Home).
 	frame.optionTypesScroll = CHAIN(wm:CreateControl(setname.."_Slider",frame,_G.CT_SLIDER))
@@ -1042,12 +1086,22 @@ function Settings:Create()
 		:SetPoint(BOTTOMRIGHT,frame.optionTypesScroll,BOTTOMRIGHT)
 		:SetBackdropColor(.4,.4,.4,1)
 		.__END
+	if frame.optionTypesScrollBack.SetClampedToScreen then
+		frame.optionTypesScrollBack:SetClampedToScreen(false)
+	end
 
+	-- Right pane: pin to Settings frame edges only (no SetWidth fight; clip so content can't paint under HUD).
 	frame.optionsBox = CHAIN(ui:Create("InvisFrame", frame, setname.. "_GuideInfoBox"))
-		:SetPoint(TOPLEFT,frame.optionTypesScroll,TOPRIGHT)
-		:SetPoint(BOTTOMRIGHT)
-		:SetWidth(LEFT_COLUMN_WIDTH)
+		:ClearAnchors()
+		:SetPoint(TOPLEFT,frame.optionTypesScroll,TOPRIGHT,0,0)
+		:SetPoint(BOTTOMRIGHT,frame,BOTTOMRIGHT,0,0)
 		.__END
+	if frame.optionsBox.SetClampedToScreen then
+		frame.optionsBox:SetClampedToScreen(false)
+	end
+	if frame.optionsBox.SetClipsChildren then
+		frame.optionsBox:SetClipsChildren(true)
+	end
 	-- Alias: older copy-paste used guideInfoBox; never leave it nil (nil → GuiRoot anchors break on alt-tab).
 	frame.guideInfoBox = frame.optionsBox
 
@@ -1065,6 +1119,9 @@ function Settings:Create()
 		:SetBackdropColor(0,0,0,0)
 		:SetBackdropEdgeColor(0,0,0,0)
 		.__END
+	if frame.optionListHost.SetClampedToScreen then
+		frame.optionListHost:SetClampedToScreen(false)
+	end
 	if frame.optionListHost.SetClipsChildren then
 		frame.optionListHost:SetClipsChildren(true)
 	end
@@ -1152,7 +1209,7 @@ function Settings:Create()
 		:SetText("Desc")
 		.__END
 
-	-- Button isn't in the scrollframe either
+	-- Footer buttons stay outside the scroll so tips never cover them.
 	local ButtonHortPad = 10
 	frame.OkButton = CHAIN(ui:Create("Button",frame.optionsBox,setname.."_OkButton"))
 		:SetPoint(BOTTOMRIGHT,frame.optionsBox,BOTTOMRIGHT,-ButtonHortPad,-10)
@@ -1173,16 +1230,98 @@ function Settings:Create()
 			end)
 		.__END
 
-	frame.OptionsScrollBase = CHAIN(ui:Create("InvisFrame", frame.optionsBox, setname.. "_OptionsScrollChild"))	-- Base for the option UI for each individual group
-		:SetPoint(TOPLEFT,frame.OptionDesc,BOTTOMLEFT,-HEADER_PADDING,0)
-		-- Leave OPTIONS_BOTTOM_PAD so tip/desc isn't tight against Default/Accept.
-		:SetPoint(BOTTOMRIGHT,frame.OkButton,TOPRIGHT,_G.OkButtonHortPad,-OPTIONS_BOTTOM_PAD)
+	-- Real scroll viewport: options (incl. tips) stay above Default/Accept and cannot spill past Home.
+	frame.OptionsScroll = CHAIN(wm:CreateControlFromVirtual(setname.."_OptionsScroll",frame.optionsBox,"ZO_ScrollContainer"))
+		:ClearAnchors()
+		:SetAnchor(TOPLEFT,frame.OptionDesc,BOTTOMLEFT,-HEADER_PADDING,0)
+		:SetAnchor(BOTTOMRIGHT,frame.OkButton,TOPRIGHT,0,-OPTIONS_BOTTOM_PAD)
 		.__END
-	if frame.OptionsScrollBase.SetClipsChildren then
-		frame.OptionsScrollBase:SetClipsChildren(true)
+	if frame.OptionsScroll.SetClampedToScreen then
+		frame.OptionsScroll:SetClampedToScreen(false)
 	end
 
+	local getControl = _G.GetControl
+	frame.OptionsScrollBase = CHAIN(getControl(frame.OptionsScroll:GetName().."ScrollChild"))
+		:ClearAnchors()
+		:SetAnchor(TOPLEFT,frame.OptionsScroll)
+		:SetAnchor(TOPRIGHT,frame.OptionsScroll)
+		.__END
+	if frame.OptionsScrollBase.SetClampedToScreen then
+		frame.OptionsScrollBase:SetClampedToScreen(false)
+	end
+
+	-- Keep footer buttons above any option overflow.
+	if frame.OkButton.SetDrawTier then
+		frame.OkButton:SetDrawTier(_G.DT_HIGH or 2)
+		frame.DefaultButton:SetDrawTier(_G.DT_HIGH or 2)
+	end
+
+	self:LayoutChrome()
 	Menu:SetBackdropOpacity()
+end
+
+-- Re-pin Settings chrome inside Home/mainBackdrop (call after create and on focus/resize).
+function Settings:LayoutChrome()
+	local frame = self.Frame
+	local menu = Menu.Frame
+	if not (frame and menu and menu.mainBackdrop) then return end
+
+	local function nestSafe(ctrl, clip)
+		if not ctrl then return end
+		if ctrl.SetClampedToScreen then
+			ctrl:SetClampedToScreen(false)
+		end
+		if clip and ctrl.SetClipsChildren then
+			ctrl:SetClipsChildren(true)
+		end
+	end
+
+	nestSafe(menu.mainBackdrop, true)
+	nestSafe(frame, true)
+	nestSafe(frame.optionTypesBox, false)
+	nestSafe(frame.optionListHost, true)
+	nestSafe(frame.optionsBox, true)
+	nestSafe(frame.OptionsScroll, false)
+	nestSafe(frame.OptionsScrollBase, false)
+
+	CHAIN(frame)
+		:ClearAnchors()
+		:SetPoint(TOPLEFT,menu.mainBackdrop,TOPLEFT,0,0)
+		:SetPoint(BOTTOMRIGHT,menu.mainBackdrop,BOTTOMRIGHT,0,0)
+
+	if frame.optionTypesScroll then
+		CHAIN(frame.optionsBox)
+			:ClearAnchors()
+			:SetPoint(TOPLEFT,frame.optionTypesScroll,TOPRIGHT,0,0)
+			:SetPoint(BOTTOMRIGHT,frame,BOTTOMRIGHT,0,0)
+	end
+
+	local ButtonHortPad = 10
+	local headerPad = 5
+	if frame.OkButton then
+		CHAIN(frame.OkButton)
+			:ClearAnchors()
+			:SetPoint(BOTTOMRIGHT,frame.optionsBox,BOTTOMRIGHT,-ButtonHortPad,-10)
+	end
+	if frame.DefaultButton then
+		CHAIN(frame.DefaultButton)
+			:ClearAnchors()
+			:SetPoint(BOTTOMLEFT,frame.optionsBox,BOTTOMLEFT,ButtonHortPad,-10)
+	end
+
+	if frame.OptionsScroll and frame.OptionDesc and frame.OkButton then
+		CHAIN(frame.OptionsScroll)
+			:ClearAnchors()
+			:SetAnchor(TOPLEFT,frame.OptionDesc,BOTTOMLEFT,-headerPad,0)
+			:SetAnchor(BOTTOMRIGHT,frame.OkButton,TOPRIGHT,0,-OPTIONS_BOTTOM_PAD)
+	end
+
+	if frame.OptionsScrollBase and frame.OptionsScroll then
+		CHAIN(frame.OptionsScrollBase)
+			:ClearAnchors()
+			:SetAnchor(TOPLEFT,frame.OptionsScroll)
+			:SetAnchor(TOPRIGHT,frame.OptionsScroll)
+	end
 end
 
 function Settings:CreateDefaultPopup()
@@ -1250,9 +1389,16 @@ function Settings:CreateOptionsUI(group)
 	local name = "CommunityOptionPanel_Group_"..group.title
 	local lastobj, lastfrontobj
 
-	local frame = CHAIN(ui:Create("InvisFrame", self.Frame.OptionsScrollBase, name)) -- All option UI for this group (not scrollable; tall groups may clip)
-	:SetPoint(TOPLEFT) :SetPoint(BOTTOMRIGHT)
-	.__END
+	-- Size to content inside ZO_ScrollContainer child (TOPLEFT/TOPRIGHT only — not BOTTOMRIGHT fill).
+	local frame = CHAIN(ui:Create("InvisFrame", self.Frame.OptionsScrollBase, name))
+		:ClearAnchors()
+		:SetPoint(TOPLEFT,self.Frame.OptionsScrollBase,TOPLEFT,0,0)
+		:SetPoint(TOPRIGHT,self.Frame.OptionsScrollBase,TOPRIGHT,0,0)
+		:SetResizeToFitDescendents(true)
+		.__END
+	if frame.SetClampedToScreen then
+		frame:SetClampedToScreen(false)
+	end
 
 	for _,option in ipairs(group.options) do
 		local data = option.data
@@ -1312,10 +1458,48 @@ function Settings:CreateOptionsUI(group)
 		end
 
 		lastobj = obj
+		if obj.SetClampedToScreen then
+			obj:SetClampedToScreen(false)
+		end
 
 	end
 
 	group.frame = frame
+	self:SizeOptionsScrollChild(group)
+end
+
+-- Grow ZO_ScrollContainer child to option content so tips scroll above Default/Accept.
+function Settings:SizeOptionsScrollChild(group)
+	local frame = self.Frame
+	if not (frame and frame.OptionsScrollBase) then return end
+	local gframe = group and group.frame
+	local h = 1
+	if gframe then
+		if gframe.GetHeight then
+			h = gframe:GetHeight() or 1
+		end
+		-- Fallback: bottom of last visible child
+		if (not h or h < 8) and gframe.GetNumChildren then
+			local n = gframe:GetNumChildren() or 0
+			for i = 1, n do
+				local child = gframe:GetChild(i)
+				if child and child.GetBottom and gframe.GetTop then
+					local bh = (child:GetBottom() or 0) - (gframe:GetTop() or 0)
+					if bh > h then h = bh end
+				end
+			end
+		end
+	end
+	if h < 1 then h = 1 end
+	frame.OptionsScrollBase:SetHeight(h + 12)
+	-- Reset scroll to top when swapping groups / after focus re-layout.
+	if frame.OptionsScroll then
+		if frame.OptionsScroll.SetVerticalScroll then
+			frame.OptionsScroll:SetVerticalScroll(0)
+		elseif _G.ZO_Scroll_SetScrollTop then
+			_G.ZO_Scroll_SetScrollTop(frame.OptionsScroll, 0)
+		end
+	end
 end
 
 function Settings:GetVisibleListLines()
@@ -1335,6 +1519,7 @@ function Settings:RefreshUI()
 	if not self.Frame then
 		self:Create()
 	end
+	self:LayoutChrome()
 	local frame = self.Frame
 	local buts = frame.buttons
 
@@ -1404,6 +1589,7 @@ function Settings:RefreshUI()
 		end
 
 		g.frame:Show()
+		self:SizeOptionsScrollChild(g)
 
 		frame.DefaultButton:Show()
 		frame.OkButton:Show()
@@ -1848,6 +2034,24 @@ end
 -- GUIDEMENU CONTROL FUNCTIONS
 -----------------------------------------
 
+function GuideMenu:RestoreRememberedFolder()
+	if CGV.db and CGV.db.profile and CGV.db.profile.remember_home_folder == false then
+		return
+	end
+	local char = CGV.db and CGV.db.char
+	if char and char.guidemenu_folder ~= nil then
+		self.folder = char.guidemenu_folder
+	end
+end
+
+function GuideMenu:RememberFolder()
+	if CGV.db and CGV.db.profile and CGV.db.profile.remember_home_folder == false then
+		return
+	end
+	if not (CGV.db and CGV.db.char) then return end
+	CGV.db.char.guidemenu_folder = self.folder or ""
+end
+
 function GuideMenu:Show()
 
 	Menu:Show()
@@ -1860,6 +2064,7 @@ function GuideMenu:Show()
 		self:Create()
 	end
 
+	self:RestoreRememberedFolder()
 	self.Frame:Show()
 	self:Refresh()
 end
@@ -1883,6 +2088,7 @@ function GuideMenu:MenuButton_OnClick(button,mouseButton)
 	if button.target.type == "folder" then
 		self.folder = button.target.title
 		self.offset = 0
+		self:RememberFolder()
 		if self.Frame and self.Frame.guideBoxScroll then
 			self.Frame.guideBoxScroll:SetValue(0)
 		end

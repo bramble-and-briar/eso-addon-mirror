@@ -1,3 +1,4 @@
+local L = MWC.L
 MWC.Craft = {}
 
 local EVENT_NS = MWC.name .. "Craft"
@@ -100,7 +101,7 @@ end
 local function AlchemySlots(group, amount)
   local solventId = MWC.Alchemy.SolventItemId(group.isPoison)
   local solventBag, solventSlot, solventCount = CraftSlot(solventId)
-  if not solventBag then return nil, MWC.ItemName(MWC.LinkFromItemId(solventId)) .. " (bag or craft bag)" end
+  if not solventBag then return nil, string.format(L.IN_BAG_OR_CRAFT_BAG, MWC.ItemName(MWC.LinkFromItemId(solventId))) end
   local planned = {}
   for i = 2, #group.recipe.ingredients do
     table.insert(planned, group.recipe.ingredients[i].itemId)
@@ -113,8 +114,8 @@ local function AlchemySlots(group, amount)
   local order, verdict, nameKey = MWC.Alchemy.ChooseByResult(solventId, MWC.Plan.WithoutKept(combos), group.effectKey,
     GenerateMasterWritBaseText(group.link), true, true)
   if verdict ~= "confirmed" then
-    return nil, order and "the station shows no result preview"
-      or ("no reagents you have make " .. group.name .. " without using Keep materials")
+    return nil, order and L.PROBLEM_NO_PREVIEW
+      or string.format(L.PROBLEM_NO_REAGENTS_WITHOUT_KEPT, group.name)
   end
   MWC.Alchemy.LearnName(group.key, nameKey)
   -- What is really crafted with: the plan and the session history follow it from now on.
@@ -176,7 +177,7 @@ local function StartCraft(group, amount)
     local key = MWC.Enchanting.IndexKey(GetItemLinkItemId(preview), GetItemLinkFunctionalQuality(preview),
       GetItemLinkRequiredChampionPoints(preview))
     if key ~= group.indexKey then
-      return 0, "the station would make " .. MWC.ItemName(preview) .. ", not the writ's glyph", true
+      return 0, string.format(L.PROBLEM_WRONG_GLYPH, MWC.ItemName(preview)), true
     end
   end
   CraftEnchantingItem(potency[1], potency[2], essence[1], essence[2], aspect[1], aspect[2], amount)
@@ -219,17 +220,25 @@ local function Finish()
   for _, group in ipairs(MWC.Plan.Build().groups) do
     if Craftable(group, run.writType, run.eventOnly) and group.recipe and group.recipe.known and group.crafts > 0
         and not run.skipped[group.key] then
-      table.insert(left, string.format("%s (%d more)", group.name, group.crafts))
+      table.insert(left, string.format(L.MORE_CRAFTS, group.name, group.crafts))
       MWC.Log("Craft: after the run %s still needs %d crafts, have %s of %s", group.name, group.crafts,
         tostring(group.have), tostring(group.required))
     end
   end
   if #left > 0 then
-    MWC.Craft.Stop("Stopped at the run's limit. Still to craft: %s. Craft again.", table.concat(left, "; "))
+    MWC.Craft.Stop(L.STOPPED_RUN_LIMIT, table.concat(left, "; "))
+  elseif run.eventOnly and MWC.GearCraft.HasWork() then
+    -- Holiday furnishings at a gear station are made first; the station's gear follows in the same press of
+    -- Craft, and its report includes what was skipped here.
+    MWC.Activity.Succeed()
+    MWC.Craft.Stop()
+    zo_callLater(function() MWC.GearCraft.Start(names) end, 200)
   elseif #names > 0 then
-    MWC.Craft.Stop("Done. Skipped: %s", table.concat(names, "; "))
+    MWC.Activity.Succeed(true)
+    MWC.Craft.Stop(L.DONE_SKIPPED, table.concat(names, "; "))
   else
-    MWC.Craft.Stop("Done, everything is crafted.")
+    MWC.Activity.Succeed()
+    MWC.Craft.Stop(L.DONE_ALL_CRAFTED)
   end
 end
 
@@ -244,7 +253,7 @@ end
 local function NextStep()
   if not run then return end
   if StationCraft() ~= run.writType then
-    MWC.Craft.Stop("Station closed, crafting stopped.")
+    MWC.Craft.Stop(L.STATION_CLOSED)
     return
   end
 
@@ -262,13 +271,13 @@ local function NextStep()
       local byIngredients = group.type == "alchemy" and math.huge or MaxByIngredients(group)
       if group.kept then
         -- Keep materials is a veto: writs that would spend them are never crafted.
-        run.skipped[group.key] = group.name .. " (spends Keep materials)"
+        run.skipped[group.key] = string.format(L.SKIP_SPENDS_KEPT, group.name)
       elseif byIngredients == 0 then
-        run.skipped[group.key] = group.name .. " (missing materials)"
+        run.skipped[group.key] = string.format(L.SKIP_MISSING_MATERIALS, group.name)
       else
         local fit = math.floor(BackpackRoom(group) / recipe.yield)
         if fit == 0 then
-          MWC.Craft.Stop("Bag full. Free some slots and craft again.")
+          MWC.Craft.Stop(L.BAG_FULL_CRAFT)
           return
         end
         local before = CountResult(group)
@@ -279,10 +288,10 @@ local function NextStep()
           run.skipped[group.key] = string.format("%s (%s)", group.name, missing)
         elseif crafted == 0 then
           -- A material outside the bag and craft bag (bank items can't be used) sets only this writ aside.
-          run.skipped[group.key] = string.format("%s (%s must be in the bag or craft bag)", group.name, missing)
+          run.skipped[group.key] = string.format(L.SKIP_MUST_BE_IN_BAG, group.name, missing)
         else
           run.current = { group = group, amount = crafted, before = before, potionsBefore = potionsBefore }
-          MWC.Activity.Progress(run.done, string.format("Crafting %s ×%d…", group.name, crafted))
+          MWC.Activity.Progress(run.done, string.format(L.CRAFTING_COUNT, group.name, crafted))
           -- The list catches up once the craft is under way, so it doesn't hold up its start.
           -- Only the crafts the bag changes marked (the station's craft) are worked out again.
           zo_callLater(function() MWC.UI.Refresh(true) end, 100)
@@ -322,7 +331,7 @@ local function Verify()
     if current.potionsBefore then
       MWC.Craft.RecordAlchemyMismatch(group, current.potionsBefore)
     end
-    run.skipped[group.key] = string.format("%s (expected %d, got %d: details in SavedVariables)", group.name,
+    run.skipped[group.key] = string.format(L.SKIP_WRONG_COUNT, group.name,
       expected, gained)
   end
   NextStep()
@@ -335,16 +344,16 @@ local function OnCraftCompleted(_, craftSkill)
 end
 
 local function OnCraftFailed(_, result)
-  MWC.Craft.Stop("Crafting failed: %s", GetString("SI_TRADESKILLRESULT", result))
+  MWC.Craft.Stop(L.CRAFTING_FAILED, GetString("SI_TRADESKILLRESULT", result))
 end
 
 local function OnStationClosed()
-  MWC.Craft.Stop("Station closed, crafting stopped.")
+  MWC.Craft.Stop(L.STATION_CLOSED)
 end
 
 function MWC.Craft.Start()
   if run then
-    MWC.Print("Already crafting. Press Stop in the window to stop.")
+    MWC.Print(L.ALREADY_CRAFTING)
     return
   end
   -- At a gear station: holiday furnishings first when there are any to make, else gear.
@@ -364,7 +373,7 @@ function MWC.Craft.Start()
     writType, eventOnly = gearType, true
   end
   if not writType then
-    MWC.Print("Open a crafting station first.")
+    MWC.Print(L.OPEN_STATION_FIRST)
     return
   end
 
@@ -378,10 +387,10 @@ function MWC.Craft.Start()
     end
   end
   if total == 0 then
-    MWC.Print("Nothing to craft here.")
+    MWC.Print(L.NOTHING_TO_CRAFT)
     return
   end
-  if not MWC.Activity.Begin("Crafting", total, function() MWC.Craft.Stop("Crafting stopped.") end, true) then return end
+  if not MWC.Activity.Begin(L.ACTIVITY_CRAFTING, total, function() MWC.Craft.Stop(L.CRAFTING_STOPPED) end, true) then return end
   run = { writType = writType, eventOnly = eventOnly, craftSkill = GetCraftingInteractionType(), crafted = {},
     total = total, skipped = {}, done = 0 }
 

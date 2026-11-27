@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/lousytourist/SimpleCharName__5119",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "lousytourist",
+  "canonical_id": "esoui:5119",
+  "category_id": "109",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5119",
+  "deleted": false,
+  "directories": [
+    "SimpleCharName"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5119/",
+  "fingerprint": "42670565ee1afbc102d0b6b11eee9cb2498d95407d81c76199d6fb3a40d663a1",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5119",
+  "source_url": "https://www.esoui.com/downloads/info5119-SimpleCharName.html",
+  "stats": {
+    "downloads": 17,
+    "favorites": 0,
+    "monthly_downloads": 10
+  },
+  "title": "SimpleCharName",
+  "updated_at": 1795704117000,
+  "version": "26.11.26"
+}

@@ -1,4 +1,4 @@
-
+local LeoAltholic = LeoAltholic
 LeoAltholic.hidden = true
 LeoAltholic.listingInventoryFor = 0
 
@@ -9,11 +9,11 @@ function LeoAltholic:OnWindowMoveStop()
     }
 end
 
-function LeoAltholicUI:OnHide(control, hidden)
+function LeoAltholic.UI:OnHide(control, hidden)
     if hidden then LeoAltholic.HideUI() end
 end
 
-function LeoAltholicUI:OnShow(control, hidden)
+function LeoAltholic.UI:OnShow(control, hidden)
     if not hidden then LeoAltholic.ShowUI() end
 end
 
@@ -130,41 +130,41 @@ function LeoAltholic.ShowTab(tab)
 
     -- Refresh the corresponding list whenever the tab is shown
     local tabLists = {
-        Bio = LeoAltholicUI.bioList,
-        Stats = LeoAltholicUI.statsList,
-        Champion = LeoAltholicUI.championList,
-        Skills = LeoAltholicUI.skillsList,
-        Skills2 = LeoAltholicUI.skills2List,
-        Writs = LeoAltholicUI.writsList,
-        Inventory = LeoAltholicUI.invList,
-        Research = LeoAltholicUI.researchList,
+        Bio = LeoAltholic.UI.bioList,
+        Stats = LeoAltholic.UI.statsList,
+        Champion = LeoAltholic.UI.championList,
+        Skills = LeoAltholic.UI.skillsList,
+        Skills2 = LeoAltholic.UI.skills2List,
+        Writs = LeoAltholic.UI.writsList,
+        Inventory = LeoAltholic.UI.invList,
+        Research = LeoAltholic.UI.researchList,
     }
     if tabLists[tab] then
         tabLists[tab]:RefreshData()
     end
 end
 
-function LeoAltholicUI.InitPanels()
-    LeoAltholicUI.bioList = LeoAltholicBioList:New(LeoAltholicWindowBioPanelListScroll)
-    LeoAltholicUI.statsList = LeoAltholicStatsList:New(LeoAltholicWindowStatsPanelListScroll)
-    LeoAltholicUI.championList = LeoAltholicChampionList:New(LeoAltholicWindowChampionPanelListScroll)
-    LeoAltholicUI.skillsList = LeoAltholicSkillsList:New(LeoAltholicWindowSkillsPanelListScroll)
-    LeoAltholicUI.skills2List = LeoAltholicSkills2List:New(LeoAltholicWindowSkills2PanelListScroll)
-    LeoAltholicUI.writsList = LeoAltholicWritsList:New(LeoAltholicWindowWritsPanelListScroll)
-    LeoAltholicUI.invList = LeoAltholicInventoryList:New(LeoAltholicWindowInventoryPanelListScroll)
-    LeoAltholicUI.researchList = LeoAltholicResearchList:New(LeoAltholicWindowResearchPanelListScroll)
+function LeoAltholic.UI.InitPanels()
+    LeoAltholic.UI.bioList = LeoAltholic.BioList:New(LeoAltholicWindowBioPanelListScroll)
+    LeoAltholic.UI.statsList = LeoAltholic.StatsList:New(LeoAltholicWindowStatsPanelListScroll)
+    LeoAltholic.UI.championList = LeoAltholic.ChampionList:New(LeoAltholicWindowChampionPanelListScroll)
+    LeoAltholic.UI.skillsList = LeoAltholic.SkillsList:New(LeoAltholicWindowSkillsPanelListScroll)
+    LeoAltholic.UI.skills2List = LeoAltholic.Skills2List:New(LeoAltholicWindowSkills2PanelListScroll)
+    LeoAltholic.UI.writsList = LeoAltholic.WritsList:New(LeoAltholicWindowWritsPanelListScroll)
+    LeoAltholic.UI.invList = LeoAltholic.InventoryList:New(LeoAltholicWindowInventoryPanelListScroll)
+    LeoAltholic.UI.researchList = LeoAltholic.ResearchList:New(LeoAltholicWindowResearchPanelListScroll)
 
     LeoAltholic.GetCharacters(true)
 
     local lists = {
-        LeoAltholicUI.bioList,
-        LeoAltholicUI.statsList,
-        LeoAltholicUI.championList,
-        LeoAltholicUI.skillsList,
-        LeoAltholicUI.skills2List,
-        LeoAltholicUI.writsList,
-        LeoAltholicUI.invList,
-        LeoAltholicUI.researchList,
+        LeoAltholic.UI.bioList,
+        LeoAltholic.UI.statsList,
+        LeoAltholic.UI.championList,
+        LeoAltholic.UI.skillsList,
+        LeoAltholic.UI.skills2List,
+        LeoAltholic.UI.writsList,
+        LeoAltholic.UI.invList,
+        LeoAltholic.UI.researchList,
     }
     for _, listObj in ipairs(lists) do
         if listObj then
@@ -174,6 +174,6 @@ function LeoAltholicUI.InitPanels()
         end
     end
 
-    LeoAltholicUI.InitTrackedPanel()
+    LeoAltholic.UI.InitTrackedPanel()
 end
 

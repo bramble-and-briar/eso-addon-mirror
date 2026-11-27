@@ -2,14 +2,17 @@
 -- Deposits items into the bank up to a set number of stacks per rule and marks
 -- the excess left in the inventory as junk. Optionally keeps a set amount of gold on hand.
 -- Texts live in lang/en.lua (default) and lang/<language>.lua.
+-- AI disclosure: written with the help of an AI assistant (Claude by Anthropic) from the author's design;
+-- tested in game and maintained by the author.
 
+-- The single global MANABank is shared with the language files in lang/.
 MANABank = MANABank or {}
 local BR = MANABank
 local L = BR.L
 
 BR.name = "MANABank"
 BR.displayName = "MANA Bank"
-BR.version = "1.0.0"
+BR.version = "1.0.1"
 BR.author = "Beardborn"
 
 local SV_VERSION = 1
@@ -17,6 +20,7 @@ local DEFAULTS = {
     enabled = true,
     markJunk = true,
     chat = true,
+    respectFCOIS = true, -- honour FCO ItemSaver protection when marking junk
     delay = 100,
     goldEnabled = false,
     goldKeep = 10000,    -- gold to keep on hand
@@ -164,12 +168,38 @@ local function IsBankable(bagId, slotIndex)
 end
 
 -- Never mark as junk: locked items (game lock or FCO ItemSaver).
+-- FCO ItemSaver: use its dedicated API for the exact action (not the generic FCOIS.IsLocked,
+-- which depends on the currently open panel). If a function is missing, fall back to
+-- "marked with any icon" so that items are rather kept than destroyed.
+local FCOIS_API = {
+    junk = { "IsJunkLocked", "IsVendorSellLocked" },
+}
+
+local function IsFCOISProtected(bagId, slotIndex, action)
+    if not sv.respectFCOIS or not FCOIS then return false end
+    for _, fnName in ipairs(FCOIS_API[action] or {}) do
+        local fn = FCOIS[fnName]
+        if fn then
+            local ok, locked
+            if fnName == "IsDeconstructionLocked" then
+                ok, locked = pcall(fn, bagId, slotIndex, nil)  -- nil: FCOIS also checks jewelry itself
+            else
+                ok, locked = pcall(fn, bagId, slotIndex)
+            end
+            return ok and locked == true
+        end
+    end
+    if FCOIS.IsMarked then
+        local ok, marked = pcall(FCOIS.IsMarked, bagId, slotIndex, -1)
+        return ok and marked == true
+    end
+    return false
+end
+
+-- Never mark as junk: locked items (game lock or FCO ItemSaver protection against junk/selling).
 local function IsProtectedFromJunk(bagId, slotIndex)
     if IsItemPlayerLocked(bagId, slotIndex) then return true end
-    if FCOIS and FCOIS.IsLocked then
-        local ok, locked = pcall(FCOIS.IsLocked, bagId, slotIndex)
-        if ok and locked then return true end
-    end
+    if IsFCOISProtected(bagId, slotIndex, "junk") then return true end
     return not CanItemBeMarkedAsJunk(bagId, slotIndex)
 end
 
@@ -517,7 +547,6 @@ end
 
 local function CreateSettings()
     local LAM = LibAddonMenu2
-    if not LAM then return end
 
     local categories = BuildCategoryList()
     local catNames, catValues = {}, {}
@@ -553,6 +582,9 @@ local function CreateSettings()
         { type = "checkbox", name = L.SET_CHAT,
           getFunc = function() return sv.chat end,
           setFunc = function(v) sv.chat = v end },
+        { type = "checkbox", name = L.SET_FCOIS, tooltip = L.SET_FCOIS_TT,
+          getFunc = function() return sv.respectFCOIS end,
+          setFunc = function(v) sv.respectFCOIS = v end },
         { type = "slider", name = L.SET_DELAY,
           tooltip = L.SET_DELAY_TT,
           min = 50, max = 500, step = 10,
@@ -649,11 +681,30 @@ end
 -- Startup
 ---------------------------------------------------------------------------
 
+-- Server-dependent account-wide settings (EU and NA have different banks and items).
+-- Settings saved by earlier versions (not server dependent) are copied to each server once.
+local function LoadSavedVars(svName, version, defaults)
+    local displayName = GetDisplayName()
+    local raw = _G[svName]
+    local old = raw and raw["Default"] and raw["Default"][displayName] and raw["Default"][displayName]["$AccountWide"]
+    local saved = ZO_SavedVars:NewAccountWide(svName, version, nil, defaults, GetWorldName())
+    -- Copy (not move), so every server you play on gets the old settings once.
+    if old and not saved.copiedFromDefault then
+        for key, value in pairs(old) do
+            if key ~= "version" then
+                saved[key] = (type(value) == "table") and ZO_DeepTableCopy(value) or value
+            end
+        end
+        saved.copiedFromDefault = true
+    end
+    return saved
+end
+
 local function OnAddOnLoaded(_, addonName)
     if addonName ~= BR.name then return end
     EVENT_MANAGER:UnregisterForEvent(BR.name, EVENT_ADD_ON_LOADED)
 
-    sv = ZO_SavedVars:NewAccountWide("MANABank_SV", SV_VERSION, nil, DEFAULTS)
+    sv = LoadSavedVars("MANABank_SV", SV_VERSION, DEFAULTS)
     sv.itemRules = sv.itemRules or {}
     sv.categoryRules = sv.categoryRules or {}
 

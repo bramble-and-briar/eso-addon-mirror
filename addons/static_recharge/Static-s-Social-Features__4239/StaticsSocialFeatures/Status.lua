@@ -9,6 +9,7 @@ Description:    Controls the AFK and Offline timer and features
 Libraries and Aliases
 ------------------------------------------------------------------------------------------------]]--
 local EM = EVENT_MANAGER
+local SSF = StaticsSocialFeatures
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -29,69 +30,67 @@ local Status = {}
 
 
 --[[------------------------------------------------------------------------------------------------
-Status:Initialize(Parent)
-Inputs:				Parent 					- The parent object containing other required information.  
+Status.Initialize()
+Inputs:				None  
 Outputs:			None
 Description:	Initializes all of the variables and tables.
 ------------------------------------------------------------------------------------------------]]--
-function Status:Initialize(Parent)
-  self.Parent = Parent
-  self.afkEventSpace = "SSFAFKTimer"
-  self.offlineEventSpace = "SSFOfflineTimer"
-  self.eventSpace = "SSFStatus"
-  self.updateInterval = 1000 -- ms
-  self.afkAccumulator = 0 -- s
+function Status.Initialize()
+  Status.afkEventSpace = "SSFAFKTimer"
+  Status.offlineEventSpace = "SSFOfflineTimer"
+  Status.eventSpace = "SSFStatus"
+  Status.updateInterval = 1000 -- ms
+  Status.afkAccumulator = 0 -- s
 
-  local afkEnabled = Parent.SV.afkTimerEnabled
-  local offlineEnabled = Parent.SV.offlineTimerEnabled
+  local afkEnabled = SSF.SV.afkTimerEnabled
+  local offlineEnabled = SSF.SV.offlineTimerEnabled
 
   if afkEnabled then
-    EM:RegisterForUpdate(self.afkEventSpace, self.updateInterval, function() self:PlayerIdle() end)
+    EM:RegisterForUpdate(Status.afkEventSpace, Status.updateInterval, Status.PlayerIdle)
   end
 
   if offlineEnabled then
     -- wait for character to load in before timing
-    EM:RegisterForEvent(self.offlineEventSpace, EVENT_PLAYER_ACTIVATED, function(eventCode, initial)
+    EM:RegisterForEvent(Status.offlineEventSpace, EVENT_PLAYER_ACTIVATED, function(eventCode, initial)
       if initial then
-        Parent.SV.offlineTimerEnd = os.clock() + (Parent.SV.offlineTimeout * 60)
+        SSF.SV.offlineTimerEnd = os.clock() + (SSF.SV.offlineTimeout * 60)
       end
-      EM:RegisterForUpdate(self.offlineEventSpace, self.updateInterval, function() self:OfflineTimerUpdate() end)
-      EM:UnregisterForEvent(self.offlineEventSpace, EVENT_PLAYER_ACTIVATED)
+      EM:RegisterForUpdate(Status.offlineEventSpace, Status.updateInterval, Status.OfflineTimerUpdate)
+      EM:UnregisterForEvent(Status.offlineEventSpace, EVENT_PLAYER_ACTIVATED)
     end)
   end
 
-  EM:RegisterForEvent(self.eventSpace, EVENT_PLAYER_ACTIVATED, function(...) self:OnPlayerActivated(...) end)
-  EM:RegisterForEvent(self.eventSpace, EVENT_CHAT_MESSAGE_CHANNEL, function(...) self:OnEventChatMessageChannel(...) end)
+  EM:RegisterForEvent(Status.eventSpace, EVENT_PLAYER_ACTIVATED, Status.OnPlayerActivated)
+  EM:RegisterForEvent(Status.eventSpace, EVENT_CHAT_MESSAGE_CHANNEL, Status.OnEventChatMessageChannel)
 
-  self.initialized = true
+  Status.initialized = true
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Status:IsInitialized()
+Status.IsInitialized()
 Inputs:				None
 Outputs:			initialized                         - bool for object initialized state
 Description:	Returns true if the object has been successfully initialized.
 ------------------------------------------------------------------------------------------------]]--
-function Status:IsInitialized()
-  return self.initialized
+function Status.IsInitialized()
+  return Status.initialized
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Status:PlayerIdle()
+Status.PlayerIdle()
 Inputs:				None  
 Outputs:			None
 Description:	Checks if the player is idle and updates the timer accordingly.
 ------------------------------------------------------------------------------------------------]]--
-function Status:PlayerIdle()
-  local Parent = self:GetParent()
-  local afkEnabled = Parent.SV.afkTimerEnabled
-  local afkNotice = Parent.SV.afkNotice
+function Status.PlayerIdle()
+  local afkEnabled = SSF.SV.afkTimerEnabled
+  local afkNotice = SSF.SV.afkNotice
   -- Unregister timer and quit if setting changed since last update.
   if not afkEnabled then
-    self.afkAccumulator = 0
-    EM:UnregisterForUpdate(self.afkEventSpace)
+    Status.afkAccumulator = 0
+    EM:UnregisterForUpdate(Status.afkEventSpace)
     return
   end
 
@@ -114,56 +113,55 @@ function Status:PlayerIdle()
 		or IsUnitInCombat("player")
 		or IsUnitSwimming("player")
 	then
-		self.afkAccumulator = 0
-    if GetPlayerStatus() == Parent.PlayerStatus.Away then
-      SelectPlayerStatus(Parent.PlayerStatus.Online)
-      if afkNotice then Parent.Notifications:Notify("Switched to Online.") end
+		Status.afkAccumulator = 0
+    if GetPlayerStatus() == SSF.PlayerStatus.List.Away then
+      SelectPlayerStatus(SSF.PlayerStatus.List.Online)
+      if afkNotice then SSF.Notifications.Notify("Switched to Online.") end
     end
   else
-    self.afkAccumulator = self.afkAccumulator + 1
-    if self.afkAccumulator >= Parent.SV.afkTimeout and GetPlayerStatus() == Parent.PlayerStatus.Online then
-      SelectPlayerStatus(Parent.PlayerStatus.Away)
-      if afkNotice then Parent.Notifications:Notify("Switched to AFK.") end
+    Status.afkAccumulator = Status.afkAccumulator + 1
+    if Status.afkAccumulator >= SSF.SV.afkTimeout and GetPlayerStatus() == SSF.PlayerStatus.List.Online then
+      SelectPlayerStatus(SSF.PlayerStatus.List.Away)
+      if afkNotice then SSF.Notifications.Notify("Switched to AFK.") end
     end
   end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Status:StartAFKTimerAgain()
+Status.StartAFKTimerAgain()
 Inputs:				None
 Outputs:			None
 Description:	Used to re-enable the afk timer from external code
 ------------------------------------------------------------------------------------------------]]--
-function Status:StartAFKTimerAgain()
-  self.afkAccumulator = 0
-  EM:RegisterForUpdate(self.afkEventSpace, self.updateInterval, function() self:PlayerIdle() end)
+function Status.StartAFKTimerAgain()
+  Status.afkAccumulator = 0
+  EM:RegisterForUpdate(Status.afkEventSpace, Status.updateInterval, Status.PlayerIdle)
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Status:OfflineTimerUpdate()
+Status.OfflineTimerUpdate()
 Inputs:				None  
 Outputs:			None
 Description:	Checks if the offline timer end has been reached if enabled.
 ------------------------------------------------------------------------------------------------]]--
-function Status:OfflineTimerUpdate()
+function Status.OfflineTimerUpdate()
   local time = os.clock()
-  local Parent = self:GetParent()
-  local offlineEnabled = Parent.SV.offlineTimerEnabled
+  local offlineEnabled = SSF.SV.offlineTimerEnabled
   -- unregister if they already switched to online or if they disabled it.
-  if not offlineEnabled or GetPlayerStatus() == Parent.PlayerStatus.Online then
-    EM:UnregisterForUpdate(self.offlineEventSpace)
+  if not offlineEnabled or GetPlayerStatus() == SSF.PlayerStatus.List.Online then
+    EM:UnregisterForUpdate(Status.offlineEventSpace)
   end
-  if time >= Parent.SV.offlineTimerEnd and GetPlayerStatus() == Parent.PlayerStatus.Offline then    
-    SelectPlayerStatus(Parent.PlayerStatus.Online)
-    if Parent.SV.offlineTimerNotice then Parent.Notifications:Notify("Automatically set to Online.") end
+  if time >= SSF.SV.offlineTimerEnd and GetPlayerStatus() == SSF.PlayerStatus.List.Offline then    
+    SelectPlayerStatus(SSF.PlayerStatus.List.Online)
+    if SSF.SV.offlineTimerNotice then SSF.Notifications.Notify("Automatically set to Online.") end
   end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Status:OnPlayerActivated(eventCode, initial)
+Status.OnPlayerActivated(eventCode, initial)
 Inputs:				eventCode				- Internal ZOS event code, not used here.
 							initial					- Indicates if this is the first activation from log-in.
 Outputs:			None
@@ -171,32 +169,31 @@ Description:	Fired when the player character is available after loading screens 
 							zones, reloadui and logging in. Sets the desired player Status for the logged in
 							character, if not disabled.
 ------------------------------------------------------------------------------------------------]]--
-function Status:OnPlayerActivated(eventCode, initial)
-  local Parent = self:GetParent()
-	Parent.Chat:Debug("OnPlayerActivated event fired.")
-	Parent.Chat:Debug(zo_strformat("Player Status is <<1>>", GetPlayerStatus()))
+function Status.OnPlayerActivated(eventCode, initial)
+	SSF.Chat:Debug("OnPlayerActivated event fired.")
+	SSF.Chat:Debug(zo_strformat("Player Status is <<1>>", GetPlayerStatus()))
 	if initial then
-		if Parent.initialized then Parent.Chat:Debug("Initialized.") end
-		local i = Parent:GetCharacterIndex()
-		Parent.Chat:Debug(zo_strformat("Character \"<<1>>\" (<<2>>) loaded.", Parent.SV.Characters[i].name, Parent.SV.Characters[i].id))
-		if Parent.SV.accountOverrideEnabled and Parent.SV.accountOverrideLogin then
-			SelectPlayerStatus(Parent.SV.accountOverride)
-			Parent.Chat:Debug(zo_strformat("Player Status set to <<1>>", Parent.SV.accountOverride))
+		if SSF.initialized then SSF.Chat:Debug("Initialized.") end
+		local i = SSF.GetCharacterIndex()
+		SSF.Chat:Debug(zo_strformat("Character \"<<1>>\" (<<2>>) loaded.", SSF.SV.Characters[i].name, SSF.SV.Characters[i].id))
+		if SSF.SV.accountOverrideEnabled and SSF.SV.accountOverrideLogin then
+			SelectPlayerStatus(SSF.SV.accountOverride)
+			SSF.Chat:Debug(zo_strformat("Player Status set to <<1>>", SSF.SV.accountOverride))
 		elseif
-			Parent.SV.Characters[i].charOverride ~= Parent.PlayerStatus.Disabled and Parent.SV.Characters[i].charOverrideLogin then
-			SelectPlayerStatus(Parent.SV.Characters[i].charOverride)
-			Parent.Chat:Debug(zo_strformat("Player Status set to <<1>>", Parent.SV.Characters[i].charOverride))
+			SSF.SV.Characters[i].charOverride ~= SSF.PlayerStatus.List.Disabled and SSF.SV.Characters[i].charOverrideLogin then
+			SelectPlayerStatus(SSF.SV.Characters[i].charOverride)
+			SSF.Chat:Debug(zo_strformat("Player Status set to <<1>>", SSF.SV.Characters[i].charOverride))
 		end
-		if Parent.SV.offlineNotice and GetPlayerStatus() == Parent.PlayerStatus.Offline then
-			Parent.Notifications:Notify("You are set to offline.")
+		if SSF.SV.offlineNotice and GetPlayerStatus() == SSF.PlayerStatus.List.Offline then
+			SSF.Notifications.Notify("You are set to offline.")
 		end
 	end
-	EM:UnregisterForEvent(self.eventSpace, EVENT_PLAYER_ACTIVATED)
+	EM:UnregisterForEvent(Status.eventSpace, EVENT_PLAYER_ACTIVATED)
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Status:OnEventChatMessageChannel(eventCode, channelType, fromName, text, isCustomerService, fromDisplayName)
+Status.OnEventChatMessageChannel(eventCode, channelType, fromName, text, isCustomerService, fromDisplayName)
 Inputs:				eventCode				- Internal ZOS event code, not used here.
 							channelType			- Global Constant channelType (using CHAT_CHANNEL_WHISPER_SENT)
 							fromName  			- Character name of the sender
@@ -207,24 +204,12 @@ Outputs:			None
 Description:	Fired when there is a chat message. Checking for outgoing whispers and notifying if
 							needed.
 ------------------------------------------------------------------------------------------------]]--
-function Status:OnEventChatMessageChannel(eventCode, channelType, fromName, text, isCustomerService, fromDisplayName)
-  local Parent = self:GetParent()
+function Status.OnEventChatMessageChannel(eventCode, channelType, fromName, text, isCustomerService, fromDisplayName)
 	if channelType ~= CHAT_CHANNEL_WHISPER_SENT then return end
-	Parent.Chat:Debug("OnEventChatMessageChannel event fired.")
-	if GetPlayerStatus() == Parent.PlayerStatus.Offline and Parent.SV.whisperNotice then
-		Parent.Notifications:Notify("You are set to offline and cannot receive replies to whispers.")
+	SSF.Chat:Debug("OnEventChatMessageChannel event fired.")
+	if GetPlayerStatus() == SSF.PlayerStatus.List.Offline and SSF.SV.whisperNotice then
+		SSF.Notifications.Notify("You are set to offline and cannot receive replies to whispers.")
 	end
-end
-
-
---[[------------------------------------------------------------------------------------------------
-Status:GetParent()
-Inputs:				None
-Outputs:			Parent          - The parent object of this object.
-Description:	Returns the parent object of this object for reference to parent variables.
-------------------------------------------------------------------------------------------------]]--
-function Status:GetParent()
-  return self.Parent
 end
 
 

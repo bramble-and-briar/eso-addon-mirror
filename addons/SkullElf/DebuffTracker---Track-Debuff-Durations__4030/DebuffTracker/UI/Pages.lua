@@ -104,6 +104,29 @@ function UI.ImportMeterskullFlow()
     UI.Refresh()
 end
 
+-- WeaveDelays -> DebuffTracker (Systems/Migration.lua)
+function UI.ImportWeaveDelaysFlow()
+    local added, summary = DT.Migration.ImportWeaveDelays()
+    if not added then UI.Message(L("Import from WeaveDelays"), summary) return end
+    UI.selectedId = added[1] and added[1].id or UI.selectedId
+    local body = L("Added a \"Weave strip\" where yours was, with your slots, rows, size, colours, letters, average and when it shows, in DebuffTracker's look.")
+    if summary.replaced > 0 then body = body .. "\n" .. L("Replaced <<1>> tracker(s) from your previous import.", summary.replaced) end
+    UI.Message(L("Imported from WeaveDelays"), body .. "\n" .. L("You can disable WeaveDelays now."))
+    UI.Refresh()
+end
+
+-- Alternative Group Frames -> DebuffTracker (Systems/Migration.lua)
+function UI.ImportAltGFFlow()
+    local added, summary = DT.Migration.ImportAltGF()
+    if not added then UI.Message(L("Import from Alternative Group Frames"), summary) return end
+    UI.selectedId = added[1] and added[1].id or UI.selectedId
+    local body = L("Added \"Group frames\" where yours were, with your sizes, columns, names, colours and range fading -- and the game's group frames hidden while they show, as before.")
+    if summary.extra > 0 then body = body .. "\n" .. L("Plus <<1>> \"On group frames\" tracker(s): your buff / debuff icons and the buff along the frame.", summary.extra) end
+    if summary.replaced > 0 then body = body .. "\n" .. L("Replaced <<1>> tracker(s) from your previous import.", summary.replaced) end
+    UI.Message(L("Imported from Alternative Group Frames"), body .. "\n" .. L("You can disable Alternative Group Frames now."))
+    UI.Refresh()
+end
+
 -- Miat's Ticks Tracker -> DebuffTracker (Systems/Migration.lua)
 function UI.ImportMiatFlow()
     local added, summary = DT.Migration.ImportMiat()
@@ -141,6 +164,8 @@ local function ImportRows()
         { "Meterskull", L("Stat number tiles"), M.FindMeterskull, UI.ImportMeterskullFlow, M.RemoveMeterskullImport, "fromMeterskull", "/dt meterskull" },
         { "Miat's Ticks Tracker", L("Resource tick bar"), M.FindMiat, UI.ImportMiatFlow, M.RemoveMiatImport, "fromMiat", "/dt miat" },
         { "Combat Metronome, GCD Bar, GCD Monitor", L("Global cooldown bar"), M.FindGcdAddons, UI.ImportGcdFlow, M.RemoveGcdImport, "fromGcd", "/dt gcd" },
+        { "WeaveDelays", L("Weave strip"), M.FindWeaveDelays, UI.ImportWeaveDelaysFlow, M.RemoveWeaveDelaysImport, "fromWeaveDelays", "/dt weavedelays" },
+        { "Alternative Group Frames", L("Group frames"), M.FindAltGF, UI.ImportAltGFFlow, M.RemoveAltGFImport, "fromAltGF", "/dt altgroupframes" },
     }
 end
 
@@ -754,6 +779,11 @@ function UI.BuildSettingsPage(page, control, width)
     panel:Add(W.Section(panel.content, w, L("About")))
     panel:Add(W.Note(panel.content, w, L("DebuffTracker <<1>> by <<2>>. Commands: /dt (editor), /dt move, /dt test, /dt profile <name>, /dt debug. Keybinds are in Controls > Keybindings.",
         DT.version, DT.author), 40), 40)
+
+    -- the add-ons DebuffTracker learned from or imports (Core/Constants.lua C.CREDITS)
+    panel:Add(W.Section(panel.content, w, L("Credits")))
+    local credits = W.Note(panel.content, w, L("DebuffTracker is built on what these add-ons' authors worked out -- thank you:") .. "\n" .. table.concat(DT.Const.CreditLines(), "\n"), 200)
+    panel:Add(credits, credits:GetHeight())
 
     function page.OnRefresh() panel:Layout() end
 end

@@ -1,3 +1,4 @@
+local L = MWC.L
 MWC.Session = {}
 
 -- Exclusions are keyed by item unique id so they follow the writ between bags and survive reloads.
@@ -88,16 +89,16 @@ end
 
 -- The handed-in figures are in the Stats table (from the session journal).
 function MWC.Session.Summary()
-  return string.format("Session since %s", os.date("%d.%m %H:%M", MWC.sv.session.started))
+  return string.format(L.SESSION_SINCE, os.date("%d.%m %H:%M", MWC.sv.session.started))
 end
 
 function MWC.Session.ConfirmReset()
-  ZO_Dialogs_ShowDialog("MWC_RESET_SESSION")
+  MWC.UI.WithDialogOnTop(function() ZO_Dialogs_ShowDialog("MWC_RESET_SESSION") end)
 end
 
 ZO_Dialogs_RegisterCustomDialog("MWC_RESET_SESSION", {
   title = { text = "MasterWrits" },
-  mainText = { text = "Reset the session? All \"skip\" marks and the history of turned-in writs will be cleared." },
+  mainText = { text = L.RESET_CONFIRM },
   buttons = {
     { text = SI_DIALOG_CONFIRM, callback = MWC.Session.Reset },
     { text = SI_DIALOG_CANCEL },

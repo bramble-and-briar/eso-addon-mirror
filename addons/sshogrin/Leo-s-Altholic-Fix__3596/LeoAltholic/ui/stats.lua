@@ -1,6 +1,6 @@
-
-LeoAltholicStatsList = ZO_SortFilterList:Subclass()
-function LeoAltholicStatsList:New(control)
+local LeoAltholic = LeoAltholic
+LeoAltholic.StatsList = ZO_SortFilterList:Subclass()
+function LeoAltholic.StatsList:New(control)
 
     ZO_SortFilterList.InitializeSortFilterList(self, control)
 
@@ -22,7 +22,7 @@ function LeoAltholicStatsList:New(control)
     return self
 end
 
-function LeoAltholicStatsList:SetupEntry(control, data)
+function LeoAltholic.StatsList:SetupEntry(control, data)
 
     control.data = data
 
@@ -45,22 +45,23 @@ function LeoAltholicStatsList:SetupEntry(control, data)
 end
 
 
-function LeoAltholicStatsList:ColorRow(control, data, mouseIsOver)
-
+function LeoAltholic.StatsList:ColorRow(control, data, mouseIsOver)
     local color = ZO_SECOND_CONTRAST_TEXT
     local r, g, b = GetInterfaceColor(INTERFACE_COLOR_TYPE_ITEM_QUALITY_COLORS, ITEM_QUALITY_MAGIC)
 
     for i = 1, control:GetNumChildren() do
         local child = control:GetChild(i)
-        if data.name == LeoAltholic.CharName then
-            child:SetColor(r, g, b)
-        else
-            child:SetColor(color:UnpackRGBA())
+        if child and child.SetColor then
+            if data.name == LeoAltholic.CharName then
+                child:SetColor(r, g, b)
+            else
+                child:SetColor(color:UnpackRGBA())
+            end
         end
     end
 end
 
-function LeoAltholicStatsList:BuildMasterList()
+function LeoAltholic.StatsList:BuildMasterList()
     self.masterList = {}
     local list = LeoAltholic.ExportCharacters(true)
     for k, v in ipairs(list) do
@@ -77,7 +78,7 @@ function LeoAltholicStatsList:BuildMasterList()
     end
 end
 
-function LeoAltholicStatsList:SortScrollList()
+function LeoAltholic.StatsList:SortScrollList()
     local scrollData = ZO_ScrollList_GetDataList(self.list)
     if self.currentSortKey == "queueIndex" then
         table.sort(scrollData, function(listEntry1, listEntry2)
@@ -88,7 +89,7 @@ function LeoAltholicStatsList:SortScrollList()
     end
 end
 
-function LeoAltholicStatsList:FilterScrollList()
+function LeoAltholic.StatsList:FilterScrollList()
     local scrollData = ZO_ScrollList_GetDataList(self.list)
     ZO_ClearNumericallyIndexedTable(scrollData)
     for i = 1, #self.masterList do

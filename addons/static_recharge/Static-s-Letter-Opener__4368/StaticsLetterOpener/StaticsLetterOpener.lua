@@ -1,7 +1,7 @@
 --[[------------------------------------------------------------------------------------------------
 Title:					Static's Letter Opener
 Author:					Static_Recharge
-Version:			  1.1.0
+Version:			  1.1.1
 Description:		Opens master writs and survey letters automatically
 ------------------------------------------------------------------------------------------------]]--
 
@@ -52,23 +52,24 @@ StaticsLetterOpener    														- Parent object containing all functions, t
 └─ :Test(...)                                     - For internal add-on testing only.
 ------------------------------------------------------------------------------------------------]]--
 StaticsLetterOpener = {}
+local SLO = StaticsLetterOpener
+
+-- Static definitions
+SLO.addonName = "StaticsLetterOpener"
+SLO.addonVersion = "1.1.1"
+SLO.author = "|CFF0000Static_Recharge|r"
+SLO.varsVersion = 1
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsLetterOpener:Initialize()
+SLO.Initialize()
 Inputs:				None
 Outputs:			None
 Description:	Initializes all of the variables, object managers, slash commands and main event
 							callbacks.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsLetterOpener:Initialize()
-	-- Static definitions
-	self.addonName = "StaticsLetterOpener"
-	self.addonVersion = "1.1.0"
-	self.author = "|CFF0000Static_Recharge|r"
-	self.varsVersion = 1
-
-	self.Defaults = {
+function SLO.Initialize()
+	SLO.Defaults = {
 		surveys = true,
 		masterWrits = false,
 		maps = false,
@@ -79,49 +80,49 @@ function StaticsLetterOpener:Initialize()
 	}
 
 	-- Session variables
-	self.Que = {}
-	self.started = false
+	SLO.Que = {}
+	SLO.started = false
 
 	-- Saved variables initialization
-	self.SV = ZO_SavedVars:NewAccountWide("StaticsLetterOpenerAccountWideVars", self.varsVersion, nil, self.Defaults, GetWorldName())
+	SLO.SV = ZO_SavedVars:NewAccountWide("StaticsLetterOpenerAccountWideVars", SLO.varsVersion, nil, SLO.Defaults, GetWorldName())
 
 	-- Library initialization
 	local Options = {
 		addonIdentifier = "Letter Opener",
 		prefixColor = "FFFFFF",
 		textColor = "FFFFFF",
-		chatEnabled = self.SV.chatEnabled,
-		debugEnabled = self.SV.debugEnabled,
+		chatEnabled = SLO.SV.chatEnabled,
+		debugEnabled = SLO.SV.debugEnabled,
 	}
-	self.Chat = LibStatic:ChatNew(Options)
+	SLO.Chat = LibStatic.ChatNew(Options)
 
 	-- Module initilization
-	self.Settings:Initialize(self)
+	SLO.Settings.Initialize()
 	
 	-- Event Registrations
-	EM:RegisterForEvent(self.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(...) self:OnInventorySingleSlotUpdate(...) end)
-	EM:AddFilterForEvent(self.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
-	EM:AddFilterForEvent(self.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+	EM:RegisterForEvent(SLO.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, SLO.OnInventorySingleSlotUpdate)
+	EM:AddFilterForEvent(SLO.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
+	EM:AddFilterForEvent(SLO.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 
 	--SLASH_COMMANDS["/slotest"] = function(...) self:Test(...) end
 
-	self.initialized = true
+	SLO.initialized = true
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsLetterOpener:IsInitialized()
+SLO.IsInitialized()
 Inputs:				None
 Outputs:			initialized                         - bool for object initialized state
 Description:	Returns true if the object has been successfully initialized.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsLetterOpener:IsInitialized()
-  return self.initialized
+function SLO.IsInitialized()
+  return SLO.initialized
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsLetterOpener:OnInventorySingleSlotUpdate(eventCode, bagId, slotId, isNewItem, itemSoundCategory, inventoryUpdateReason, stackCountChange)
+SLO.OnInventorySingleSlotUpdate(eventCode, bagId, slotId, isNewItem, itemSoundCategory, inventoryUpdateReason, stackCountChange)
 Inputs:				eventCode														- Internal ZOS event code, not used here.
 							bagId																- Number for which bag was affected (use globals)
 							slotId 															- Slot number for the item that was affected
@@ -132,9 +133,9 @@ Inputs:				eventCode														- Internal ZOS event code, not used here.
 Outputs:			None
 Description: 	Adds found items to the Que and starts the opening event.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsLetterOpener:OnInventorySingleSlotUpdate(eventCode, bagId, slotId, isNewItem, itemSoundCategory, inventoryUpdateReason, stackCountChange)
+function SLO.OnInventorySingleSlotUpdate(eventCode, bagId, slotId, isNewItem, itemSoundCategory, inventoryUpdateReason, stackCountChange)
 	-- If open all is disabled and the item isn't new then exit as there's nothing to do.
-	if not self.SV.openAll and not isNewItem then return end
+	if not SLO.SV.openAll and not isNewItem then return end
 
 	local itemData = {
 		id = GetItemId(bagId, slotId),
@@ -143,12 +144,12 @@ function StaticsLetterOpener:OnInventorySingleSlotUpdate(eventCode, bagId, slotI
 
 	-- search through containers and ids for a match
 	for category, container in pairs(Containers) do
-		if container[itemData.id] and self.SV[category] then
-			table.insert(self.Que, itemData)
-			self.Chat:Debug(zo_strformat("<<1>> Qued", itemData.link))
-			if not self.started then
-				EM:RegisterForUpdate(self.addonName, 500, function() self:Open() end)
-				self.started = true
+		if container[itemData.id] and SLO.SV[category] then
+			table.insert(SLO.Que, itemData)
+			SLO.Chat:Debug(zo_strformat("<<1>> Qued", itemData.link))
+			if not SLO.started then
+				EM:RegisterForUpdate(SLO.addonName, 500, SLO.Open)
+				SLO.started = true
 			end
 		end
 	end
@@ -156,50 +157,50 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsLetterOpener:Open()
+SLO.Open()
 Inputs:				None
 Outputs:			None
 Description:	Opens the next item in the Que.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsLetterOpener:Open()
+function SLO.Open()
 	local bag = BAG_BACKPACK
-	if #self.Que == 0 then
-		EM:UnregisterForUpdate(self.addonName)
-		self.started = false
+	if #SLO.Que == 0 then
+		EM:UnregisterForUpdate(SLO.addonName)
+		SLO.started = false
 		return
 	end
 	if GetSlotCooldownInfo(1) == 0 then
-		local slotId = self:GetInventoryIndex()
+		local slotId = SLO.GetInventoryIndex()
 		if slotId then
-			self.Chat:Debug(zo_strformat("Item Found: slotId: <<1>>, bag: <<2>>, <<3>>", slotId, bag, GetItemLink(bag, slotId)))
+			SLO.Chat:Debug(zo_strformat("Item Found: slotId: <<1>>, bag: <<2>>, <<3>>", slotId, bag, GetItemLink(bag, slotId)))
 			if IsProtectedFunction("UseItem") then
 				CallSecureProtected("UseItem", bag, slotId)
 			else
 				UseItem(bag, slotId)
 			end
-			self.Chat:Msg(zo_strformat("<<1>> Opened", self.Que[1].link))
+			SLO.Chat:Msg(zo_strformat("<<1>> Opened", SLO.Que[1].link))
 		else
-			self.Chat:Msg(zo_strformat("<<1>> Not found", self.Que[1].link))
+			SLO.Chat:Msg(zo_strformat("<<1>> Not found", SLO.Que[1].link))
 		end
-		table.remove(self.Que, 1)
+		table.remove(SLO.Que, 1)
 	end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsLetterOpener:GetInventoryIndex()
+SLO.GetInventoryIndex()
 Inputs:				None
 Outputs:			slotIndex 													- The slot containing the next item in the Que
 Description:	Searches for and returns the slot number of the next item in the Que.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsLetterOpener:GetInventoryIndex()
+function SLO.GetInventoryIndex()
 	local bag = BAG_BACKPACK
 	local bagData = SHARED_INVENTORY:GetOrCreateBagCache(bag)
 	if not ZO_IsTableEmpty(bagData) then
-		local queOne = self.Que[1]
+		local queOne = SLO.Que[1]
 		for slotIndex, slotData in pairs(bagData) do
 			if HasItemInSlot(bag, slotIndex) and GetItemId(bag, slotIndex) == queOne.id then
-				self.Chat:Debug(zo_strformat("<<1>> Found", queOne.link))
+				SLO.Chat:Debug(zo_strformat("<<1>> Found", queOne.link))
 				return slotIndex
 			end
 		end
@@ -208,12 +209,12 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsLetterOpener:Test()
+SLO.Test()
 Inputs:				None
 Outputs:			None
 Description:	
 ------------------------------------------------------------------------------------------------]]--
-function StaticsLetterOpener:Test(...)
+function SLO.Test(...)
 	d("test")
 end
 
@@ -221,8 +222,8 @@ end
 --[[------------------------------------------------------------------------------------------------
 Main add-on event registration. Creates the global object, StaticsLetterOpener, of the LO class.
 ------------------------------------------------------------------------------------------------]]--
-EM:RegisterForEvent("StaticsLetterOpener", EVENT_ADD_ON_LOADED, function(eventCode, addonName)
-	if addonName ~= "StaticsLetterOpener" then return end
-	EM:UnregisterForEvent("StaticsLetterOpener", EVENT_ADD_ON_LOADED)
-	StaticsLetterOpener:Initialize()
+EM:RegisterForEvent(SLO.addonName, EVENT_ADD_ON_LOADED, function(eventCode, addonName)
+	if addonName ~= SLO.addonName then return end
+	EM:UnregisterForEvent(SLO.addonName, EVENT_ADD_ON_LOADED)
+	SLO.Initialize()
 end)

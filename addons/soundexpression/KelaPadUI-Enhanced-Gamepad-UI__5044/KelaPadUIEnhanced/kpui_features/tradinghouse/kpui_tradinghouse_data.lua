@@ -1,7 +1,140 @@
--- KelaPadUI TTC/ATT trading-data helpers.
+-- KelaPadUI TTC/ATT/Master Merchant trading-data helpers.
 
 local KPUI_TRADINGHOUSE = KPUI_TRADINGHOUSE
 local colors = KPUI_TRADINGHOUSE.colors
+
+-- Master Merchant's numbers for an item, or nil: avgPrice, numSales, numItems,
+-- and low/high when it has cached the item's graph. The call is the one
+-- LibPrice makes (averageOnly, no graph); until Master Merchant has loaded its
+-- sales it returns an empty table, and a failure inside it is ignored.
+local function GetMasterMerchantStats(itemLink)
+	if not MasterMerchant or not MasterMerchant.isInitialized or not MasterMerchant.GetTooltipStats then
+		return nil
+	end
+	local ok, stats = pcall(MasterMerchant.GetTooltipStats, MasterMerchant, itemLink, true, false)
+	if not (ok and type(stats) == "table" and type(stats.avgPrice) == "number" and stats.avgPrice > 0) then
+		return nil
+	end
+	local graph = type(stats.graphInfo) == "table" and stats.graphInfo or nil
+	return
+	{
+		avgPrice = stats.avgPrice,
+		numSales = stats.numSales or 0,
+		numItems = stats.numItems or 0,
+		low = graph and graph.low or nil,
+		high = graph and graph.high or nil,
+	}
+end
+
+-- Price providers for the item tooltip. Each one reports the same shape, so
+-- the tooltip loops over them and a new provider is one more entry:
+--   { id, color (hex), isLoaded(), showNoData, GetStats(itemLink) }
+-- GetStats returns nil when the provider has no data for the item, or
+--   { headline = the single price to show (nil for none), avg, min, max,
+--     count, countLabel }
+-- Their order is the order they show in.
+local PRICE_PROVIDERS =
+{
+	{
+		id = "ATT",
+		color = "1fe095",
+		showNoData = true,
+		isLoaded = function()
+			return ArkadiusTradeTools ~= nil
+		end,
+		GetStats = function(itemLink)
+			local stats = KelaGetATTPriceStats(itemLink)
+			if not stats then
+				return nil
+			end
+			return
+			{
+				headline = stats.Avg,
+				avg = stats.Avg, min = stats.Min or 0, max = stats.Max,
+				count = stats.Sales, countLabel = KELA_PRICE_SALES,
+			}
+		end,
+	},
+	{
+		id = "TTC",
+		color = "1fcae0",
+		showNoData = true,
+		isLoaded = function()
+			return TamrielTradeCentre ~= nil and TamrielTradeCentrePrice ~= nil
+		end,
+		GetStats = function(itemLink)
+			local info = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
+			if not info then
+				return nil
+			end
+			-- TTC's suggested price is 80% of its average; 1.125 undoes that so the
+			-- headline sits beside the other providers' averages.
+			local headline = info.SuggestedPrice or info.Avg
+			return
+			{
+				headline = headline and headline * 1.125 or nil,
+				avg = info.Avg, min = info.Min, max = info.Max,
+				count = info.EntryCount, countLabel = KELA_PRICE_LISTINGS,
+			}
+		end,
+	},
+	{
+		id = "MM",
+		color = "7171d1",
+		showNoData = true,
+		isLoaded = function()
+			return MasterMerchant ~= nil
+		end,
+		GetStats = function(itemLink)
+			local stats = GetMasterMerchantStats(itemLink)
+			if not stats then
+				return nil
+			end
+			return
+			{
+				headline = stats.avgPrice,
+				avg = stats.avgPrice,
+				min = stats.low, max = stats.high,
+				count = stats.numSales, countLabel = KELA_PRICE_SALES,
+			}
+		end,
+	},
+}
+
+-- What the item tooltip shows for an item: one line per loaded provider and the
+-- average price, the average of the providers' headlines (nil when none
+-- has a price). A line reads "TTC  3,400   12 Listings  |  2,900 - 4,100", with
+-- the provider's color on its name and the details in grey.
+function KelaGetPriceSummary(itemLink)
+	local lines = {}
+	local total, count = 0, 0
+	for _, provider in ipairs(PRICE_PROVIDERS) do
+		if provider.isLoaded() then
+			local stats = provider.GetStats(itemLink)
+			local name = "|c" .. provider.color .. provider.id .. "|r"
+			if stats and stats.headline then
+				total = total + stats.headline
+				count = count + 1
+				-- Average first, then how many listings or sales it rests on, then the range.
+				local details = {}
+				if stats.count and stats.countLabel then
+					details[#details + 1] = KelaLocalizedFormatNumber(stats.count, 0) .. " " .. GetString(stats.countLabel)
+				end
+				if stats.min and stats.max then
+					details[#details + 1] = KelaLocalizedFormatNumber(stats.min, 0) .. " - " .. KelaLocalizedFormatNumber(stats.max, 0)
+				end
+				local line = name .. "  " .. colors.COLOR_WHITE:Colorize(KelaLocalizedFormatNumber(stats.headline, 0))
+				if #details > 0 then
+					line = line .. "   " .. colors.COLOR_LIGHT_GREY:Colorize(table.concat(details, "  |  "))
+				end
+				lines[#lines + 1] = line
+			elseif stats or provider.showNoData then
+				lines[#lines + 1] = name .. "  " .. colors.COLOR_LIGHT_GREY:Colorize("N/A")
+			end
+		end
+	end
+	return lines, count > 0 and total / count or nil
+end
 
 -- ATT sale statistics for one item over the analysis period; used by the item
 -- tooltip's price line.
@@ -348,75 +481,46 @@ function KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, data, action, stackCou
 	else
 		suggestedTCC = 0
 	end
-	local suggestedAVG
-	local suggestedATTStack
-	local suggestedTCCStack
-	local suggestedAVGStack
-	local suggestedATTWrit
-	local suggestedTCCWrit
-	local suggestedAVGWrit
+	local priceInfoMM = priceInfoTTC.Providers and priceInfoTTC.Providers.MM
+	local suggestedMM = priceInfoMM and priceInfoMM.SuggestedPrice and math.floor(priceInfoMM.SuggestedPrice) or 0
 
-	suggestedATTStack = suggestedATT*stackCount
-	suggestedATTWrit = suggestedATT*multiplier
-	suggestedTCCStack = suggestedTCC*stackCount
-	suggestedTCCWrit = suggestedTCC*multiplier
+	local suggestedATTStack = suggestedATT*stackCount
+	local suggestedTCCStack = suggestedTCC*stackCount
+	local suggestedMMStack = suggestedMM*stackCount
+	local suggestedATTWrit = suggestedATT*multiplier
+	local suggestedTCCWrit = suggestedTCC*multiplier
+	local suggestedMMWrit = suggestedMM*multiplier
 
-	local bothProviders = priceInfoTTC.Available and priceInfoATT.Available
-	local useAverage = bothProviders and suggestedATT ~= 0 and suggestedTCC ~= 0
-	local useAverageStack = bothProviders and suggestedATTStack ~= 0 and suggestedTCCStack ~= 0
-	local useAverageWrit = bothProviders and suggestedATTWrit ~= 0 and suggestedTCCWrit ~= 0
+	-- The recommended price: the one provider with a price, or the average of
+	-- those that have one, with the source it came from.
+	local function Combine(ttc, att, mm)
+		local sum, count, only, onlyColor = 0, 0, nil, nil
+		for _, entry in ipairs({ { ttc, "TTC", colors.COLOR_TTC }, { att, "ATT", colors.COLOR_ATT }, { mm, "MM", colors.COLOR_MM } }) do
+			if entry[1] ~= 0 then
+				sum = sum + entry[1]
+				count = count + 1
+				only, onlyColor = entry[2], entry[3]
+			end
+		end
+		if count == 0 then
+			return 0
+		elseif count > 1 then
+			return sum / count, colors.COLOR_WHITE:Colorize(" (AVG)")
+		end
+		return sum, onlyColor:Colorize(" ("..only..")")
+	end
+	local suggestedAVG = Combine(suggestedTCC, suggestedATT, suggestedMM)
+	local suggestedAVGStack, stackSuffix = Combine(suggestedTCCStack, suggestedATTStack, suggestedMMStack)
+	local suggestedAVGWrit, writSuffix = Combine(suggestedTCCWrit, suggestedATTWrit, suggestedMMWrit)
 
-	if useAverage then
-		suggestedAVG = (suggestedATT + suggestedTCC)/2
-	elseif suggestedTCC ~= 0 then
-		suggestedAVG = suggestedTCC
-	else
-		suggestedAVG = suggestedATT
-	end
-	if useAverageStack then
-		suggestedAVGStack = (suggestedATTStack + suggestedTCCStack)/2
-	elseif suggestedTCCStack ~= 0 then
-		suggestedAVGStack = suggestedTCCStack
-	else
-		suggestedAVGStack = suggestedATTStack
-	end
-	if useAverageWrit then
-		suggestedAVGWrit = (suggestedATTWrit + suggestedTCCWrit)/2
-	elseif suggestedTCCWrit ~= 0 then
-		suggestedAVGWrit = suggestedTCCWrit
-	else
-		suggestedAVGWrit = suggestedATTWrit
-	end
-	
 	if IsMasterWrit then
-		if useAverageWrit then
-			compareValuePrice = suggestedAVGWrit
-			compareValueSuffix = colors.COLOR_WHITE:Colorize(" (AVG)")
-		elseif suggestedTCCWrit ~= 0 then
-			compareValuePrice = suggestedTCCWrit
-			compareValueSuffix = colors.COLOR_TTC:Colorize(" (TTC)")
-		elseif suggestedATTWrit ~= 0 then
-			compareValuePrice = suggestedATTWrit
-			compareValueSuffix = colors.COLOR_ATT:Colorize(" (ATT)")
-		else
-			compareValuePrice = 0
-		end
+		compareValuePrice, compareValueSuffix = suggestedAVGWrit, writSuffix
 	elseif stackCount ~= 0 then
-		if useAverageStack then
-			compareValuePrice = suggestedAVGStack
-			compareValueSuffix = colors.COLOR_WHITE:Colorize(" (AVG)")
-		elseif suggestedTCCStack ~= 0 then
-			compareValuePrice = suggestedTCCStack
-			compareValueSuffix = colors.COLOR_TTC:Colorize(" (TTC)")
-		elseif suggestedATTStack ~= 0 then
-			compareValuePrice = suggestedATTStack
-			compareValueSuffix = colors.COLOR_ATT:Colorize(" (ATT)")
-		else
-			compareValuePrice = 0
-		end
+		compareValuePrice, compareValueSuffix = suggestedAVGStack, stackSuffix
 	else
 		compareValuePrice = 0
 	end
+	if compareValuePrice == 0 then compareValueSuffix = nil end
 	if action then
 		if action == "GAMEPAD_TRADING_HOUSE_LISTINGS" then
 			colorEffectDeal = colors.COLOR_GREY
@@ -469,7 +573,7 @@ function KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, data, action, stackCou
 	end
 
 
-	return valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTCC, suggestedATT, suggestedAVG, suggestedTCCStack, suggestedATTStack, suggestedAVGStack, suggestedTCCWrit, suggestedATTWrit, suggestedAVGWrit, compareValuePrice, compareValueSuffix
+	return valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTCC, suggestedATT, suggestedAVG, suggestedTCCStack, suggestedATTStack, suggestedAVGStack, suggestedTCCWrit, suggestedATTWrit, suggestedAVGWrit, compareValuePrice, compareValueSuffix, suggestedMM, suggestedMMStack, suggestedMMWrit
 
 end
 
@@ -593,7 +697,24 @@ function KelaGetPriceInfoTTCATT (itemLink)
 			trueATT = true
 		end
 	end
-	return trueTTC, trueATT, priceInfoTTC, priceInfoATT
+	-- Master Merchant rides on both tables as .Providers.MM, so the many callers
+	-- that pass TTC and ATT along need no extra argument.
+	local mmStats = GetMasterMerchantStats(itemLink)
+	local priceInfoMM =
+	{
+		Available = MasterMerchant ~= nil,
+		Has = mmStats ~= nil,
+		Avg = mmStats and mmStats.avgPrice or 0,
+		Max = mmStats and mmStats.high or 0,
+		Min = mmStats and mmStats.low or 0,
+		EntryCount = mmStats and mmStats.numSales or 0,
+		AmountCount = mmStats and mmStats.numItems or 0,
+		SuggestedPrice = mmStats and mmStats.avgPrice or 0,
+	}
+	local providers = { MM = priceInfoMM }
+	priceInfoTTC.Providers = providers
+	priceInfoATT.Providers = providers
+	return trueTTC, trueATT, priceInfoTTC, priceInfoATT, trueTTC or trueATT or priceInfoMM.Has
 end
 
 -- Deal rating for the trading-house browse and listings scenes as a colored

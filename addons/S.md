@@ -98,7 +98,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Shissu's Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shissu/Shissu-s-Guild-Tools__910) | Shissu | PC / Mac | 3.5.19-2 |
 | [Shissu's LUA Memory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shissu/Shissu-s-LUA-Memory__883) | Shissu | PC / Mac | 2.0.1.9 |
 | [Shissu's Teleporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shissu/Shissu-s-Teleporter__2832) | Shissu | PC / Mac | 1.6.2 |
-| [Sho's Build Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Sho-s-Build-Exporter__5113) | sshogrin | PC / Mac | 1.0.0 |
+| [Sho's Build Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Sho-s-Build-Exporter__5113) | sshogrin | PC / Mac | 1.0.1 |
 | [Sho's PvP Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Sho-s-PvP-Banker__4809) | sshogrin | PC / Mac | 1.0.1 |
 | [ShogrinUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/ShogrinUI__8e6dc008-7b2f-4d55-8a1b-3ee825b1de0f) | sshogrin | Console | — |
 | [ShogrinUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/ShogrinUI__3527) | sshogrin | PC / Mac | 1.1.7 |
@@ -155,6 +155,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Ultimate Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Ultimate-Tracker__4956) | Kaewro | PC / Mac | 1.0.4 |
 | [Simple Vote](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Simple-Vote__3077) | M0R | PC / Mac | 1.0 |
 | [SimpleAddonMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/SimpleAddonMenu__441715a3-5c4e-4ba6-8004-86dbf4485eb0) | Vixen_Hunny | Console | — |
+| [SimpleCharName](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/SimpleCharName__5119) | lousytourist | PC / Mac | 26.11.26 |
 | [SimpleChatLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/SimpleChatLogger__2799) | Coorbin | PC / Mac | 1.0 |
 | [SimpleClock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/moshulu/SimpleClock__3559) | moshulu | PC / Mac | 0.0.4 |
 | [SimpleClock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sunoo/SimpleClock__1017) | Sunoo | PC / Mac | 1.2 |
@@ -307,11 +308,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [STARS-KBM](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/STARS-KBM__4783) | SugaComa | PC / Mac | 0.6.11-KBM |
 | [Stash 'n Dash](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Downehr/Stash-n-Dash__4133) | Downehr | PC / Mac | 1.0.3 |
 | [Static's Already Taunted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Already-Taunted__3913) | static_recharge | PC / Mac | 2.0.1 |
-| [Static's Furnishing Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Furnishing-Improvements__4447) | static_recharge | PC / Mac | 1.1.1 |
-| [Static's Letter Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Letter-Opener__4368) | static_recharge | PC / Mac | 1.1.0 |
+| [Static's Furnishing Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Furnishing-Improvements__4447) | static_recharge | PC / Mac | 1.1.2 |
+| [Static's Letter Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Letter-Opener__4368) | static_recharge | PC / Mac | 1.1.1 |
 | [Static's Quickslot Profiles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Quickslot-Profiles__1775) | static_recharge | PC / Mac | 2.3.0 |
 | [Static's Recruiter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Recruiter__3836) | static_recharge | PC / Mac | 3.0.3 |
-| [Static's Social Features](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Social-Features__4239) | static_recharge | PC / Mac | 2.0.1 |
+| [Static's Social Features](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Social-Features__4239) | static_recharge | PC / Mac | 2.0.2 |
 | [Statistically - keeping record of odds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Statistically---keeping-record-of-odds__3042) | Ek1 | PC / Mac | 34.210422 |
 | [StatsForNerds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/StatsForNerds__b9de0194-bc49-4ea7-9c65-b2db1caecca7) | Vixen_Hunny | Console | — |
 | [StatusBar Icons for Dolgubon's Lazy Write Crafter Version: 3.1.5.2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Maxxermax/StatusBar-Icons-for-Dolgubon-s-Lazy-Write-Crafter-Version-3.1.5.2__3666) | Maxxermax | PC / Mac | 3.1.5.2f |

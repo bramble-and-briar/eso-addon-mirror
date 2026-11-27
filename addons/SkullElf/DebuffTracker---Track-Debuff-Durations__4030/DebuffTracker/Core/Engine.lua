@@ -42,12 +42,53 @@ function Engine.Runtime(id)
     return rt
 end
 
+-- Which trackers listen to the game: only those whose standing load conditions pass now (role, class, character,
+-- zone, group, gear, champion and slotted skills -- Load.Standing). A tank's Taunt tracker on a healer listens to
+-- nothing (5.21.26). The engine notices when that changes (Engine.Tick) and rebuilds on the next frame.
+Engine.standing = {}      -- [tracker id] = true: its standing load conditions pass (it listens)
+Engine.standingWhy = {}   -- [tracker id] = why not
+local function Wanted(tracker) return Engine.standing[tracker.id] == true end
+Engine.Wanted = Wanted
+
+-- The standing results are kept, and read again when something they depend on changes (gear, bars, champion points,
+-- zone, role, group -- Engine.StandingChanged) and at least once a second, not every update: reading worn sets and
+-- slotted skills for every tracker each tick made the update slower (performance test).
+local standingDirty, lastStanding = true, -1000
+-- (called by the events: read again now -- an effect can arrive right after you put a set on or a group forms -- and
+-- rebuild only if a tracker starts or stops listening)
+function Engine.StandingChanged()
+    standingDirty = true
+    Engine.RequestUpdate()
+    if not DT.ready or not Engine.trackers then return end
+    local ctx = Load.Context()
+    for _, tracker in ipairs(Engine.trackers) do
+        local ok, why = Load.Standing(tracker, ctx)
+        Engine.standingWhy[tracker.id] = why
+        if (ok == true) ~= (Engine.standing[tracker.id] == true) then
+            if DT.debug then
+                U.Debug("tracker '%s' %s", tracker.name, ok and "listens again" or ("stops listening: " .. tostring(why)))
+            end
+            Engine.Rebuild()
+            return
+        end
+    end
+    standingDirty, lastStanding = false, U.Now()
+end
+
 -- Call after ANY change to trackers (add/remove/edit/profile switch).
 function Engine.Rebuild()
     local trackers = DT.Profiles.ActiveTrackers()
     Engine.trackers = trackers
     Engine.byId = {}
     for _, t in ipairs(trackers) do Engine.byId[t.id] = t end
+    local ctx = Load.Context()
+    Engine.standing, Engine.standingWhy = {}, {}
+    for _, t in ipairs(trackers) do
+        local ok, why = Load.Standing(t, ctx)
+        Engine.standing[t.id], Engine.standingWhy[t.id] = ok == true, why
+    end
+    lastStanding = U.Now()
+    standingDirty = false
     T.ClearCache()
     DT.Procs.Invalidate()
 
@@ -60,7 +101,7 @@ function Engine.Rebuild()
     -- "my target" trackers: what they look for (listened to on a locked tab target, see DT.TabTarget)
     local targetIds, targetNames, targetAll, hasTarget = {}, {}, false, false
     for _, tracker in ipairs(trackers) do
-        if tracker.enabled then
+        if Wanted(tracker) then
           for _, t in ipairs(T.AllTriggers(tracker)) do     -- the main trigger + extra triggers
             local tr = t.trigger
             if tr.type == "effect" then
@@ -125,7 +166,7 @@ function Engine.Rebuild()
     -- "Select quickslot" rules: the quickslot event only while one exists
     local quickslot = false
     for _, tracker in ipairs(trackers) do
-        if tracker.enabled then
+        if Wanted(tracker) then
             for _, rule in ipairs(tracker.conditions) do
                 if not rule.disabled and rule.action == "quickslot" then quickslot = true end
             end
@@ -135,7 +176,7 @@ function Engine.Rebuild()
     -- what's on the bars (chaining skills like Stone Giant change in their slot): only when something looks at it
     local bars = false
     for _, tracker in ipairs(trackers) do
-        if tracker.enabled then
+        if Wanted(tracker) then
             local ld = tracker.load
             if #(ld.skills or {}) > 0 or #(ld.skillNames or {}) > 0 then bars = true end
             for _, rule in ipairs(tracker.conditions) do
@@ -147,7 +188,7 @@ function Engine.Rebuild()
     -- "Resource tick" trackers: the power updates of the resources they show; dodge fatigue while a rule reads it
     local tickRes, fatigueOn = {}, false
     for _, tracker in ipairs(trackers) do
-        if tracker.enabled then
+        if Wanted(tracker) then
             for _, t in ipairs(T.AllTriggers(tracker)) do
                 if t.trigger.type == "tick" then tickRes[t.trigger.powerType] = true end
             end
@@ -157,10 +198,31 @@ function Engine.Rebuild()
         end
     end
     DT.Ticks.SetWatched(tickRes, fatigueOn)
+    -- health bars with shield / trauma / can't be healed: their changes right away
+    local visuals = false
+    for _, tracker in ipairs(trackers) do
+        if Wanted(tracker) then
+            for _, t in ipairs(T.AllTriggers(tracker)) do
+                local tr = t.trigger
+                if tr.type == "resource" and tr.powerType == "health" and tr.healthVisuals then visuals = true end
+            end
+        end
+    end
+    DT.Resources.SetVisualWatch(visuals)
+    -- weaving: the first shown weaving tracker's options
+    local weave
+    for _, tracker in ipairs(trackers) do
+        if Wanted(tracker) and not weave then
+            for _, t in ipairs(T.AllTriggers(tracker)) do
+                if t.trigger.type == "weave" then weave = t.trigger; break end
+            end
+        end
+    end
+    DT.Weave.SetWatch(weave)
     -- "Global cooldown" trackers: the action bar / your combat events (the first one's options)
     local gcdOpts
     for _, tracker in ipairs(trackers) do
-        if tracker.enabled and not gcdOpts then
+        if Wanted(tracker) and not gcdOpts then
             for _, t in ipairs(T.AllTriggers(tracker)) do
                 local tr = t.trigger
                 if tr.type == "gcd" and not gcdOpts then gcdOpts = tr end
@@ -181,7 +243,7 @@ end
 function Engine.RefreshCombat()
     local combat = {}
     for _, tracker in ipairs(Engine.trackers) do
-        if tracker.enabled then
+        if Wanted(tracker) then
             for _, t in ipairs(T.AllTriggers(tracker)) do
                 if t.trigger.type == "combat" then combat[#combat + 1] = t
                 elseif t.trigger.type == "procs" then
@@ -318,7 +380,9 @@ function Engine.EvaluateTracker(tracker, now, ctx, test)
     local dtype = tracker.display.type
     local max = dtype == "alert" and 1 or tracker.display.maxShown
     -- above heads: maxShown is per person (applied when placing); keep every person's entries here
-    if dtype == "heads" then max = math.max(#states, 1) end
+    if dtype == "heads" or dtype == "onframes" then max = math.max(#states, 1) end
+    -- group frames: every member has a frame; the weave strip: every slot
+    if dtype == "frames" or dtype == "weave" then max = math.max(#states, max) end
     local shown, n = {}, 0
     if #states <= max * 3 then
         -- few states: sort, then evaluate rules only until the display is full
@@ -379,25 +443,48 @@ function Engine.Tick()
 
     local test = DT.testMode or DT.unlocked or DT.editorPreview
     local totalStates, loadedCount = 0, 0
+    -- the standing conditions, when something they depend on changed (or a second went by)
+    local rebuild = false
+    if standingDirty or now - lastStanding >= 1 then
+        standingDirty, lastStanding = false, now
+        for _, tracker in ipairs(Engine.trackers) do
+            local ok, why = Load.Standing(tracker, ctx)
+            ok = ok == true
+            Engine.standingWhy[tracker.id] = why
+            if ok ~= (Engine.standing[tracker.id] == true) then
+                if DT.debug then
+                    U.Debug("tracker '%s' %s", tracker.name, ok and "listens again" or ("stops listening: " .. tostring(why)))
+                end
+                Engine.standing[tracker.id] = ok
+                rebuild = true
+            end
+        end
+    end
     for _, tracker in ipairs(Engine.trackers) do
         local rt = Engine.Runtime(tracker.id)
         local display = DT.Displays.Get(tracker.id)
         local loaded, reason
+        local realLoaded, realReason
+        if Engine.standing[tracker.id] then
+            realLoaded, realReason = Load.Moment(tracker, ctx)
+            realLoaded = realLoaded == true
+        else
+            realLoaded, realReason = false, Engine.standingWhy[tracker.id]
+        end
         if test then
             loaded = tracker.enabled
             reason = not loaded and DT.L("Disabled") or nil
             local headsProblem = loaded and Load.HeadsProblem(tracker)
             if headsProblem then loaded, reason = false, headsProblem end
         else
-            loaded, reason = Load.Check(tracker, ctx)
+            loaded, reason = realLoaded, realReason
         end
         if DT.debug and not test and rt.loaded ~= nil and rt.loaded ~= loaded then
             U.Debug("tracker '%s' %s", tracker.name, loaded and "shown (load conditions met)" or ("hidden: " .. tostring(reason)))
         end
         rt.loaded, rt.reason = loaded, reason
         -- what would happen without sample data (the editor's list shows this, not the preview state)
-        if test then rt.realLoaded, rt.realReason = Load.Check(tracker, ctx)
-        else rt.realLoaded, rt.realReason = loaded, reason end
+        rt.realLoaded, rt.realReason = realLoaded, realReason
         if not loaded then
             rt.count = 0
             if display then display:Hide() end
@@ -420,7 +507,11 @@ function Engine.Tick()
     end
 
     T.EndUpdate()
+    -- "On group frames": placed once every frame has been drawn this update
+    U.SafeCall("on group frames", DT.GroupFrames.Place)
     DT.Quickslot.Apply(now)
+    -- what the engine listens to follows the standing conditions (after this update, before the next event)
+    if rebuild then Engine.Rebuild() end
     local ms = GetGameTimeMilliseconds() - t0
     local st = Engine.stats
     st.ticks = st.ticks + 1
@@ -442,7 +533,19 @@ function Engine.RequestUpdate()
 end
 
 function Engine.RequestRebuildLoad()
-    Engine.RequestUpdate()
+    Engine.StandingChanged()
+end
+
+-- Rebuild what the engine listens to on the next frame (once, however many trackers changed)
+local rebuildQueued = false
+function Engine.RequestRebuild()
+    if rebuildQueued then return end
+    rebuildQueued = true
+    EVENT_MANAGER:RegisterForUpdate(NS .. "_Rebuild", 0, function()
+        EVENT_MANAGER:UnregisterForUpdate(NS .. "_Rebuild")
+        rebuildQueued = false
+        Engine.Rebuild()
+    end)
 end
 
 -- How often the engine re-evaluates every tracker (load conditions, rules, which entries show). Bars and timer

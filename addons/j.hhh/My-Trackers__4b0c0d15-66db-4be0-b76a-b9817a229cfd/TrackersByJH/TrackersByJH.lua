@@ -1,7 +1,7 @@
 TrackersByJH = TrackersByJH or {}
 local TBJH = TrackersByJH
 TBJH.name = "TrackersByJH"
-TBJH.version = "1.1.6"
+TBJH.version = "1.1.7"
 TBJH.menus = TBJH.menus or {}
 
 function TrackersByJH_RegisterMenu(name, controls)
@@ -30,6 +30,13 @@ local SET_TRACKERS = {
     { menu="Zaan Tracker", key="Zaan" },
     { menu="Spaulder of Ruin Tracker", key="Spaulder of Ruin" },
     { menu="Highland Sentinel Tracker", key="Highland Sentinel" },
+    { menu="Powerful Assault Tracker", key="Powerful Assault" },
+    { menu="Master Architect Tracker", key="Master Architect" },
+    { menu="War Machine Tracker", key="War Machine" },
+    { menu="Void Bash Tracker", key="Void Bash" },
+    { menu="Archdruid Devyric Tracker", key="Archdruid Devyric" },
+    { menu="Spectral Cloak Tracker", key="Spectral Cloak" },
+    { menu="Vestment of Olorime Tracker", key="Vestment of Olorime" },
 }
 
 local function SetTrackerControls(key)

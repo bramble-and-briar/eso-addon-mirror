@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/static_recharge/Static-s-Letter-Opener__4368",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "static_recharge",
   "canonical_id": "esoui:4368",
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4368",
@@ -17,7 +18,7 @@
     "StaticsLetterOpener"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4368/",
-  "fingerprint": "24cd5fffcadef665bf619bdaf484320f3e924f16c04c44fa92a010f4b8b61fb8",
+  "fingerprint": "e53a91087633a623c6f71da69ba28f3b9e1f978b834966a36334487e5e452475",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15128.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "4368",
   "source_url": "https://www.esoui.com/downloads/info4368-StaticsLetterOpener.html",
   "stats": {
-    "downloads": 191,
+    "downloads": 237,
     "favorites": 1,
     "monthly_downloads": 12
   },
   "title": "Static's Letter Opener",
-  "updated_at": 1773368850000,
-  "version": "1.1.0"
+  "updated_at": 1795753859000,
+  "version": "1.1.1"
 }

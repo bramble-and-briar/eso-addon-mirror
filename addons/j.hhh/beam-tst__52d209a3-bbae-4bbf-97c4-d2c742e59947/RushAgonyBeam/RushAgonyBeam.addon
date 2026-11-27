@@ -1,0 +1,13 @@
+## Title: The PURE HATE Rush of Agony Beam
+## Author: Community console adaptation; JH / g4rr3t equipment logic, ExoY94 LibSetDetection
+## Version: 1.2.3-selfbeam-toggle
+## AddOnVersion: 3
+## APIVersion: 101050 101051
+## Description: The PURE HATE Rush of Agony Beam - PvP-only set beam. Requires LibGroupBroadcast for group visibility.
+## SavedVariables: RushAgonyBeamSavedVariables LibSetDetectionSavedVariables
+## ConsoleOptionalDependsOn: LibAddonMenu-2.0 LibGroupBroadcast
+## PCOptionalDependsOn: LibAddonMenu-2.0 LibGroupBroadcast
+
+lib/LibEquipmentBonus/LibEquipmentBonus.lua
+lib/LibSetDetection/LibSetDetection.lua
+RushAgonyBeam.lua

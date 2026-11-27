@@ -1,0 +1,42 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Beardborn/MANA-Recycling__5122",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Beardborn",
+  "canonical_id": "esoui:5122",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5122",
+  "deleted": false,
+  "directories": [
+    "MANARecycling"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5122/",
+  "fingerprint": "23a8e659a25654df92efa685837d1c60a2aebe7d866a0395bf29938b90178a26",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18829.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5122",
+  "source_url": "https://www.esoui.com/downloads/info5122-MANARecycling.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 2,
+    "monthly_downloads": 2
+  },
+  "title": "MANA Recycling",
+  "updated_at": 1795785784000,
+  "version": "1.0.1"
+}

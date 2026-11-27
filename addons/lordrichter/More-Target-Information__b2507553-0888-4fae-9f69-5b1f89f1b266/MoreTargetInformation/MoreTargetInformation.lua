@@ -7,7 +7,7 @@
 ----------------------------------------------------------------------------------------------------------------------------------------
 local AddonInfo = {
   addon = "MoreTargetInformation",
-  version = "3.49.0",
+  version = "3.52.0",
   author = "Lord Richter",
   savename = "MoreTargetInformationVars"
 }
@@ -78,12 +78,9 @@ local Encounter = {
 local gender = { "Female" , "Male" }
 
 -- localize calls to ESO API
-local UNIT_TYPE_PLAYER = 1
-local UNIT_TYPE_MONSTER = 2
-local UNIT_TYPE_OTHER = 11
-local GetAllianceName = GetAllianceName 
+local CHAT_ROUTER = CHAT_ROUTER
+local GetAllianceName = GetAllianceName
 local GetAllianceSymbolIcon = ZO_GetAllianceSymbolIcon
-local ZO_GetAllianceSymbolIcon = ZO_GetAllianceSymbolIcon
 local GetAvARankName = GetAvARankName
 local GetGuildId = GetGuildId
 local GetGuildMemberCharacterInfo = GetGuildMemberCharacterInfo
@@ -92,7 +89,6 @@ local GetGuildName = GetGuildName
 local GetMapName = GetMapName
 local GetNumGuildMembers = GetNumGuildMembers
 local GetPlatformClassIcon = ZO_GetPlatformClassIcon
-local ZO_GetPlatformClassIcon  = ZO_GetPlatformClassIcon
 local GetSetting = GetSetting
 local GetUniqueNameForCharacter = GetUniqueNameForCharacter
 local GetUnitAlliance = GetUnitAlliance
@@ -102,7 +98,7 @@ local GetUnitChampionPoints = GetUnitChampionPoints
 local GetUnitClass = GetUnitClass
 local GetUnitClassId = GetUnitClassId
 local GetUnitDisplayName = GetUnitDisplayName
-local GetUnitGender = GetUnitGender 
+local GetUnitGender = GetUnitGender
 local GetUnitLevel = GetUnitLevel
 local GetUnitName = GetUnitName
 local GetUnitRace = GetUnitRace
@@ -113,15 +109,20 @@ local GetUnitType = GetUnitType
 local GetUnitZone = GetUnitZone
 local IsInGamepadPreferredMode = IsInGamepadPreferredMode
 local IsUnitFriend = IsUnitFriend
-local IsUnitGrouped = IsUnitGrouped
 local IsUnitGroupLeader = IsUnitGroupLeader
+local IsUnitGrouped = IsUnitGrouped
 local IsUnitIgnored = IsUnitIgnored
 local IsUnitInvulnerableGuard = IsUnitInvulnerableGuard
 local IsUnitJusticeGuard = IsUnitJusticeGuard
+local UNIT_TYPE_MONSTER = 2
+local UNIT_TYPE_OTHER = 11
+local UNIT_TYPE_PLAYER = 1
+local ZO_GetAllianceSymbolIcon = ZO_GetAllianceSymbolIcon
+local ZO_GetPlatformClassIcon  = ZO_GetPlatformClassIcon
 local ZO_GetPrimaryPlayerName = ZO_GetPrimaryPlayerName
+local ZO_FormatUserFacingCharacterName = ZO_FormatUserFacingCharacterName
 local zo_iconFormat = zo_iconFormat
 local zo_strformat = zo_strformat
-local CHAT_ROUTER = CHAT_ROUTER
 
 -- define icons
 local ICON_SIZE = 24
@@ -172,10 +173,10 @@ end
 -- ----------------------------------------------------------------------------------------------------------------------
 -- Override ZOS function with ours
 -- ----------------------------------------------------------------------------------------------------------------------
-function ZO_GetPrimaryPlayerNameWithSecondary(displayName, characterName)
-  local primaryName = ZO_GetPrimaryPlayerName(displayName, characterName, true)
-  return primaryName
-end
+--function ZO_GetPrimaryPlayerNameWithSecondary(crossplayDisplayName, characterName, platformDisplayName)
+--  local primaryName = ZO_GetPrimaryPlayerName(crossplayDisplayName, characterName, platformDisplayName, true)
+--  return primaryName
+--end
 
 -- ----------------------------------------------------------------------------------------------------------------------
 -- UI Refresh
@@ -391,7 +392,7 @@ local function MTIOnTargetChange(eventCode)
 
 
     Encounter.name.primary = name
-    Encounter.name.secondary = GetUnitDisplayName(unitTag)
+    Encounter.name.secondary = ZO_FormatUserFacingCharacterName(GetUnitDisplayName(unitTag))
     Encounter.guildname = ""
 
     -- if ignored, summary information, otherwise more detailed

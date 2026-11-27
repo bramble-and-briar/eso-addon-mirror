@@ -1,4 +1,4 @@
-HUDMoveUI = {name="HUDMoveUI",version="1.0.0-test",entries={}}
+HUDMoveUI = {name="HUDMoveUI",version="1.1.0-test",entries={}}
 local H=HUDMoveUI
 local function add(key,title,section,names,w,h,x,y,resolve)
     H.entries[#H.entries+1]={key=key,title=title,section=section,names=names,w=w,h=h,x=x,y=y,resolve=resolve}

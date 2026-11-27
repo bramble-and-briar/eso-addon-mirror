@@ -3,6 +3,9 @@
 -- No third-party addon source tables are used in this file.
 -- One status group may contain several ESO source-specific effect IDs.
 -- All times and active effects are read from actual ESO runtime events.
+local M=RamaladniMastery
+local tonumber = tonumber
+local type = type
 local catalog={buff={
   ["Major Aegis"]={93123, 93125, 93444, 135926, 137989, 179756, 193731, 194171},
   ["Major Berserk"]={36973, 61745, 62195, 84310, 134094, 134433, 143992, 147421, 150757, 172866, 188408, 219674, 221601, 249159, 263248, 263306, 267420},
@@ -105,4 +108,4 @@ function Groups.Contains(key,id)
   local kind=key:sub(1,colon-1)
   return Groups.Find(kind,id)==key
 end
-RamaladniEffectGroups=Groups
+M.EffectGroups=Groups

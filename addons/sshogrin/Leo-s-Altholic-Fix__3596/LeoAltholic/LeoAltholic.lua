@@ -1,4 +1,4 @@
-
+local LeoAltholic = LeoAltholic
 LeoAltholic.timerQueue = {}
 LeoAltholic.charList = {}
 LeoAltholic.lastUpdatedCharList = nil
@@ -147,14 +147,14 @@ function LeoAltholic.GetSortedCharList()
 end
 
 local function refreshSkillUI()
-    if LeoAltholicUI then
-        if LeoAltholicUI.skillsList then
-            LeoAltholicUI.skillsList:RefreshData()
-            LeoAltholicUI.skillsList:RefreshFilters()
+    if LeoAltholic.UI then
+        if LeoAltholic.UI.skillsList then
+            LeoAltholic.UI.skillsList:RefreshData()
+            LeoAltholic.UI.skillsList:RefreshFilters()
         end
-        if LeoAltholicUI.skills2List then
-            LeoAltholicUI.skills2List:RefreshData()
-            LeoAltholicUI.skills2List:RefreshFilters()
+        if LeoAltholic.UI.skills2List then
+            LeoAltholic.UI.skills2List:RefreshData()
+            LeoAltholic.UI.skills2List:RefreshFilters()
         end
     end
 end
@@ -270,7 +270,7 @@ local function checkQuestForWrits(questName)
             LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastStarted = GetTimeStamp()
             LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastPreDeliver = nil
             LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastUpdated = nil
-            LeoAltholicChecklistUI.startedWrit(trackedQuest.craft)
+            LeoAltholic.ChecklistUI.startedWrit(trackedQuest.craft)
             local numConditions = GetJournalQuestNumConditions(trackedQuest.questIndex, QUEST_MAIN_STEP_INDEX)
             local hasUpdated = false
             for condition = 1, numConditions do
@@ -281,16 +281,16 @@ local function checkQuestForWrits(questName)
                 local condText = GetJournalQuestConditionInfo(trackedQuest.questIndex, QUEST_MAIN_STEP_INDEX, condition)
                 if string.find(condText, GetString(LEOALT_DELIVER)) then
                     LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastPreDeliver = GetTimeStamp()
-                    LeoAltholicChecklistUI.preDeliverWrit(trackedQuest.craft)
+                    LeoAltholic.ChecklistUI.preDeliverWrit(trackedQuest.craft)
                     hasUpdated = false
                     break
                 end
             end
             if hasUpdated then
                 LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastUpdated = GetTimeStamp()
-                LeoAltholicChecklistUI.updateWrit(trackedQuest.craft)
+                LeoAltholic.ChecklistUI.updateWrit(trackedQuest.craft)
             end
-            LeoAltholicUI.writsList:RefreshData()
+            LeoAltholic.UI.writsList:RefreshData()
             return
         end
     end
@@ -897,7 +897,7 @@ local function onResearchStarted(eventCode, craft, line, trait)
         doneAt = remaining + GetTimeStamp()
     })
     if LeoAltholic.IsTabVisible(LeoAltholic.TAB_RESEARCH) then
-        LeoAltholicUI.researchList:RefreshData()
+        LeoAltholic.UI.researchList:RefreshData()
     end
 end
 
@@ -906,7 +906,7 @@ local function onResearchCanceled(eventCode, craft, line, trait)
         if research.line == line and research.trait == trait then
             table.remove(LeoAltholic.globalData.CharList[LeoAltholic.CharName].research.doing[craft], i)
             if LeoAltholic.IsTabVisible(LeoAltholic.TAB_RESEARCH) then
-                LeoAltholicUI.researchList:RefreshData()
+                LeoAltholic.UI.researchList:RefreshData()
             end
             return
         end
@@ -941,7 +941,7 @@ local function onResearchCompleted(eventCode, craft, line, trait)
         LeoAltholic.log(msg)
     end
     if LeoAltholic.IsTabVisible(LeoAltholic.TAB_RESEARCH) then
-        LeoAltholicUI.researchList:RefreshData()
+        LeoAltholic.UI.researchList:RefreshData()
     end
 end
 
@@ -1049,46 +1049,46 @@ local function onUpdate()
     processQueue()
 
     updateMyself()
-    LeoAltholicChecklistUI.checkReset()
-    LeoAltholicToolbarUI:update()
+    LeoAltholic.ChecklistUI.checkReset()
+    LeoAltholic.ToolbarUI:update()
 
     LeoAltholic.numUpdates = LeoAltholic.numUpdates + 1
 
     if LeoAltholic.numUpdates >= 1800 then -- 3600 seconds = 1h, forces update every hour
         LeoAltholic.numUpdates = 1
         if LeoAltholic.IsTabVisible(LeoAltholic.TAB_RESEARCH) then
-            LeoAltholicUI.researchList:RefreshData()
+            LeoAltholic.UI.researchList:RefreshData()
         end
     end
 
     if LeoAltholic.isHidden() then return end
 
     if LeoAltholic.IsTabVisible(LeoAltholic.TAB_BIO) then
-        LeoAltholicUI:updateBio()
+        LeoAltholic.UI:updateBio()
     end
     if LeoAltholic.IsTabVisible(LeoAltholic.TAB_RESEARCH) then
-        LeoAltholicUI:updateResearch()
+        LeoAltholic.UI:updateResearch()
     end
     if LeoAltholic.IsTabVisible(LeoAltholic.TAB_INVENTORY) then
-        LeoAltholicUI.UpdateInventory()
+        LeoAltholic.UI.UpdateInventory()
     end
 
     --[[
     if LeoAltholic.numUpdates >= 30 then -- 60 seconds
         LeoAltholic.numUpdates = 1
-        LeoAltholicChecklistUI.update()
+        LeoAltholic.ChecklistUI.update()
         For reference only!!
-        LeoAltholicUI.bioList:RefreshData()
-        LeoAltholicUI.statsList:RefreshData()
-        LeoAltholicUI.championList:RefreshData()
-        LeoAltholicUI.invList:RefreshData()
-        LeoAltholicUI.skillsList:RefreshData()
-        LeoAltholicUI.skills2List:RefreshData()
-        LeoAltholicUI.researchList:RefreshData()
-        LeoAltholicUI.writsList:RefreshData()
+        LeoAltholic.UI.bioList:RefreshData()
+        LeoAltholic.UI.statsList:RefreshData()
+        LeoAltholic.UI.championList:RefreshData()
+        LeoAltholic.UI.invList:RefreshData()
+        LeoAltholic.UI.skillsList:RefreshData()
+        LeoAltholic.UI.skills2List:RefreshData()
+        LeoAltholic.UI.researchList:RefreshData()
+        LeoAltholic.UI.writsList:RefreshData()
     else
         if LeoAltholic.IsTabVisible(LeoAltholic.TAB_RESEARCH) then
-            LeoAltholicUI:updateResearch()
+            LeoAltholic.UI:updateResearch()
         end
     end
     ]]
@@ -1130,7 +1130,7 @@ local function trackQuest(questId, automatically)
     end
     LeoAltholic.log(GetString(LEOALT_TRACKING) .. " " .. quest.name .. "...")
     if quest.isCrafting then
-        LeoAltholicUI.writsList:RefreshData()
+        LeoAltholic.UI.writsList:RefreshData()
     end
 end
 
@@ -1153,7 +1153,7 @@ local function onQuestCounterChanged(eventCode, journalQuestIndex, questName, co
     for i,trackedQuest in pairs(LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs) do
         if (trackedQuest.name == questName) then
             LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastUpdated = GetTimeStamp()
-            LeoAltholicChecklistUI.updateWrit(trackedQuest.craft)
+            LeoAltholic.ChecklistUI.updateWrit(trackedQuest.craft)
 
             local numConditions = GetJournalQuestNumConditions(journalQuestIndex, QUEST_MAIN_STEP_INDEX)
             for condition = 1, numConditions do
@@ -1161,11 +1161,11 @@ local function onQuestCounterChanged(eventCode, journalQuestIndex, questName, co
                 local condText = GetJournalQuestConditionInfo(journalQuestIndex, QUEST_MAIN_STEP_INDEX, condition)
                 if string.find(condText, GetString(LEOALT_DELIVER)) then
                     LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastPreDeliver = GetTimeStamp()
-                    LeoAltholicChecklistUI.preDeliverWrit(trackedQuest.craft)
+                    LeoAltholic.ChecklistUI.preDeliverWrit(trackedQuest.craft)
                     break
                 end
             end
-            LeoAltholicUI.writsList:RefreshData()
+            LeoAltholic.UI.writsList:RefreshData()
 
             return
         end
@@ -1179,8 +1179,8 @@ local function onQuestRemoved(eventCode, isCompleted, journalQuestIndex, questNa
                 LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastStarted = nil
                 LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastPreDeliver = nil
                 LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastUpdated = nil
-                LeoAltholicChecklistUI.stoppedWrit(trackedQuest.craft)
-                LeoAltholicUI.writsList:RefreshData()
+                LeoAltholic.ChecklistUI.stoppedWrit(trackedQuest.craft)
+                LeoAltholic.UI.writsList:RefreshData()
                 return
             end
         end
@@ -1192,8 +1192,8 @@ local function onQuestComplete(eventCode, questName, level, previousExperience, 
         if (trackedQuest.name == questName) then
             LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastDone = GetTimeStamp()
             LeoAltholic.log(ZO_CachedStrFormat(GetString(LEOALT_QUEST_DONE_TODAY), questName))
-            LeoAltholicUI.writsList:RefreshData()
-            LeoAltholicChecklistUI.doneWrit(trackedQuest.craft)
+            LeoAltholic.UI.writsList:RefreshData()
+            LeoAltholic.ChecklistUI.doneWrit(trackedQuest.craft)
             return
         end
     end
@@ -1265,16 +1265,9 @@ local function findIteminBank(bagId, slotIndex)
 end
 
 local function onUpdateBank(eventCode, bagId, slotId, isNewItem, itemSoundCategory, inventoryUpdateReason, stackCountChange)
-    if inventoryUpdateReason ~= INVENTORY_UPDATE_REASON_DEFAULT or (bagId ~= BAG_BANK and bagId ~= BAG_SUBSCRIBER_BANK) then return end
-
     local itemLink = GetItemLink(bagId, slotId)
-    local removed = false
+    local removed = (itemLink == nil or itemLink == "")
     local found = findIteminBank(bagId, slotId)
-
-    if itemLink == nil or itemLink == "" then
-        removed = true
-        itemLink = findIteminBank(bagId, slotId)
-    end
 
     if not found and stackCountChange > 0 then
         addToBank(bagId, slotId, itemLink, nil, stackCountChange)
@@ -1291,16 +1284,18 @@ local function onCloseBank(eventCode, bagId)
 end
 
 local function onOpenBank(eventCode, bagId)
-    if bagId ~= BAG_BANK and bagId ~= BAG_SUBSCRIBER_BANK or not LeoAltholic.globalData.settings.inventory.enabled then return end
+    if (bagId ~= BAG_BANK and bagId ~= BAG_SUBSCRIBER_BANK) or not LeoAltholic.globalData.settings.inventory.enabled then return end
     
     EVENT_MANAGER:UnregisterForEvent(LeoAltholic.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
     EVENT_MANAGER:UnregisterForEvent(LeoAltholic.name .. "_SubBank", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 
     EVENT_MANAGER:RegisterForEvent(LeoAltholic.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onUpdateBank)
     EVENT_MANAGER:AddFilterForEvent(LeoAltholic.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BANK)
+    EVENT_MANAGER:AddFilterForEvent(LeoAltholic.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 
     EVENT_MANAGER:RegisterForEvent(LeoAltholic.name .. "_SubBank", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onUpdateBank)
     EVENT_MANAGER:AddFilterForEvent(LeoAltholic.name .. "_SubBank", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_SUBSCRIBER_BANK)
+    EVENT_MANAGER:AddFilterForEvent(LeoAltholic.name .. "_SubBank", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
 
     scanBank()
 end
@@ -1395,8 +1390,8 @@ local function initializeVars()
         }
     end
 
-    LeoAltholicChecklistUI.normalizeSettings()
-    LeoAltholicToolbarUI.normalizeSettings()
+    LeoAltholic.ChecklistUI.normalizeSettings()
+    LeoAltholic.ToolbarUI.normalizeSettings()
 
     if not LeoAltholic.globalData.dataVersion or LeoAltholic.globalData.dataVersion < 2 then
         migrateDataToV2()
@@ -1421,7 +1416,7 @@ local function onGameMenuEnter()
 end
 
 local function onGameMenuExit()
-    LeoAltholicChecklistUI:CheckHide()
+    LeoAltholic.ChecklistUI:CheckHide()
 end
 
 local function initialize()
@@ -1457,10 +1452,10 @@ local function initialize()
 
 
     LeoAltholic.RestorePosition()
-    LeoAltholicToolbarUI.RestorePosition()
-    LeoAltholicChecklistUI.RestorePosition()
+    LeoAltholic.ToolbarUI.RestorePosition()
+    LeoAltholic.ChecklistUI.RestorePosition()
 
-    LeoAltholicUI.InitPanels()
+    LeoAltholic.UI.InitPanels()
     createMessageQueue()
 
     --[[
@@ -1505,16 +1500,16 @@ local function initialize()
             end)
     ]]
 
-    LeoAltholic.settings = LeoAltholic_Settings:New()
+    LeoAltholic.settings = LeoAltholic.Settings:New()
     LeoAltholic.settings:CreatePanel()
 
     LeoAltholic.initialized = true
     CALLBACK_MANAGER:FireCallbacks("LeoAltholicInitialized")
-    LeoAltholicToolbarUI:update()
-    LeoAltholicChecklistUI.initializeQuests()
-    LeoAltholicChecklistUI.update()
-    LeoAltholicUI:updateResearch()
-    LeoAltholicUI.InitInventory()
+    LeoAltholic.ToolbarUI:update()
+    LeoAltholic.ChecklistUI.initializeQuests()
+    LeoAltholic.ChecklistUI.update()
+    LeoAltholic.UI:updateResearch()
+    LeoAltholic.UI.InitInventory()
 end
 
 local orig_ZO_QuestJournalNavigationEntry_OnMouseUp = ZO_QuestJournalNavigationEntry_OnMouseUp
@@ -1562,8 +1557,8 @@ local function onRidingSkillImprovement(ridingSkill, previous, current, source)
         speedMax = riding[6],
         time = ridetime
     }
-    LeoAltholicChecklistUI.doneRiding()
-    LeoAltholicUI.bioList:RefreshData()
+    LeoAltholic.ChecklistUI.doneRiding()
+    LeoAltholic.UI.bioList:RefreshData()
 end
 
 local function onChampionPointsChanged()
@@ -1580,7 +1575,7 @@ local function onChampionPointsChanged()
             LeoAltholic.globalData.CharList[LeoAltholic.CharName].champion[disciplineIndex].skills[skill] = GetNumPointsSpentOnChampionSkill(id)
         end
     end
-    LeoAltholicUI.championList:RefreshData()
+    LeoAltholic.UI.championList:RefreshData()
 end
 
 local function onAddOnLoaded(event, addonName)
@@ -1600,7 +1595,7 @@ local function onAddOnLoaded(event, addonName)
         end
 
         if cmd == "checklist" then
-            LeoAltholicChecklistUI.ToggleUI()
+            LeoAltholic.ChecklistUI.ToggleUI()
             return
         end
     end

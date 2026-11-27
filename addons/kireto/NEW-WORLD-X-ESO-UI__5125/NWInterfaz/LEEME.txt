@@ -1,0 +1,427 @@
+NW INTERFAZ  v1.8.1  ·  Addon para The Elder Scrolls Online (PC, modo teclado)
+==============================================================================
+
+NOVEDADES 1.8.1
+---------------
+  · La marca "!" de los objetos nuevos parpadea (se enciende y se apaga
+    suavemente), como en el juego original. Solo parpadea la marca.
+  · Las pestañas OBJETOS, ARCÓN DE ARTESANÍA y OBJETOS RÁPIDOS también
+    muestran la marca parpadeando cuando tienen algo nuevo (OBJETOS RÁPIDOS:
+    consumibles nuevos que se pueden asignar). Se quita sola cuando ya no
+    queda nada nuevo en esa pestaña.
+
+NOVEDADES 1.8.0
+---------------
+  · Objetos nuevos: todo lo que recojas o te den aparece primero dentro de
+    su sección (el más reciente arriba) y lleva una marca, un círculo blanco
+    con "!" en la esquina superior izquierda (textures/nuevo.dds).
+  · La marca desaparece al pasar el ratón por encima, igual que en el juego
+    original (y el juego también deja de considerarlo nuevo). El objeto
+    vuelve a su lugar normal la próxima vez que se reordena el inventario.
+  · La primera vez hay que cerrar y abrir el juego (archivo de imagen nuevo).
+
+NOVEDADES 1.7.4
+---------------
+  · Corregido de raíz: el icono del arma se quedaba oculto al abrir el
+    inventario. Al ocultarse el HUD, el juego reportaba el icono como
+    "oculto" y el addon lo dejaba así para siempre; ahora usa su propio
+    estado y vuelve a aparecer al cerrar la ventana.
+
+NOVEDADES 1.7.3
+---------------
+  · Corregido: el icono del arma activa se quedaba oculto aunque el arma sí
+    estaba equipada. Ahora conserva el último icono mostrado mientras haya un
+    arma en esa mano, y se revisa por separado cada segundo (si otra parte
+    del HUD falla, el icono se sigue actualizando).
+  · /nwui arma muestra más datos y fuerza un refresco del icono.
+
+NOVEDADES 1.7.2
+---------------
+  · Corregido: el icono del arma ya no desaparece al abrir y cerrar ventanas
+    (inventario, tienda...). Ahora va anclado al contenedor del addon y no al
+    botón del juego, el HUD del addon se dibuja por encima de la barra del
+    juego y se recoloca cada vez que vuelve el HUD.
+  · Nuevo comando /nwui arma: muestra el estado del icono del arma.
+
+NOVEDADES 1.7.1
+---------------
+  · El marco de cada habilidad va pegado al icono (cuadro más chico) y las
+    habilidades quedan más juntas (separación 3; ajustable en Ajustes).
+  · La barra inactiva se centra sobre la activa; como lleva su icono de arma
+    a la izquierda, sus habilidades quedan un poco a la derecha del centro.
+  · Corregido: el icono del arma ya no desaparece tras cambiar varias veces
+    de barra (se guarda el último icono válido y se revisa cada segundo).
+
+NOVEDADES 1.7.0
+---------------
+  · Las dos barras de habilidades se ven a la vez: la inactiva arriba y más
+    chica (solo de vista), la activa abajo con su tamaño normal.
+  · La flecha del juego que marcaba la barra activa se quita. En su lugar se
+    muestra el icono del arma equipada (iconos del propio juego): hacha,
+    maza, espada, daga, mandoble, hacha y mazo a dos manos, arco, bastón y
+    escudo (espada y escudo). Con dos armas de una mano se dibujan cruzadas.
+    La barra inactiva también muestra el icono de su arma, en pequeño.
+  · Animación al cambiar de barra: la que queda inactiva sube y se encoge,
+    la nueva aparece desde arriba y el icono del arma hace un pequeño "pop".
+  · Hay dos versiones del paquete:
+      CON barrido: además, todas las casillas se oscurecen y se iluminan con
+      un barrido circular en el sentido del reloj (duración ajustable).
+      SIN barrido: solo la animación de cambio.
+    La variante se fija en Build.lua (NWUI.BUILD_SWEEP = true / false).
+  · Opciones nuevas en Ajustes > Habilidades.
+
+NOVEDADES 1.6.2
+---------------
+  · Marco del nivel más pequeño (el número mantiene su tamaño) e icono de
+    Campeón más grande, ocupando casi todo el alto del hexágono.
+
+NOVEDADES 1.6.1
+---------------
+  · Marco del nivel actualizado al nuevo diseño (hexágono más compacto y
+    línea inferior con rombo), con el mismo fondo negro translúcido detrás.
+
+NOVEDADES 1.6.0
+---------------
+  · Nuevo marco del nivel / Campeón con diseño propio (imagen en
+    textures/nivel_marco.dds) y, detrás, el fondo negro translúcido en
+    degradado recortado con la forma del hexágono (textures/nivel_fondo.dds).
+    Más ligero que antes: 2 texturas en lugar de ~70 franjas.
+    La primera vez hay que cerrar y abrir el juego (archivos nuevos).
+
+NOVEDADES 1.5.8
+---------------
+  · Con la rueda del juego abierta, los paneles de NW Interfaz pasan a una
+    capa superior para que las ventanas originales (invisibles) no se queden
+    con el ratón. Nuevo comando /nwui raton: dice qué hay bajo el ratón.
+
+NOVEDADES 1.5.7
+---------------
+  · Con la rueda del juego abierta se pueden usar los objetos asignables:
+    la ventana original de objetos rápidos (que se abre con la rueda) ya no
+    tapa el panel. Arrastrar al centro, clic en el objeto y luego clic en la
+    casilla, o doble clic para la primera casilla libre.
+
+NOVEDADES 1.5.6
+---------------
+  · OBJETOS RÁPIDOS usa la rueda ORIGINAL del juego en el centro de la
+    pantalla: se abre con la pestaña OBJETOS RÁPIDOS o con la tecla Q (la del
+    juego) desde cualquier pestaña del inventario; al abrirla, el panel muestra
+    los objetos asignables, y al cerrarla vuelve a OBJETOS. Arrastra los
+    asignables a la rueda: se reemplaza lo que haya en esa casilla.
+
+NOVEDADES 1.5.5
+---------------
+  · Al empezar a arrastrar un objeto se oculta su ventana de información,
+    para que no tape la rueda. La rueda se actualiza en cuanto cambia una
+    casilla.
+
+NOVEDADES 1.5.4
+---------------
+  · Soltar un objeto en una casilla de la rueda ahora lo coloca de verdad y
+    reemplaza al anterior: las casillas usan el mismo control que la rueda del
+    juego. También se puede arrastrar desde una casilla de la rueda a otra.
+    Clic: elegir destino · clic derecho: menú del juego para vaciarla.
+
+NOVEDADES 1.5.3
+---------------
+  · OBJETOS RÁPIDOS: la rueda se dibuja en círculo, igual que la del juego
+    (mismo orden), con tu tecla al centro.
+  · Debajo del título: "PRESIONA Q PARA ABRIR LOS OBJETOS RÁPIDOS" (usa la
+    tecla que tengas asignada).
+  · Arrastrar: los objetos se levantan con el arrastre del propio juego y se
+    pueden soltar en cualquier casilla de la rueda. La lista de asignables ya
+    no se sale por la derecha.
+
+NOVEDADES 1.5.2
+---------------
+  · Botón "► DEPOSITAR FONDOS" abajo a la derecha del inventario cuando
+    estás en el banco (abre el diálogo del juego para depositar oro y otras
+    monedas). En el panel del banco, "► RETIRAR FONDOS". En el banco del
+    gremio, según tus permisos. La pista "Doble clic: ..." pasa a la izquierda.
+
+NOVEDADES 1.5.1
+---------------
+  · Ya no aparece "Vacío" detrás cuando todas las secciones están plegadas.
+  · Objetos rápidos: las pistas ("clic: destino...", "clic o arrastrar...")
+    van en su propia línea bajo el título, en negrita y doradas.
+  · Monedas: "Banco: ..." en dorado y negrita, más pequeño y tenue que la
+    cantidad principal; aparece en toda moneda que se pueda guardar en el
+    banco y que tengas allí.
+
+NOVEDADES 1.5.0
+---------------
+  · Idiomas: el addon se pone solo en el idioma del juego. Español, inglés y
+    portugués; otros idiomas (alemán, francés...) usan inglés. Se puede forzar
+    en Ajustes > Idioma del addon (requiere /reloadui).
+  · Textos que dependen del idioma se ajustan solos: títulos de sección y de
+    pestaña reducen la letra si no caben.
+  · Cabeceras (INVENTARIO, MONEDA, OBJETOS DE MISIÓN...): todas con el MISMO
+    tamaño de letra; la separación entre letras se adapta al espacio de cada
+    una y nunca tapan el candado.
+  · "Asignación de teclas" ahora se llama OBJETOS RÁPIDOS.
+  · /nwui move también funciona (además de /nwui mover).
+
+NOVEDADES 1.4.7
+---------------
+  · Cuadro de la montura más pequeño (112) y solo con la montura; el nombre
+    aparece al pasar el ratón por encima.
+
+NOVEDADES 1.4.6
+---------------
+  · Pie del inventario: lingotes comerciales, sellos de empeño, puntos de
+    alianza, piedras Tel Var, vales de encargo y llaves de los Intrépidos.
+    La pista "Doble clic: ..." va en su propia línea; si las monedas no caben,
+    la letra se reduce sola. Los lingotes también salen en la pestaña MONEDA.
+  · Títulos (ARMADURA, JOYERÍA, ARMAS, OBJETOS, MONTURA, secciones...) un poco
+    más gruesos.
+  · Cabeceras (INVENTARIO, BANCO, MONEDA, OBJETOS DE MISIÓN...) con la misma
+    separación entre letras en todas; si un título no cabe, se reduce la letra
+    en vez de chocar con el candado. Candado más cerca del número.
+
+NOVEDADES 1.4.5
+---------------
+  · El nombre de la pestaña (OBJETOS, MONEDA...) va a la izquierda con su
+    línea dorada, alineado y con la misma separación que ARMAS y MONTURA.
+  · Títulos con letra romana de inscripción (Trajan, la del propio juego,
+    en la que se basa Cinzel): ARMADURA, JOYERÍA, MUNDUS, ARMAS, OBJETOS,
+    MONTURA, ESTADÍSTICAS, secciones del inventario y cabeceras de paneles.
+
+NOVEDADES 1.4.4
+---------------
+  · Funciona sin ningún otro addon. LibAddonMenu-2.0 solo hace falta para el
+    menú de ajustes (sin ella: /nwui mover, /nwui reset y /nwui diag siguen
+    funcionando). TTC, TTC Simple Price, Bandits y Azurah son opcionales.
+  · Manifiesto listo para ESOUI / Minion (aviso legal de ZeniMax, versión
+    mínima de LibAddonMenu).
+
+QUÉ NECESITA
+------------
+  · Obligatorio: nada.
+  · Recomendado: LibAddonMenu-2.0 (menú de ajustes). Viene en el paquete
+    "TodoEnUno".
+  · Opcional: Tamriel Trade Centre (+ TTC Simple Price) para ver precios;
+    Bandits User Interface y Azurah son compatibles.
+
+NOVEDADES 1.4.3
+---------------
+  · Candado blanco en las piezas equipadas (armadura, armas, joyería) que
+    estén bloqueadas, igual que en el inventario. Se actualiza al bloquear o
+    desbloquear.
+
+NOVEDADES 1.4.2
+---------------
+  · Fondo del hexágono de nivel negro translúcido. El borde dorado ahora es
+    solo contorno (no se transparenta por detrás) y las puntas se dibujan
+    píxel a píxel, así el translúcido queda uniforme.
+
+NOVEDADES 1.4.1
+---------------
+  · Barras de atributos un poco más altas: magia y aguante 16 (números más
+    legibles), vida 28 y sigue siendo la principal. También las barras junto
+    al inventario (16 / 16 / 22).
+
+NOVEDADES 1.4.0
+---------------
+  · Secciones plegables (como en New World): clic en el título de cualquier
+    sección (ARMAS, CONSUMIBLES...) o en su flecha para guardarla u abrirla.
+    Animación rápida (~0,2 s): los objetos se desvanecen y las secciones de
+    abajo se deslizan. Si haces clic a mitad de una animación, la siguiente
+    parte desde donde iba, sin saltos. Se recuerda por inventario, banco y
+    gremio. Al buscar se muestran todas.
+  · Fondo de los paneles negro translúcido (como el cuadro de la montura).
+    Ajustable en Ajustes > Opacidad del fondo negro de los paneles (62 %).
+
+NOVEDADES 1.3.8
+---------------
+  · Montura: título "MONTURA" fuera del cuadro, con el mismo estilo que ARMAS
+    y JOYERÍA. Cuadro cuadrado de fondo negro translúcido, centrado bajo la
+    casilla de en medio de las armas; icono grande recortado (sin fondo gris
+    detrás) y nombre centrado en hasta 2 líneas.
+  · Velocidad, aguante y capacidad en negrita.
+
+NOVEDADES 1.3.7
+---------------
+  · Icono de la montura más grande (64), centrado bajo la casilla de en medio
+    de las armas; el nombre va debajo del icono.
+  · Velocidad, aguante y capacidad, cada uno en su línea debajo del cuadro,
+    sin fondo y con letra más grande.
+
+NOVEDADES 1.3.6
+---------------
+  · El nombre de la pestaña activa (OBJETOS, OBJETOS DE MISIÓN...) va ahora
+    centrado encima de los 5 iconos.
+  · Cuadro gris con la montura equipada debajo de las pestañas: icono, nombre
+    y entrenamiento del establo (velocidad, aguante, capacidad). Se actualiza
+    solo al cambiar de montura o de personaje; admite montura aleatoria.
+    Pasa el ratón por encima para ver su descripción.
+
+NOVEDADES 1.3.5
+---------------
+  · Al pasar del banco al inventario, el inventario vuelve a su sitio sin
+    tener que cerrarlo y abrirlo otra vez.
+  · Las estadísticas vuelven a aparecer junto a la armadura siempre que se
+    abre el inventario. Si un bloque quedó guardado fuera de la pantalla,
+    vuelve solo a su posición de fábrica.
+  · Nuevas barras de atributos (magia, aguante, vida) estrechas, abajo a la
+    izquierda del inventario, como en New World. Se pueden mover con /nwui mover.
+
+NOVEDADES 1.3.4
+---------------
+  · Los bordes de las casillas ya no se cortan al bajar la barra: el
+    desplazamiento y las posiciones caen siempre en píxeles enteros (según la
+    escala de la interfaz) y el borde nunca baja de 1 píxel real.
+  · Tipo de armadura y cantidad equipada más grandes y en negrita.
+  · Nombre de la piedra de Mundus más grande y en negrita.
+  · "Doble clic: depositar/retirar" en negrita y blanco.
+
+NOVEDADES 1.3.3
+---------------
+  · Corregida la búsqueda: ya se puede escribir en el inventario, el banco
+    y el banco del gremio (con o sin candado). Clic en el recuadro para
+    escribir; Esc borra la búsqueda (y un segundo Esc sale del cuadro);
+    clic derecho en el recuadro también la borra.
+
+NOVEDADES 1.3.2
+---------------
+  · Fondo de color de cada objeto más transparente (conserva el color de su
+    calidad). Ajustable en Ajustes > Opacidad del fondo de color (35 % por defecto).
+
+NOVEDADES 1.3.1
+---------------
+  · Corregido el error "UseItem ... insecure code" al abrir geodas, cofres
+    y cualquier contenedor. El clic derecho (menú) y el doble clic sobre los
+    objetos ahora los gestiona el propio juego, igual que en su inventario.
+
+NOVEDADES 1.3
+-------------
+  · Bancos e inventario más rápidos al abrir:
+    - el precio de cada objeto se consulta una sola vez por sesión (caché);
+      con TTC Simple Price se usa su función una vez y se reutiliza el resultado;
+    - primero se dibuja lo que se ve y el resto se completa en los siguientes
+      cuadros, así el panel aparece al instante;
+    - se evita el doble refresco que provocaba el juego al abrir el banco.
+    Los precios nuevos de TTC se ven tras /reloadui (igual que en TTC).
+  · Candado en cada panel para fijarlo; la barra de desplazamiento ya no mueve
+    la ventana. Precios sin decimales.
+
+NOVEDADES 1.2.1
+---------------
+  · Marco gris oscuro en cada icono de habilidad y consumible. Está anclado a
+    los bordes del botón, así que sigue cualquier tamaño que elijas.
+    Grosor ajustable (0 = sin marco).
+  · Barras de atributos con borde fino y separación visible entre las tres
+    (gris oscuro o dorado, a elegir en los ajustes).
+
+NOVEDADES 1.2
+-------------
+  · Pestañas propias con el mismo diseño del inventario (bajo las armas):
+    Objetos, Arcón de artesanía, Moneda, Objetos de misión y Asignación de
+    teclas. En Asignación de teclas: clic en una casilla de la rueda para
+    elegirla como destino, clic (o arrastrar) un consumible para asignarlo,
+    clic derecho en la rueda para quitarlo. En el arcón: doble clic para retirar.
+  · Espacio del inventario, oro y monedas DENTRO del recuadro, más grandes.
+  · Equipo equipado más grande, en 2 columnas, estadísticas en vertical a la
+    derecha de la armadura y bloque MUNDUS con su título.
+
+NOVEDADES 1.1.1
+---------------
+  · Corregido el error B427032A (función privada al arrastrar piezas equipadas).
+    Las piezas equipadas se quitan con doble clic o clic derecho > Desequipar.
+  · Equipo más a la izquierda; estadísticas debajo, en tabla horizontal de 2
+    columnas; Mundus como icono a la derecha de la joyería.
+
+NOVEDADES 1.1
+-------------
+  · Consumibles: 4 recuadros con tu rueda (mismo orden que Bandits UI), el
+    objeto activo en un recuadro arriba al centro y la tecla Q debajo.
+    Se ocultan los iconos de objetos rápidos de Bandits UI en el HUD.
+  · Habilidades más chicas, sin los marcos desfasados, separadas de las barras.
+  · Nivel / Campeón con número grande.
+  · Sin los fondos negros con degradado a los lados del inventario y bancos.
+  · Menú "Objetos" del juego debajo de las armas equipadas.
+  · Debajo del inventario: la barra original del juego con
+    "Espacio del inventario", el botón para comprar espacio y el oro más grande.
+  · Armadura agrupada por peso (ligera, media, pesada) a la izquierda y en el
+    inventario.
+  · Estadísticas completas como en la hoja original con descripción al pasar
+    el ratón.
+  · Precio de Tamriel Trade Centre debajo de cada objeto, en verde o rojo. Con
+    TTC Simple Price instalado se usa SU propia función y SUS ajustes, así que
+    al actualizar ese addon o los precios de TTC (y hacer /reloadui) se refleja solo.
+  · Modo edición (/nwui mover) con cuadrícula y ajuste a la cuadrícula: arrastra
+    para mover y usa la rueda del ratón para el tamaño (Mayús + rueda: alto o
+    espacio entre iconos). Funciona en el HUD, el inventario y la vista de equipo.
+  · /nwui diag muestra qué addons y controles del juego se detectaron.
+
+QUÉ HACE
+--------
+HUD (abajo, al centro)
+  · Barras de Magia, Aguante y Salud apiladas (de arriba a abajo), planas,
+    con números y el escudo de daño sobre la salud.
+  · Debajo de las barras: tu nivel. Al llegar a nivel 50 cambia solo a tus
+    Puntos de Campeón, con el icono de Campeón.
+  · Habilidades: los MISMOS botones del juego (5 + definitiva), solo cambiados
+    de tamaño y posición, a la derecha de las barras.
+  · Consumibles: a la izquierda de las barras. El botón de objeto rápido del
+    juego (tecla Q) más una fila con las casillas de tu rueda de consumibles,
+    con su cantidad y la seleccionada marcada en dorado.
+  · NO toca la brújula, el menú superior ni el rastreador de misiones.
+
+INVENTARIO (tecla I)
+  · Panel plano estilo New World: cabecera azul, capacidad con barra,
+    buscador, orden por Calidad / Nombre / Valor.
+  · Objetos agrupados por categoría en dos columnas, casillas con el color de
+    su calidad y línea blanca de durabilidad (roja si baja del 25 %).
+  · Vista del equipo alrededor de tu personaje: armadura (con conteo
+    pesada/media/ligera), armas de las barras 1 y 2 (la activa en dorado),
+    joyería y disfraz, y estadísticas con tu nivel o Puntos de Campeón.
+
+BANCOS
+  · Banco personal (y almacén de casa) y banco de gremio: tu inventario a la
+    izquierda y el banco a la derecha, con el mismo diseño.
+  · En el banco de gremio cambias de gremio con « y ».
+
+CONTROLES
+---------
+  · Doble clic: equipar / usar. En bancos: depositar o retirar.
+  · Clic derecho: menú del objeto.
+  · Arrastrar: mover objetos entre paneles, o a / desde las casillas de equipo.
+  · Mayús + clic: enlazar el objeto en el chat.
+  · Los paneles de inventario y banco se mueven arrastrando su cabecera.
+
+INSTALACIÓN
+-----------
+1. Cierra el juego.
+2. Copia la carpeta "NWInterfaz" (la carpeta completa, no solo su contenido) en:
+     Documentos\Elder Scrolls Online\live\AddOns\
+   (Si usas OneDrive, puede estar en OneDrive\Documentos\...)
+3. Abre el juego. En la pantalla de personajes > Complementos, activa
+   "NW Interfaz". Si aparece "desactualizado", marca
+   "Permitir complementos desactualizados".
+4. Opcional (recomendado): instala LibAddonMenu-2.0 desde ESOUI o Minion para
+   tener el menú de ajustes en Ajustes > Complementos > NW Interfaz.
+
+COMANDOS
+--------
+  /nwui mover   Modo edición con cuadrícula: arrastra para mover y usa la
+                rueda del ratón para cambiar el tamaño. Repite para guardar.
+  /nwui reset   Devuelve todo a su posición por defecto.
+  /nwui menu    Abre los ajustes (con LibAddonMenu-2.0).
+  /nwui diag    Diagnóstico de compatibilidad.
+
+TECLAS OPCIONALES (Controles > NW Interfaz)
+  · "Seleccionar consumible 1…8": elige qué consumible queda activo en Q.
+  · "Mover / bloquear elementos".
+
+LIMITACIONES CONOCIDAS
+----------------------
+  · ESO no permite que un addon USE objetos durante el combate. Por eso la
+    fila de consumibles sirve para ver y seleccionar; el consumo sigue siendo
+    con la tecla de objeto rápido del juego (Q).
+  · Pensado para modo teclado en PC. En modo mando el inventario y los botones
+    de habilidad se quedan como el original.
+  · Al ocultar las barras originales también se oculta la barra de aguante de
+    la montura y la de asedio.
+  · Si desactivas algo marcado con "requiere recargar", escribe /reloadui.
+  · Los colores están al inicio de Util.lua (NWUI.C y NWUI.QUALITY) por si
+    quieres retocarlos.

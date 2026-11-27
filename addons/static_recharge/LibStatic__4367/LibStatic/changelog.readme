@@ -1,3 +1,7 @@
+3.0.0
+  - Rewrote codebase to conform to global vs local standards
+  - Updated several logical errors
+
 2.1.0
   - Added translations table to paired lists
   - Added LibChatMessage as a dependancy

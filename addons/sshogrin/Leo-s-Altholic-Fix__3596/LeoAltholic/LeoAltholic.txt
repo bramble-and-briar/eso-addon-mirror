@@ -1,7 +1,7 @@
 ## Title: Leo's Altholic
 ## APIVersion: 101051 101052
-## Version: 1.9.9
-## AddOnVersion: 1990
+## Version: 1.9.10
+## AddOnVersion: 1910
 ## Author: |c39B027@LeandroSilva|r Fix by |c2046e5sshogrin|r
 ## SavedVariables: LeoAltholicSavedVariables LeoAltholicCharVariables
 ## DependsOn: LibFeedback LibAddonMenu-2.0>=43

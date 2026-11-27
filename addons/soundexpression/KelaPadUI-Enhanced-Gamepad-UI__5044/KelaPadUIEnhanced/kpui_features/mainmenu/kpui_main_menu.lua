@@ -1,9 +1,12 @@
 local KELAPADUI_ENTRIES = {
     SETS           = 1,
     TRAIT_RESEARCH = 2,
-    EXTENDED_JOURNAL = 3,
-    CHARACTER_KNOWLEDGE = 4,
-    SETTINGS       = 5,
+    CHARACTER_KNOWLEDGE = 3,
+    LOOT_LOG = 4,
+    COLLECTIBLES_TRACKER = 5,
+    RAIDIFICATOR = 6,
+    FIGHT_STATS = 7,
+    SETTINGS       = 8,
 }
 
 local KELAPADUI_TEXT_COLOR = "|cC64CFF"
@@ -35,21 +38,6 @@ local KELAPADUI_MENU_ENTRY_DATA =
                 return KelaGetSetting_Bool(SETTING_TYPE_KELA, KELA_SETTING_PANEL_TRAIT_RESEARCH_ENABLED)
             end,
         },
-        -- Opens Extended Journal (kpui_extended_journal.lua, loaded later, so the
-        -- functions are looked up when the menu is built and used).
-        [KELAPADUI_ENTRIES.EXTENDED_JOURNAL] =
-        {
-            name = function()
-                return KelaGetExtendedJournalName and KelaGetExtendedJournalName() or GetString(KELA_MAINMENU_EXTENDED_JOURNAL)
-            end,
-            icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_journal.dds",
-            isVisibleCallback = function()
-                return KelaIsExtendedJournalAvailable ~= nil and KelaIsExtendedJournalAvailable()
-            end,
-            activatedCallback = function()
-                if KelaShowExtendedJournal then KelaShowExtendedJournal() end
-            end,
-        },
         -- kpui_character_knowledge.lua loads later; looked up when used.
         [KELAPADUI_ENTRIES.CHARACTER_KNOWLEDGE] =
         {
@@ -60,6 +48,53 @@ local KELAPADUI_MENU_ENTRY_DATA =
             end,
             activatedCallback = function()
                 if KelaShowCharacterKnowledge then KelaShowCharacterKnowledge() end
+            end,
+        },
+        -- The add-on screens (kpui_features/journals/, loaded later, so the
+        -- functions are looked up when the menu is built and used). Each one
+        -- appears only while its add-on is installed.
+        [KELAPADUI_ENTRIES.LOOT_LOG] =
+        {
+            name = GetString(KELA_MAINMENU_LOOT_LOG),
+            icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_inventory.dds",
+            isVisibleCallback = function()
+                return KelaIsLootLogAvailable ~= nil and KelaIsLootLogAvailable()
+            end,
+            activatedCallback = function()
+                if KelaShowLootLog then KelaShowLootLog() end
+            end,
+        },
+        [KELAPADUI_ENTRIES.COLLECTIBLES_TRACKER] =
+        {
+            name = GetString(KELA_MAINMENU_COLLECTIBLES_TRACKER),
+            icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_collections.dds",
+            isVisibleCallback = function()
+                return KelaIsCollectiblesTrackerAvailable ~= nil and KelaIsCollectiblesTrackerAvailable()
+            end,
+            activatedCallback = function()
+                if KelaShowCollectiblesTracker then KelaShowCollectiblesTracker() end
+            end,
+        },
+        [KELAPADUI_ENTRIES.RAIDIFICATOR] =
+        {
+            name = GetString(KELA_MAINMENU_RAIDIFICATOR),
+            icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_journal.dds",
+            isVisibleCallback = function()
+                return KelaIsRaidificatorAvailable ~= nil and KelaIsRaidificatorAvailable()
+            end,
+            activatedCallback = function()
+                if KelaShowRaidificator then KelaShowRaidificator() end
+            end,
+        },
+        [KELAPADUI_ENTRIES.FIGHT_STATS] =
+        {
+            name = GetString(KELA_MAINMENU_FIGHT_STATS),
+            icon = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_skills.dds",
+            isVisibleCallback = function()
+                return KelaIsFightStatsAvailable ~= nil and KelaIsFightStatsAvailable()
+            end,
+            activatedCallback = function()
+                if KelaShowFightStats then KelaShowFightStats() end
             end,
         },
         [KELAPADUI_ENTRIES.SETTINGS] =

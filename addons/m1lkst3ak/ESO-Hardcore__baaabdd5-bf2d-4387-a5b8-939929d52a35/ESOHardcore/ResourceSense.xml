@@ -1,0 +1,14 @@
+<GuiXml>
+ <Animations>
+  <AnimationTimeline name="ESOHCResourcePresence" playbackType="LOOP" loopCount="LOOP_INDEFINITELY">
+   <Animations><CustomAnimation delay="0" duration="1" /></Animations>
+   <OnPlay>ESOHCResourceAppeared(self:GetFirstAnimation():GetAnimatedControl())</OnPlay>
+   <OnStop>ESOHCResourceDisappeared(self:GetFirstAnimation():GetAnimatedControl())</OnStop>
+  </AnimationTimeline>
+ </Animations>
+ <Controls>
+  <Compass name="ZO_CompassContainer" override="true">
+   <CompassPinType name="HARVEST_NODE" pinTexture="$(COMPASS_PATH)groupMember.dds" pinSize="24" layer="OVERLAY" addedAnimation="ESOHCResourcePresence" farAlpha="0" closeAlpha="0" farScale="0.0" farScaleDistanceM="200.0" closeScale="2.0" closeScaleDistanceM="0.0" maxDistanceM="200.0" allowUpdatesWhenAnimating="true" />
+  </Compass>
+ </Controls>
+</GuiXml>

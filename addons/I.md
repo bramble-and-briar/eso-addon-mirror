@@ -122,6 +122,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [IsJusta Revive Selective Interact](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IsJustaGhost/IsJusta-Revive-Selective-Interact__3727) | IsJustaGhost | PC / Mac | 1.2.1 |
 | [IsJusta Utility Radial Menu Cancel Option](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IsJustaGhost/IsJusta-Utility-Radial-Menu-Cancel-Option__3476) | IsJustaGhost | PC / Mac | 1.2 |
 | [IsJusta Utility Radial Menu Combat Safety.](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IsJustaGhost/IsJusta-Utility-Radial-Menu-Combat-Safety__3618) | IsJustaGhost | PC / Mac | 1.2.1 |
+| [Iso](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Iso__1ff7f28f-1b8b-42ef-b54a-db53d1311e27) | FiNk3F13 | Console | — |
 | [isOverloadON](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeopardoColorido/isOverloadON__4915) | LeopardoColorido | PC / Mac | 1.7.0 |
 | [Italian Scrolls Online - Traduzione Italiana](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty82/Italian-Scrolls-Online---Traduzione-Italiana__2854) | Dusty82 | PC / Mac | 166 |
 | [ItalianScrollsOnline](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dusty82/ItalianScrollsOnline__5d612b95-1149-48f4-b359-2aaee406bd86) | dusty82 | Console | — |

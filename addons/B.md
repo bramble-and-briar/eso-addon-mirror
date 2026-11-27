@@ -13,7 +13,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Bag & Bank Space Indicator redone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vel_33/Bag-Bank-Space-Indicator-redone__3807) | Vel_33 | PC / Mac | 3.3.0 |
 | [Bag Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Onigar/Bag-Manager__2091) | Onigar | PC / Mac | 0.1.0 |
 | [Bag Space Indicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lordrichter/Bag-Space-Indicator__5af6522d-980d-4335-9328-4e5077cee058) | lordrichter | Console | — |
-| [Bag Space Indicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lordrichter/Bag-Space-Indicator__1181) | lordrichter | PC / Mac | 3.49 |
+| [Bag Space Indicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lordrichter/Bag-Space-Indicator__1181) | lordrichter | PC / Mac | 3.52 |
 | [Bag Watcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Bag-Watcher__5087) | Schrodi | PC / Mac | 1.1 |
 | [Bahsei's Damage Bonus Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KermitTheFrog88/Bahsei-s-Damage-Bonus-Tracker__3225) | KermitTheFrog88 | PC / Mac | 0.23 |
 | [Bait Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/katkat42/Bait-Counter__538) | katkat42 | PC / Mac | 1.6.3 |
@@ -59,6 +59,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Battleground Mode Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/badcompany309/Battleground-Mode-Saver__4015) | badcompany309 | PC / Mac | 1.4.1 |
 | [BattlegroundHudMover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/BattlegroundHudMover__2900) | ShadowMau | PC / Mac | 1.0.6 |
 | [BattleScrollBV](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/BattleScrollBV__242aa937-0c55-4d1f-b667-0716e81eb4e7) | SugaComa | Console | — |
+| [beam tst](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/beam-tst__52d209a3-bbae-4bbf-97c4-d2c742e59947) | j.hhh | Console | — |
 | [BeamMeUp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/beammeupbot/BeamMeUp__d2c9bb50-7161-423e-ab74-38b8353ace04) | beammeupbot | Console | — |
 | [BeamMeUp - Teleporter (Fast Travel)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeadSoon/BeamMeUp---Teleporter-Fast-Travel__2143) | @DeadSoon | PC / Mac | 4.0.5 |
 | [Bear Synergies](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bjørn/Bear-Synergies__2519) | Bjørn | PC / Mac | 1.1.4 |

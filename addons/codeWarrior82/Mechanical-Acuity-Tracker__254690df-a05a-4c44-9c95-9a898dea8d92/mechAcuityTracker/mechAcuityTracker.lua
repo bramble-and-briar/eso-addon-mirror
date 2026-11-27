@@ -1,4 +1,9 @@
 local appName = "mechAcuityTracker"
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 local mechAbilityID = 99204
 local abilityIDspare = 0
 local timeCooldown = 25
@@ -25,7 +30,8 @@ mechAcuityTracker.defaults = {
 	notify = true,
 	notifyStart = true,
     yAxisText = 930,
-    xAxisText = 1400
+    xAxisText = 1400,
+	lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -222,8 +228,12 @@ end
 --stop tracking if set is not equipped
 local function stopTrackingAuto()
 
-    if mechAcuityTracker.savedVariables.trackMech and mechAcuityTracker.savedVariables.autoTrack then
-        printMessage("Mechanical Acuity set not found")
+    if mechAcuityTracker.savedVariables.trackMech and mechAcuityTracker.savedVariables.autoTrack then   
+		if not notFoundAlreadyChecked then
+            printMessage("Mechanical Acuity set not found")
+        end
+		notFoundAlreadyChecked = true
+        alreadyChecked = false
         unRegisterAlerts()
         matrack:SetHidden(true)
     end
@@ -232,7 +242,11 @@ end
 --start tracking if set is not equipped
 local function startTrackingAuto()
     if mechAcuityTracker.savedVariables.trackMech and mechAcuityTracker.savedVariables.autoTrack then
-        printMessage("Found Mechanical Acuity set")
+		if not alreadyChecked then
+			printMessage("Found Mechanical Acuity set")
+		end
+		alreadyChecked = true
+		notFoundAlreadyChecked = false
         registerAlerts()
     end
 end
@@ -313,7 +327,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return mechAcuityTracker.savedVariables.xAxisText
             end,
@@ -327,7 +341,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return mechAcuityTracker.savedVariables.yAxisText
             end,
@@ -372,6 +386,14 @@ local function createOptions()
     LAM:RegisterOptionControls("Machanical Acuity Tracker", optionsData)
 end
 
+--notify about update when player activates
+local function activated()
+    if mechAcuityTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        mechAcuityTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end	
+
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -404,11 +426,11 @@ local function onAddOnLoaded(event, name)
     --check if set is equipped
     if not isSetEquiped(setId, setCount) and mechAcuityTracker.savedVariables.autoTrack and mechAcuityTracker.savedVariables.trackMech then
         --notify set not found
-        zo_callLater(function() printMessage("Mechanical Acuity set not found") end, 600)
+        zo_callLater(function() printMessage("Mechanical Acuity set not found") notFoundAlreadyChecked = true end, 600)
     elseif isSetEquiped(setId, setCount) and mechAcuityTracker.savedVariables.autoTrack and mechAcuityTracker.savedVariables.trackMech then
         isEquiped = true
         --notify set found
-        zo_callLater(function() printMessage("Found Mechanical Acuity set") end, 600)
+        zo_callLater(function() printMessage("Found Mechanical Acuity set") alreadyChecked = true end, 600)
     end
 
     --double check if set is equipped without autotracking stipulation
@@ -444,6 +466,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+	EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

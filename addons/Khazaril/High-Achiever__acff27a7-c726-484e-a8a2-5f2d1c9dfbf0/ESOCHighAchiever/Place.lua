@@ -55,12 +55,19 @@ local function progressOf(achievementId)
     local count = HA.Safe(GetAchievementNumCriteria, achievementId) or 0
     local partsDone, share, nextStep = 0, 0, nil
     local single
+    local steps = {}
     for i = 1, count do
         local description, numCompleted, numRequired = HA.Safe(GetAchievementCriterion, achievementId, i)
         numCompleted, numRequired = numCompleted or 0, numRequired or 1
         if numRequired < 1 then numRequired = 1 end
         local part = math.min(numCompleted, numRequired) / numRequired
         share = share + part
+        steps[#steps + 1] = {
+            text = HA.Clean(description or ""),
+            have = math.min(numCompleted, numRequired),
+            need = numRequired,
+            done = numCompleted >= numRequired,
+        }
         if numCompleted >= numRequired then
             partsDone = partsDone + 1
         elseif not nextStep and description and description ~= "" then
@@ -68,7 +75,7 @@ local function progressOf(achievementId)
         end
         if count == 1 then single = { numCompleted, numRequired } end
     end
-    local progress = { fraction = count > 0 and share / count or 0, nextStep = nextStep }
+    local progress = { fraction = count > 0 and share / count or 0, nextStep = nextStep, steps = steps }
     if single and single[2] > 1 then
         progress.text = math.min(single[1], single[2]) .. " of " .. single[2]
     elseif count > 1 then
@@ -101,6 +108,19 @@ local function rewardOf(achievementId)
     return nil
 end
 
+-- Where the game files it in the Achievements menu, such as "Dungeons > Spindleclutch I".
+local function categoryOf(achievementId)
+    local top, sub = HA.Safe(GetCategoryInfoFromAchievementId, achievementId)
+    if not top then return nil end
+    local topName = HA.Clean(HA.Safe(GetAchievementCategoryInfo, top) or "")
+    if topName == "" then return nil end
+    if sub then
+        local subName = HA.Clean(HA.Safe(GetAchievementSubCategoryInfo, top, sub) or "")
+        if subName ~= "" then return topName .. " > " .. subName end
+    end
+    return topName
+end
+
 -- One achievement, or one line of achievements (tier 1, 2, 3), as it stands for this character.
 local function entryFor(achievementId)
     local first = HA.Safe(GetFirstAchievementInLine, achievementId)
@@ -121,23 +141,40 @@ local function entryFor(achievementId)
     if #stages == 0 then stages[1] = achievementId end
     local done = current == nil
     local shown = current or stages[#stages]
-    local name, description, _, _, _, date = HA.Safe(GetAchievementInfo, shown)
+    local name, description, points, _, _, date = HA.Safe(GetAchievementInfo, shown)
     local entry = {
         id = shown,
         lineId = first,
         name = HA.Clean(name or ""),
         description = HA.Clean(description or ""),
+        points = tonumber(points) or 0,
         done = done,
         date = date,
         reward = rewardOf(shown),
+        category = categoryOf(shown),
         veteranOnly = string.find(HA.Lower(description or ""), "veteran", 1, true) ~= nil,
     }
-    if #stages > 1 then entry.stage = (stageNumber or #stages) .. " of " .. #stages end
+    if #stages > 1 then
+        entry.stage = (stageNumber or #stages) .. " of " .. #stages
+        -- Every stage in the line, so the details can show what comes after this one
+        entry.line = {}
+        for i, stageId in ipairs(stages) do
+            local stageName, _, stagePoints = HA.Safe(GetAchievementInfo, stageId)
+            entry.line[i] = {
+                name = HA.Clean(stageName or ""),
+                points = tonumber(stagePoints) or 0,
+                done = HA.Earned(stageId),
+                current = stageId == shown,
+                reward = stageId ~= shown and rewardOf(stageId) or nil,
+            }
+        end
+    end
     if not done then
         local progress = progressOf(shown)
         entry.fraction = progress.fraction
         entry.progressText = progress.text
         entry.nextStep = progress.nextStep
+        entry.steps = progress.steps
     else
         entry.fraction = 1
     end

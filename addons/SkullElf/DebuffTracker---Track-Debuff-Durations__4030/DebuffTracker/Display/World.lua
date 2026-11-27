@@ -95,8 +95,12 @@ function World.DistanceLook(dist, st)
     return scale, alpha
 end
 
+-- (an item hidden here is no longer "placed": the display keeps it hidden until it's placed again)
 local function HideItems(items, from)
-    for i = from or 1, #items do items[i].control:SetHidden(true) end
+    for i = from or 1, #items do
+        items[i].placed = false
+        items[i].control:SetHidden(true)
+    end
 end
 
 local byTag, tagOrder = {}, {}
@@ -118,6 +122,7 @@ local function PlaceDisplay(d, stack, st, heightCm)
             end
             list[#list + 1] = it
         else
+            it.placed = false
             it.control:SetHidden(true)
         end
     end

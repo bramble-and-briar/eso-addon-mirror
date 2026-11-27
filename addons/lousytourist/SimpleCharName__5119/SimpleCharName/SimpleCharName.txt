@@ -1,0 +1,8 @@
+## Title: Simple Character Name
+## Author: LousyTourist
+## Version: 1.0
+## APIVersion: 101048 101049 101051
+## SavedVariables: SimpleCharNameVars
+
+SimpleCharName.xml
+SimpleCharName.lua

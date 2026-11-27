@@ -69,15 +69,46 @@ PopupHandler.Queue = Queue
 PopupHandler.IsPopupVisible = false
 PopupHandler.registry = {} -- all created popups (for live opacity/font sync)
 
+-- Restore mouselook. Safe while a non-modal suggestion stays visible.
+local function ReleasePopupMouse(popup)
+  if popup and popup.SetKeyboardEnabled and (popup._nonModal or (popup.IsHidden and popup:IsHidden())) then
+    popup:SetKeyboardEnabled(false)
+  end
+  if _G.SetGameCameraUIMode then
+    pcall(function() _G.SetGameCameraUIMode(false) end)
+  end
+end
+
+-- Parent for overlay suggestions: viewer master (TOPLEVEL) + CT_CONTROL child,
+-- same pattern as the Guide Viewer body — does not force free-cursor UI mode.
+local function GetNonModalParent()
+  local viewer = CGV.Frame or (CGV.Viewer and CGV.Viewer.Frame)
+  if viewer then
+    local parent = viewer.GetParent and viewer:GetParent()
+    if parent then return parent end
+    return viewer
+  end
+  return GuiRoot
+end
+
 -----------------------------------------
 -- POPUP CLASS FUNCTIONS
 -----------------------------------------
 
-function Popup:New(name,ptype)
+-- nonModal=true → CT_CONTROL under Guide Viewer master (suggestion / zone / style).
+-- Modal (default) → TOPLEVEL on GuiRoot (profile dialogs, etc.).
+function Popup:New(name,ptype,nonModal)
   assert(name, "All popups must have a name")
   --assert(popupTypes[ptype], "All popups must have a type. Use default if it doesn't matter.")
 
-  local popup = CHAIN(ui:Create("Frame",GuiRoot,name))
+  local parent = GuiRoot
+  local asControl = nil
+  if nonModal then
+    parent = GetNonModalParent()
+    asControl = true
+  end
+
+  local popup = CHAIN(ui:Create("Frame",parent,name,asControl))
   :SetResizeToFitDescendents(true)
   :SetResizeToFitPadding(RESIZE_X_PADDING,RESIZE_Y_PADDING)
   :SetDimensionConstraints(MIN_WIDTH,MIN_HEIGHT,MAX_WIDTH,MAX_HEIGHT)
@@ -85,7 +116,7 @@ function Popup:New(name,ptype)
   -- Frame stays fully opaque so text/buttons stay readable; backdrop uses opacitymain.
   :SetAlpha(1)
   :SetPoint(unpack(DEFAULT_ANCHOR))
-  :SetKeyboardEnabled(true)
+  :SetKeyboardEnabled(not nonModal)
   :SetHandler("OnKeyUp", function(me, key)
       if key == KEY_ESCAPE then
         me.private:Escape(me)
@@ -95,7 +126,12 @@ function Popup:New(name,ptype)
   :SetHandler("OnShow", function(me)
       me.handler.IsPopupVisible = true
       me.handler.CurrentPopup = me
-      me:SetKeyboardEnabled(true)
+      if me._nonModal then
+        me:SetKeyboardEnabled(false)
+        ReleasePopupMouse(me)
+      else
+        me:SetKeyboardEnabled(true)
+      end
       me:ApplyLiveSettings()
     end)
   :SetHandler("OnHide", function(self)
@@ -161,6 +197,15 @@ function Popup:New(name,ptype)
     end)
   .__END
 
+  -- Keep Accept/Decline out of ResizeToFit extents so live font/perfect-size
+  -- updates don't trip "Too many resize to fit updates processed."
+  if popup.declinebutton.SetExcludeFromResizeToFitExtents then
+    popup.declinebutton:SetExcludeFromResizeToFitExtents(true)
+  end
+  if popup.acceptbutton.SetExcludeFromResizeToFitExtents then
+    popup.acceptbutton:SetExcludeFromResizeToFitExtents(true)
+  end
+
   popup.close = CHAIN(ui:Create("GuideButton",popup,name.."_Close","Close"))
   :SetPoint(TOPRIGHT, popup, -5, 5)
   :SetHandler("OnClicked",function(me)
@@ -194,12 +239,61 @@ function Popup:New(name,ptype)
 
   tinsert(PopupHandler.registry, popup)
 
+  if nonModal then
+    popup._nonModal = true
+  end
+
   -- Match Guide Viewer backdrop opacity immediately (text stays opaque).
   if popup.SetBackdropOpacity then
     popup:SetBackdropOpacity()
   end
 
   return popup
+end
+
+-- True if this control is still a TOPLEVEL (old suggestion builds). Those force free cursor.
+function Popup:IsModalTopLevel()
+  local ct = _G.CT_TOPLEVELCONTROL
+  return ct and self.GetType and self:GetType() == ct
+end
+
+-- Pin recommend / zone / style popups to the Guide Viewer (LEFT of viewer).
+-- Preference: never float disconnected at screen-top when the viewer is up.
+function Popup:AnchorToGuideViewer()
+  local viewer = CGV.Frame or (CGV.Viewer and CGV.Viewer.Frame)
+  if not viewer then return false end
+  self:ClearAnchors()
+  self:SetPoint(_G.LEFT, viewer, _G.RIGHT, 8, 0)
+  if self.SetDrawTier and _G.DT_HIGH then
+    self:SetDrawTier(_G.DT_HIGH)
+  end
+  if self.SetDrawLayer and _G.DL_OVERLAY then
+    self:SetDrawLayer(_G.DL_OVERLAY)
+  end
+  if self.SetDrawLevel then
+    self:SetDrawLevel(200)
+  end
+  return true
+end
+
+-- Call once after New() for suggestion / zone / style popups.
+-- Also marks non-modal: keep mouselook while the popup stays visible (Alt to click).
+function Popup:EnableGuideViewerAnchor()
+  if self._guideViewerAnchorEnabled then return self end
+  self._guideViewerAnchorEnabled = true
+  self._nonModal = true
+  self:SetKeyboardEnabled(false)
+  local prevOnShow = self:GetHandler("OnShow")
+  self:SetHandler("OnShow", function(me, ...)
+    if prevOnShow then prevOnShow(me, ...) end
+    me:AnchorToGuideViewer()
+    ReleasePopupMouse(me)
+    _G.zo_callLater(function()
+      if me:IsHidden() then return end
+      ReleasePopupMouse(me)
+    end, 0)
+  end)
+  return self
 end
 
 -- Same as the Guide Viewer: fade the backdrop only so the world shows through;
@@ -380,6 +474,11 @@ function Popup.private:Hide(popup)
   popup:Debug("Hiding")
   --Popup:OnHide is still hooked so that we don't have to prehook it like we do Show
   popup:Hide() --simple just hide it. Functioned incase we want to do anything else later.
+  ReleasePopupMouse(popup)
+  -- Hide can re-assert UI mode for one frame on TOPLEVEL.
+  _G.zo_callLater(function()
+    ReleasePopupMouse(popup)
+  end, 0)
 end
 
 --[[
@@ -430,6 +529,7 @@ function Popup.private:Close(popup)
   -- popup.shownFromNC = nil
   CGV.PopupHandler.IsPopupVisible = false --Update this here because  Popup:Hide gets covered by
   CGV.PopupHandler.CurrentPopup = nil
+  ReleasePopupMouse(popup)
   -- CGV:ScheduleTimer(function() CGV.PopupHandler:QueuePop() end,2) --pop the next popup in the queue.
 end
 
@@ -455,6 +555,19 @@ function PopupHandler:ShowPopup(popup)
 
   popup:savedShow()														--Show was overwrote and saved here.
   popup:ApplyLiveSettings()
+  if popup._guideViewerAnchorEnabled and popup.AnchorToGuideViewer then
+    popup:AnchorToGuideViewer()
+  end
+  -- Non-modal overlay: return mouselook immediately; popup stays up (Alt to click).
+  if popup._nonModal then
+    ReleasePopupMouse(popup)
+    _G.zo_callLater(function()
+      if not popup:IsHidden() then ReleasePopupMouse(popup) end
+    end, 0)
+    _G.zo_callLater(function()
+      if not popup:IsHidden() then ReleasePopupMouse(popup) end
+    end, 50)
+  end
 end
 
 -- Update every registered popup when opacity/font settings change (open or not,

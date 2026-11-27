@@ -1,0 +1,58 @@
+<GuiXml>
+  <Controls>
+    <TopLevelControl name="DragonWallGamepad" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true">
+      <AnchorFill />
+      <Controls>
+        <Control name="$(parent)ContentFrame" mouseEnabled="false">
+          <Controls>
+            <Control name="$(parent)PresentationPage" hidden="false">
+              <AnchorFill />
+              <Controls>
+                <Label name="$(parent)Title" font="ZoFontGamepad54">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="0" />
+                </Label>
+                <Label name="$(parent)Subtitle" font="ZoFontGamepad27">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="2" offsetY="4" />
+                </Label>
+                <Backdrop name="$(parent)Card" inherits="ZO_DefaultBackdrop" alpha="0.72">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="10" offsetY="105" />
+                  <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-10" offsetY="-55" />
+                </Backdrop>
+                <Label name="$(parent)ModuleTitle" font="ZoFontGamepad48">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)Card" relativePoint="TOPLEFT" offsetX="35" offsetY="28" />
+                </Label>
+                <Label name="$(parent)ModuleSubtitle" font="ZoFontGamepad34">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)ModuleTitle" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="8" />
+                </Label>
+                <Label name="$(parent)Body" font="ZoFontGamepad34">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)ModuleSubtitle" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="28" />
+                  <Dimensions x="1000" y="470" />
+                </Label>
+                <Label name="$(parent)DiagLeftHeader" font="ZoFontGamepad36" hidden="true">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)ModuleSubtitle" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="22" />
+                  <Dimensions x="470" y="42" />
+                </Label>
+                <Label name="$(parent)DiagLeftBody" font="ZoFontGamepad25" hidden="true">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)DiagLeftHeader" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="8" />
+                  <Dimensions x="430" y="410" />
+                </Label>
+                <Label name="$(parent)DiagRightHeader" font="ZoFontGamepad36" hidden="true">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)ModuleSubtitle" relativePoint="BOTTOMLEFT" offsetX="535" offsetY="22" />
+                  <Dimensions x="470" y="42" />
+                </Label>
+                <Label name="$(parent)DiagRightBody" font="ZoFontGamepad25" hidden="true">
+                  <Anchor point="TOPLEFT" relativeTo="$(parent)DiagRightHeader" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="8" />
+                  <Dimensions x="430" y="410" />
+                </Label>
+                <Label name="$(parent)Indicator" font="ZoFontGamepad27" horizontalAlignment="CENTER">
+                  <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0" offsetY="-12" />
+                </Label>
+              </Controls>
+            </Control>
+          </Controls>
+        </Control>
+      </Controls>
+    </TopLevelControl>
+  </Controls>
+</GuiXml>
+

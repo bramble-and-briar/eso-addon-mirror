@@ -226,3 +226,14 @@ KELA_COMPANION_DATA = {
         "-5 Consume a Corrupting Bloody Mara"
     }
 }
+
+-- The arenas, by zone id (the ids other add-ons such as CrutchAlerts and
+-- Raidificator use). The game counts them as raids, like trials, so Fight Stats
+-- tells them apart by zone.
+KELA_ARENA_ZONE_IDS =
+{
+    [635] = true,  -- Dragonstar Arena
+    [677] = true,  -- Maelstrom Arena
+    [1082] = true, -- Blackrose Prison
+    [1227] = true, -- Vateshran Hollows
+}

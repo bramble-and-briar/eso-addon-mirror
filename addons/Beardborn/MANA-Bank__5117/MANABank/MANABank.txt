@@ -6,11 +6,12 @@
 ## Title: MANA Bank
 ## Description: Deposits items into the bank by your rules, marks the excess as junk and keeps a set amount of gold on hand.
 ## Author: Beardborn
-## Version: 1.0.0
-## AddOnVersion: 10000
+## Version: 1.0.1
+## AddOnVersion: 10001
 ## APIVersion: 101051 101052
 ## SavedVariables: MANABank_SV
-## DependsOn: LibAddonMenu-2.0 LibCustomMenu
+## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730
+## OptionalDependsOn: FCOItemSaver
 
 lang/en.lua
 lang/$(language).lua

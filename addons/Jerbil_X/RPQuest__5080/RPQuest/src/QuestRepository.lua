@@ -8,6 +8,7 @@
 -- Ref: docs/adr/0012-savedvars-account-wide-y-migracion-por-personaje.md
 -- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 -- Ref: docs/adr/0015-separacion-ciclo-de-vida-y-estado-de-resolucion.md
+-- Ref: docs/adr/0018-ejes-de-victoria-modo-freeform-y-objetivos-requeridos.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -42,15 +43,39 @@ function QuestRepository:GetPlayerCharacterName()
     return self:NormalizeCharacterName(GetUnitName("player"))
 end
 
+function QuestRepository:GetAccountCharacterNames()
+    local names = {}
+    local seen = {}
+    local count = tonumber(GetNumCharacters()) or 0
+    for i = 1, count do
+        local rawName = GetCharacterInfo(i)
+        local clean = self:NormalizeCharacterName(rawName)
+        if clean ~= "" and not seen[clean] then
+            seen[clean] = true
+            table.insert(names, clean)
+        end
+    end
+    local playerChar = self:GetPlayerCharacterName()
+    if playerChar ~= "" and not seen[playerChar] then
+        table.insert(names, 1, playerChar)
+    end
+    return names
+end
+
 function QuestRepository:FormatTargetEntry(target)
     if type(target) ~= "table" or not target.name or target.name == "" then
         return ""
     end
     local req = math.max(1, math.floor(tonumber(target.requiredCount) or 1))
-    if req > 1 then
-        return string.format("%s x%d", target.name, req)
+    local label = target.name
+    if target.isPlayer == true then
+        local duelTag = (Addon.Locale and Addon.Locale:Get("LABEL_DUEL_TAG")) or "Duel"
+        label = string.format("%s (%s)", label, duelTag)
     end
-    return target.name
+    if req > 1 then
+        return string.format("%s x%d", label, req)
+    end
+    return label
 end
 
 function QuestRepository:FormatTargetsSummary(targets)
@@ -125,10 +150,49 @@ local function AreAllDiscoveriesCompleted(discoveries)
     return true
 end
 
-function QuestRepository:AreAllObjectivesCompleted(targets, discoveries)
+local function AreAllDialoguesExecuted(dialogues)
+    if type(dialogues) ~= "table" or #dialogues == 0 then
+        return false
+    end
+    for _, dlg in ipairs(dialogues) do
+        if not dlg.executed then
+            return false
+        end
+    end
+    return true
+end
+
+local function IsQuestTable(arg)
+    return type(arg) == "table" and (
+        arg.targets ~= nil
+        or arg.discoveries ~= nil
+        or arg.dialogues ~= nil
+        or arg.id ~= nil
+        or arg.title ~= nil
+    )
+end
+
+-- Ref: docs/adr/0018-ejes-de-victoria-modo-freeform-y-objetivos-requeridos.md
+function QuestRepository:AreAllObjectivesCompleted(questOrTargets, discoveriesArg, dialoguesArg)
+    local targets, discoveries, dialogues
+    if discoveriesArg == nil and dialoguesArg == nil and IsQuestTable(questOrTargets) then
+        targets = questOrTargets.targets
+        discoveries = questOrTargets.discoveries
+        dialogues = questOrTargets.dialogues
+    else
+        targets = questOrTargets
+        discoveries = discoveriesArg
+        dialogues = dialoguesArg
+    end
+
     local hasTargets = type(targets) == "table" and #targets > 0
     local hasDiscoveries = type(discoveries) == "table" and #discoveries > 0
+    local hasDialogues = type(dialogues) == "table" and #dialogues > 0
+
     if not hasTargets and not hasDiscoveries then
+        if hasDialogues then
+            return AreAllDialoguesExecuted(dialogues)
+        end
         return false
     end
     if hasTargets and not AreAllTargetsCompleted(targets) then
@@ -140,25 +204,29 @@ function QuestRepository:AreAllObjectivesCompleted(targets, discoveries)
     return true
 end
 
+-- Ref: docs/adr/0018-ejes-de-victoria-modo-freeform-y-objetivos-requeridos.md
 function QuestRepository:CanManuallyCompleteQuest(quest)
     if not quest or quest.completed or quest.failed or self:IsOfferedQuest(quest) then
         return false
     end
+    local hasTargets = type(quest.targets) == "table" and #quest.targets > 0
+    local hasDiscoveries = type(quest.discoveries) == "table" and #quest.discoveries > 0
+    local hasDialogues = type(quest.dialogues) == "table" and #quest.dialogues > 0
+    if not hasTargets and not hasDiscoveries and not hasDialogues then
+        return true
+    end
     if not HasOptionalTargets(quest.targets) then
         return false
     end
-    if self:AreAllObjectivesCompleted(quest.targets, quest.discoveries) then
-        return false
-    end
-    local hasDiscoveries = type(quest.discoveries) == "table" and #quest.discoveries > 0
-    if hasDiscoveries and not AreAllDiscoveriesCompleted(quest.discoveries) then
+    if self:AreAllObjectivesCompleted(quest) then
         return false
     end
     local mandatoryDone, hasMandatory, anyOptionalDone = AreMandatoryTargetsCompleted(quest.targets)
     if not mandatoryDone then
         return false
     end
-    if not hasMandatory and not hasDiscoveries and not anyOptionalDone then
+    local allDiscoveriesDone = hasDiscoveries and AreAllDiscoveriesCompleted(quest.discoveries)
+    if not hasMandatory and not allDiscoveriesDone and not anyOptionalDone then
         return false
     end
     return true
@@ -186,6 +254,9 @@ local function FinalizeCompletedQuest(self, quest)
         self.savedVars.activeQuestId = nil
     end
     self:InvalidateActiveTargetCache()
+    if Addon.TutorialQuest then
+        Addon.TutorialQuest:OnQuestResolved(self, quest, Addon.Constants.QUEST_RESOLUTION.COMPLETED)
+    end
 end
 
 local function FinalizeFailedQuest(self, quest)
@@ -198,16 +269,54 @@ local function FinalizeFailedQuest(self, quest)
     end
     self:InvalidateActiveTargetCache()
     self:NotifyListeners("QUEST_FAILED", quest)
+    if Addon.TutorialQuest then
+        Addon.TutorialQuest:OnQuestResolved(self, quest, Addon.Constants.QUEST_RESOLUTION.FAILED)
+    end
+end
+
+local function FindMissedRequiredObjective(quest)
+    if type(quest) ~= "table" then
+        return nil, nil
+    end
+    if type(quest.discoveries) == "table" then
+        for _, d in ipairs(quest.discoveries) do
+            if type(d) == "table" and d.required == true and not d.discovered then
+                return "discovery", Addon.Locale:Get("ALERT_QUEST_FAILED_REQUIRED_DISCOVERY")
+            end
+        end
+    end
+    if type(quest.dialogues) == "table" then
+        for _, dlg in ipairs(quest.dialogues) do
+            if type(dlg) == "table" and dlg.required == true and not dlg.executed then
+                local npcLabel = (type(dlg.npcName) == "string" and dlg.npcName ~= "") and dlg.npcName or "NPC"
+                return "dialogue", Addon.Locale:Get("ALERT_QUEST_FAILED_REQUIRED_DIALOGUE", npcLabel)
+            end
+        end
+    end
+    return nil, nil
+end
+
+local function ResolveQuestCompletion(self, quest, preNotifyEvent)
+    if preNotifyEvent then
+        self:NotifyListeners(preNotifyEvent, quest)
+    end
+    local missedKind, failReason = FindMissedRequiredObjective(quest)
+    if missedKind then
+        FinalizeFailedQuest(self, quest)
+        return false, true, failReason
+    end
+    FinalizeCompletedQuest(self, quest)
+    self:NotifyListeners("QUEST_COMPLETED", quest)
+    return true, false, nil
 end
 
 function QuestRepository:CompleteQuest(questId)
     local quest = self:GetQuestById(questId)
     if not self:CanManuallyCompleteQuest(quest) then
-        return false, nil
+        return false, nil, false, nil
     end
-    FinalizeCompletedQuest(self, quest)
-    self:NotifyListeners("QUEST_COMPLETED", quest)
-    return true, quest
+    local completedOk, questFailed, failReason = ResolveQuestCompletion(self, quest)
+    return completedOk, quest, questFailed, failReason
 end
 
 local function ResolveRecommendHideMapAreas(data)
@@ -224,6 +333,7 @@ local function ResolveRecommendHideMapAreas(data)
 end
 
 function QuestRepository:BuildQuestRecord(id, title, description, targets, data, role)
+    data = type(data) == "table" and data or {}
     local schemaVersion = (Addon.QuestMigration and Addon.QuestMigration:GetCurrentSchemaVersion()) or 1
     local roles = Addon.Constants.QUEST_ROLE
     local statuses = Addon.Constants.QUEST_STATUS
@@ -263,6 +373,14 @@ function QuestRepository:BuildQuestRecord(id, title, description, targets, data,
         end
     end
 
+    local discoveries = type(data.discoveries) == "table" and data.discoveries or {}
+    for _, d in ipairs(discoveries) do
+        if type(d) == "table" then
+            d.required = (d.required == true)
+            d.discovered = (d.discovered == true)
+        end
+    end
+
     return {
         id = id,
         schemaVersion = schemaVersion,
@@ -271,8 +389,9 @@ function QuestRepository:BuildQuestRecord(id, title, description, targets, data,
         clue = type(data.clue) == "string" and data.clue or "",
         completionMessage = data.completionMessage or "",
         targets = targets,
-        discoveries = data.discoveries or {},
+        discoveries = discoveries,
         dialogues = Addon.QuestDraftStore:CloneDialoguesList(data.dialogues, data.clue),
+        sequentialDiscoveries = (data.sequentialDiscoveries == true),
         completed = false,
         role = resolvedRole,
         lifecycle = lifecycle,
@@ -316,6 +435,7 @@ function QuestRepository:GetDefaults()
         settings = {
             autoDeleteMail = true,
             autoAcceptMail = false,
+            autoOpenJournalOnReceive = true,
             autoSendCompletionMail = true,
             showSearchAreas = false,
             showLocationAreas = false,
@@ -324,6 +444,9 @@ function QuestRepository:GetDefaults()
         uiState = {
             lastSectionKey = nil,
             lastSelectedQuestId = nil,
+        },
+        tutorialState = {
+            steps = {},
         },
     }
 end
@@ -343,6 +466,7 @@ function QuestRepository:Initialize(savedVars)
     local defaultSettings = {
         autoDeleteMail = true,
         autoAcceptMail = false,
+        autoOpenJournalOnReceive = true,
         autoSendCompletionMail = true,
         showSearchAreas = false,
         showLocationAreas = false,
@@ -370,6 +494,9 @@ function QuestRepository:Initialize(savedVars)
         if q.id then
             self._questById[q.id] = q
         end
+    end
+    if Addon.TutorialQuest then
+        Addon.TutorialQuest:InitializeForRepository(self)
     end
     if self.savedVars.activeQuestId then
         local active = self._questById[self.savedVars.activeQuestId]
@@ -411,7 +538,7 @@ end
 
 local DRAFT_DELEGATES = {
     "GetDraft", "ResetDraft", "ClearDraftTargets", "AddDraftDiscoveryPoint",
-    "ClearDraftDiscoveries", "UpdateDraftDiscoveryPoint", "RemoveDraftDiscoveryPoint",
+    "ClearDraftDiscoveries", "UpdateDraftDiscoveryPoint", "RemoveDraftDiscoveryPoint", "MoveDraftDiscoveryPoint",
     "AddDraftDialogue", "AddDraftDialogueFromLastNpc", "UpdateDraftDialogue",
     "RemoveDraftDialogue", "ClearDraftDialogues", "LoadQuestIntoDraft",
     "UpdateDraftFields", "SetDraftCapturedTarget", "SaveDraft",
@@ -503,6 +630,7 @@ function QuestRepository:NormalizeImportedTargets(rawTargets, targetX, targetY)
                 radius = hasLoc and math.max(100, math.floor(tonumber(t.radius) or defaultRad)) or nil,
                 locationRequired = (t.locationRequired == true),
                 optional = (t.optional == true),
+                isPlayer = (t.isPlayer == true),
                 customMessage = type(t.customMessage) == "string" and t.customMessage or "",
                 customMessageInLocation = type(t.customMessageInLocation) == "string" and t.customMessageInLocation or "",
             })
@@ -516,11 +644,16 @@ function QuestRepository:ApplyImportedSenderMetadata(decoded, senderDisplayName,
     if cleanSender ~= "" then
         decoded.senderDisplayName = cleanSender
     end
-    local cleanSenderChar = self:NormalizeCharacterName(options.senderCharacterName)
-    if cleanSenderChar ~= "" then
-        decoded.senderCharacterName = cleanSenderChar
-    elseif type(decoded.senderCharacterName) == "string" then
-        decoded.senderCharacterName = self:NormalizeCharacterName(decoded.senderCharacterName)
+    local cleanPayloadChar = self:NormalizeCharacterName(decoded.senderCharacterName)
+    if cleanPayloadChar ~= "" then
+        decoded.senderCharacterName = cleanPayloadChar
+    else
+        local cleanMailChar = self:NormalizeCharacterName(options.senderCharacterName)
+        if cleanMailChar ~= "" then
+            decoded.senderCharacterName = cleanMailChar
+        else
+            decoded.senderCharacterName = nil
+        end
     end
     if type(decoded.recipientCharacterName) == "string" then
         decoded.recipientCharacterName = self:NormalizeCharacterName(decoded.recipientCharacterName)
@@ -611,6 +744,9 @@ function QuestRepository:RejectOfferedQuest(questId)
         return false, nil
     end
     q.resolution = Addon.Constants.QUEST_RESOLUTION.REJECTED
+    if Addon.TutorialQuest then
+        Addon.TutorialQuest:OnQuestResolved(self, q, Addon.Constants.QUEST_RESOLUTION.REJECTED)
+    end
     self:DeleteQuest(q.id)
     self:NotifyListeners("QUEST_REJECTED", q)
     return true, q
@@ -960,12 +1096,7 @@ function QuestRepository:GetActiveQuest()
 end
 
 function QuestRepository:HasPlayableObjectives(quest)
-    if type(quest) ~= "table" then
-        return false
-    end
-    local hasTargets = type(quest.targets) == "table" and #quest.targets > 0
-    local hasDiscoveries = type(quest.discoveries) == "table" and #quest.discoveries > 0
-    return hasTargets or hasDiscoveries
+    return type(quest) == "table"
 end
 
 function QuestRepository:HasMissingDiscoveryMessage(quest)
@@ -1026,6 +1157,9 @@ function QuestRepository:ResetQuest(questId, options)
     for _, d in ipairs(q.discoveries or {}) do
         d.discovered = false
     end
+    for _, dlg in ipairs(q.dialogues or {}) do
+        dlg.executed = false
+    end
     q.completed = false
     q.failed = false
     q.wasDetected = false
@@ -1062,19 +1196,21 @@ local function ClonePreparedQuestRecord(repo, source)
         t.currentCount = 0
     end
 
-    local senderChar = (type(source.senderCharacterName) == "string" and source.senderCharacterName ~= "")
+    local isTutorialSource = (source.isTutorial == true)
+    local senderChar = (not isTutorialSource and type(source.senderCharacterName) == "string" and source.senderCharacterName ~= "")
         and source.senderCharacterName
         or repo:GetPlayerCharacterName()
 
     local questData = {
-        senderDisplayName = source.senderDisplayName,
+        senderDisplayName = isTutorialSource and nil or source.senderDisplayName,
         senderCharacterName = senderChar,
-        recipientAccount = source.recipientAccount,
-        recipientCharacterName = source.recipientCharacterName,
+        recipientAccount = isTutorialSource and "" or source.recipientAccount,
+        recipientCharacterName = isTutorialSource and nil or source.recipientCharacterName,
         clue = source.clue,
         completionMessage = source.completionMessage,
         discoveries = Addon.QuestDraftStore:CloneDiscoveriesList(source.discoveries, false),
         dialogues = Addon.QuestDraftStore:CloneDialoguesList(source.dialogues, source.clue),
+        sequentialDiscoveries = (source.sequentialDiscoveries == true),
         mapId = source.mapId,
         zoneId = source.zoneId,
         mapName = source.mapName,
@@ -1101,6 +1237,8 @@ local function ClonePreparedQuestRecord(repo, source)
     newQuest.deliveries = {}
     newQuest.needsMigration = nil
     newQuest.migrationReason = nil
+    newQuest.isTutorial = nil
+    newQuest.tutorialStep = nil
 
     table.insert(repo.savedVars.quests, newQuest)
     if repo._questById then
@@ -1115,7 +1253,7 @@ function QuestRepository:DuplicateQuest(questId)
     if not self.savedVars then return nil end
     local source = self:GetQuestById(questId)
     if not source then return nil end
-    if not self:IsPreparedQuest(source) then
+    if not self:IsPreparedQuest(source) and source.isTutorial ~= true then
         return nil, Addon.Locale:Get("ERR_CANNOT_COPY_RECEIVED")
     end
     return ClonePreparedQuestRecord(self, source)
@@ -1162,6 +1300,9 @@ function QuestRepository:DeleteQuest(questId)
                     end
                 end
             end
+            if q.isTutorial == true and Addon.TutorialQuest then
+                Addon.TutorialQuest:OnQuestResolved(self, q, q.resolution or "deleted")
+            end
             self:NotifyListeners("QUEST_DELETED", q)
             return true
         end
@@ -1173,7 +1314,7 @@ function QuestRepository:IsPlayerInsideQuestArea(quest, playerMapId, playerZoneI
     return Addon.WorldMapArea:IsPlayerInsideQuestArea(quest, playerMapId, playerZoneId, playerX, playerY)
 end
 
-function QuestRepository:FindPendingTarget(rawTargetName)
+function QuestRepository:FindPendingTarget(rawTargetName, expectedIsPlayer)
     if type(rawTargetName) ~= "string" or rawTargetName == "" then
         return nil, nil
     end
@@ -1206,7 +1347,9 @@ function QuestRepository:FindPendingTarget(rawTargetName)
 
     local matched = cache.byLowerName[cleanKilled]
     if matched and (matched.currentCount or 0) < (matched.requiredCount or 1) then
-        return activeQuest, matched
+        if expectedIsPlayer == nil or (matched.isPlayer == true) == expectedIsPlayer then
+            return activeQuest, matched
+        end
     end
 
     return nil, nil
@@ -1259,14 +1402,16 @@ function QuestRepository:RecordTargetEliminated(rawTargetName, playerContext, pr
 
     matchedTarget.currentCount = math.min(matchedTarget.requiredCount or 1, (matchedTarget.currentCount or 0) + 1)
 
-    if self:AreAllObjectivesCompleted(activeQuest.targets, activeQuest.discoveries) then
-        FinalizeCompletedQuest(self, activeQuest)
-        self:NotifyListeners("QUEST_COMPLETED", activeQuest)
-    else
-        self:NotifyListeners("QUEST_PROGRESS", activeQuest)
+    if self:AreAllObjectivesCompleted(activeQuest) then
+        local _, questFailed, failReason = ResolveQuestCompletion(self, activeQuest)
+        if questFailed then
+            return true, activeQuest, false, matchedTarget, true, failReason
+        end
+        return true, activeQuest, activeQuest.completed, matchedTarget, false, customMsgToShow
     end
 
-    return true, activeQuest, activeQuest.completed, matchedTarget, false, customMsgToShow
+    self:NotifyListeners("QUEST_PROGRESS", activeQuest)
+    return true, activeQuest, false, matchedTarget, false, customMsgToShow
 end
 
 function QuestRepository:HasPendingDiscoveries(quest)
@@ -1284,24 +1429,44 @@ end
 function QuestRepository:MarkDiscoveryTriggered(questId, discoveryIndex)
     local quest = self:GetQuestById(questId)
     if not quest or quest.completed or quest.failed or type(quest.discoveries) ~= "table" then
-        return false, nil, false, nil
+        return false, nil, false, nil, false, nil
     end
     local point = quest.discoveries[discoveryIndex]
     if not point or point.discovered then
-        return false, nil, false, nil
+        return false, nil, false, nil, false, nil
     end
 
     point.discovered = true
 
-    if self:AreAllObjectivesCompleted(quest.targets, quest.discoveries) then
-        FinalizeCompletedQuest(self, quest)
-        self:NotifyListeners("DISCOVERY_TRIGGERED", quest)
-        self:NotifyListeners("QUEST_COMPLETED", quest)
-    else
-        self:NotifyListeners("DISCOVERY_TRIGGERED", quest)
+    if self:AreAllObjectivesCompleted(quest) then
+        local _, questFailed, failReason = ResolveQuestCompletion(self, quest, "DISCOVERY_TRIGGERED")
+        return true, quest, quest.completed, point, questFailed, failReason
     end
 
-    return true, quest, quest.completed, point
+    self:NotifyListeners("DISCOVERY_TRIGGERED", quest)
+    return true, quest, false, point, false, nil
+end
+
+-- Ref: docs/adr/0018-ejes-de-victoria-modo-freeform-y-objetivos-requeridos.md
+function QuestRepository:MarkDialogueTriggered(questId, dialogueIndex)
+    local quest = self:GetQuestById(questId)
+    if not quest or quest.completed or quest.failed or type(quest.dialogues) ~= "table" then
+        return false, nil, false, nil, false, nil
+    end
+    local dialogue = quest.dialogues[dialogueIndex]
+    if not dialogue or dialogue.executed then
+        return false, nil, false, nil, false, nil
+    end
+
+    dialogue.executed = true
+
+    if self:AreAllObjectivesCompleted(quest) then
+        local _, questFailed, failReason = ResolveQuestCompletion(self, quest)
+        return true, quest, quest.completed, dialogue, questFailed, failReason
+    end
+
+    self:NotifyListeners("QUEST_PROGRESS", quest)
+    return true, quest, false, dialogue, false, nil
 end
 
 function QuestRepository:RecordPlayerDetected(playerContext)
@@ -1359,7 +1524,7 @@ function QuestRepository:FindDialogueForActiveQuest(rawNpcName, zoneId)
     local lowerNpc = cleanNpc:lower()
     local z = math.floor(tonumber(zoneId) or 0)
 
-    for _, entry in ipairs(dialogues) do
+    for idx, entry in ipairs(dialogues) do
         if type(entry) == "table" and type(entry.npcName) == "string" and entry.npcName ~= "" then
             local entryName = self:NormalizeName(entry.npcName):lower()
             local entryZone = math.floor(tonumber(entry.zoneId) or 0)
@@ -1371,10 +1536,12 @@ function QuestRepository:FindDialogueForActiveQuest(rawNpcName, zoneId)
                 end
                 return {
                     questId = activeQuest.id,
+                    dialogueIndex = idx,
                     clue = resolvedClue,
                     npcName = entry.npcName,
                     zoneId = entryZone,
                     response = type(entry.response) == "string" and entry.response or "",
+                    executed = (entry.executed == true),
                 }
             end
         end

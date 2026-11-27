@@ -7,12 +7,15 @@ local TARGET_ADDON = "PithkaAchievementTracker"
 -----------------------------------------------------------------------------------------
 local function applyTranslations()
     if not PITHKA or not PITHKA.data or not PITHKA.data.achievements then return false end
+    local zoneMap = PithkaLocalizer and PithkaLocalizer.ZoneIdMap
+    if not zoneMap then return false end
+
     local fields = {"NAME", "PHM1NAME", "PHM2NAME", "HMNAME", "TRINAME", "EXTNAME", "SRNAME", "NDNAME"}
     for _, ach in ipairs(PITHKA.data.achievements) do
         for _, field in ipairs(fields) do
             local orig = ach[field]
-            if orig and ZoneIdMap and ZoneIdMap[orig] then
-                ach[field] = zo_strformat(SI_ZONE_NAME, GetZoneNameById(ZoneIdMap[orig]))
+            if orig and zoneMap[orig] then
+                ach[field] = zo_strformat(SI_ZONE_NAME, GetZoneNameById(zoneMap[orig]))
             end
         end
     end
@@ -127,14 +130,14 @@ end
 -- 3. ЗАПУСК
 -----------------------------------------------------------------------------------------
 local function OnAddOnLoaded(event, addonName)
-    if addonName ~= TARGET_ADDON and addonName ~= ADDON_NAME then return end
+    if addonName ~= ADDON_NAME then return end
     EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 
     applyLayoutOverrides()
 
     zo_callLater(function()
         applyTranslations()
-        d("|cFFFF00Pithka Localizer:|r Финальная версия (Очереди + Телепорт + Разметка) загружена.")
+        -- d("|cFFFF00Pithka Localizer:|r Финальная версия (Очереди + Телепорт + Разметка) загружена.")
     end, 200)
 end
 

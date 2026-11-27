@@ -25,11 +25,11 @@ local function FormatElapsedMs(ms)
     return FormatSeconds(math.floor(ms / 1000))
 end
 
-local function IsSTARSJournalShowing()
+local function IsDragonWallShowing()
     if not SCENE_MANAGER or not SCENE_MANAGER.GetCurrentScene then return false end
     local scene = SCENE_MANAGER:GetCurrentScene()
     if not scene or not scene.GetName then return false end
-    return scene:GetName() == "starsJournalGamepad"
+    return scene:GetName() == "dragonWallGamepad"
 end
 
 local module = {
@@ -94,7 +94,7 @@ function Presentations:GetControlPresentation()
         lines = {
             "Press X to begin.",
             "",
-            string.format("A %d-second countdown gives you time to leave STARS.", Project.Config.countdownSeconds),
+            string.format("A %d-second countdown gives you time to leave Dragon Wall.", Project.Config.countdownSeconds),
             string.format("HARVEST begins at %d minutes.", math.floor(Project.Config.startingSeconds / 60)),
             string.format("GATHER begins at %d seconds.", Project.Config.gatherWindowSeconds),
             "Gather any resource node to reset GATHER.",
@@ -109,7 +109,7 @@ function Presentations:GetControlPresentation()
         lines = {
             "Countdown: " .. tostring(math.max(1, math.ceil(remaining / 1000))),
             "",
-            "Close STARS and find a resource node.",
+            "Close Dragon Wall and find a resource node.",
             "Square restarts. Triangle cancels.",
         }
     elseif state:IsRunning() then
@@ -150,12 +150,17 @@ function Presentations:GetControlPresentation()
     }
 end
 
+local function GetHistory()
+    local data = Project.Game:EnsureRecords()
+    return Project.Game:EnsureRunHistory(data)
+end
+
 function module:GetEntryCount()
-    return 2
+    return 2 + #GetHistory()
 end
 
 function module:ChangeEntry(delta)
-    self.entryIndex = ((tonumber(self.entryIndex) or 1) - 1 + delta) % 2 + 1
+    self.entryIndex = ((self.entryIndex or 1) - 1 + delta) % self:GetEntryCount() + 1
     Project.State.entryIndex = self.entryIndex
     return true
 end
@@ -166,7 +171,7 @@ function module:GetActions()
         primary = {
             name = state.phase == "finished" and "New Run" or "Start Run",
             visible = function()
-                return IsSTARSJournalShowing() and not Project.State:IsActive()
+                return IsDragonWallShowing() and not Project.State:IsActive()
             end,
             enabled = function()
                 return not Project.State:IsActive()
@@ -180,7 +185,7 @@ function module:GetActions()
         secondary = {
             name = "Restart Run",
             visible = function()
-                return IsSTARSJournalShowing()
+                return IsDragonWallShowing()
                     and (Project.State:IsActive() or Project.State.phase == "finished")
             end,
             callback = function()
@@ -192,7 +197,7 @@ function module:GetActions()
         tertiary = {
             name = "Cancel Run",
             visible = function()
-                return IsSTARSJournalShowing() and Project.State:IsActive()
+                return IsDragonWallShowing() and Project.State:IsActive()
             end,
             callback = function()
                 return Project.Game:CancelRun("Run cancelled.")
@@ -205,22 +210,44 @@ function module:GetPresentationData()
     if self.entryIndex == 1 then
         return Presentations:GetRecordPresentation()
     end
-    return Presentations:GetControlPresentation()
+    if self.entryIndex == 2 then
+        return Presentations:GetControlPresentation()
+    end
+    local history = GetHistory()
+    local index = self.entryIndex - 2
+    local run = history[index]
+    if not run then
+        self.entryIndex = 1
+        return Presentations:GetRecordPresentation()
+    end
+    return {
+        title = "NODE RUNNER",
+        subtitle = "RUN HISTORY",
+        entryIndex = index,
+        entryCount = #history,
+        lines = {
+            "Survived: " .. FormatElapsedMs(run.durationMs),
+            "Nodes: " .. tostring(run.nodes or 0),
+            "Missed Gathers: " .. tostring(run.gatherPenalties or 0),
+            "Zone: " .. tostring(run.zone or "Unknown Zone"),
+            tostring(run.reason or "Run complete"),
+        },
+    }
 end
 
 function Presentations:Initialize()
-    if not LibSTARSConnect or type(LibSTARSConnect.RegisterModule) ~= "function" then
-        Project.Diagnostics:Warn("LibSTARSConnect unavailable; Node Runner not registered")
+    if not DragonWallReverb or type(DragonWallReverb.RegisterModule) ~= "function" then
+        Project.Diagnostics:Warn("DragonWallReverb unavailable; Node Runner not registered")
         return
     end
 
-    local ok, err = LibSTARSConnect:RegisterModule(module)
+    local ok, err = DragonWallReverb:RegisterModule(module)
     if not ok then
         Project.Diagnostics:Warn("Node Runner registration failed: " .. tostring(err))
         return
     end
 
-    Project.Diagnostics:Log("Node Runner registered with STARS", true)
+    Project.Diagnostics:Log("Node Runner registered with Dragon Wall", true)
 end
 
 function Presentations:OnPlayerActivated()

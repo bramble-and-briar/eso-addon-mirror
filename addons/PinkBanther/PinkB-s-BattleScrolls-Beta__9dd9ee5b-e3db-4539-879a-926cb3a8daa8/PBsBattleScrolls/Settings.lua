@@ -140,6 +140,7 @@ function ADDON.InitializeSettings()
         buttonText = L(SI_PBSBS_OPEN_BUTTON),
         clickHandler = function() ADDON.menu:Open() end,
     })
+    AddCheckbox(SI_PBSBS_SHOW_IDS, SI_PBSBS_SHOW_IDS_TIP, "showIds", function() hud:Refresh() end)
 
     AddSection(SI_PBSBS_SECTION_HUD)
     AddCheckbox(SI_PBSBS_HUD, SI_PBSBS_HUD_TIP, "hud", function() hud:Refresh() end)

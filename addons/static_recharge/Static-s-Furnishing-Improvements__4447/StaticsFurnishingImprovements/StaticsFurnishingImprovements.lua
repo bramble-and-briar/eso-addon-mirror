@@ -1,7 +1,7 @@
 --[[------------------------------------------------------------------------------------------------
 Title:					Static's Furnishing Improvements
 Author:					Static_Recharge
-Version:			  1.1.1
+Version:			  1.1.0
 Description:		Adds functionality to the in game furnishing menus and placement UI
 ------------------------------------------------------------------------------------------------]]--
 
@@ -12,6 +12,7 @@ Libraries and Aliases
 local EM = EVENT_MANAGER
 local SM = SCENE_MANAGER
 local CRAFTING_STATIONS = 104
+local LS = LibStatic
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -26,23 +27,24 @@ StaticsFurnishingImprovements					            - Parent object containing all fun
 └─ :AddDepostSameKeybindButton()						 			- Adds the Deposit Same keybinding to the strip. 
 ------------------------------------------------------------------------------------------------]]--
 StaticsFurnishingImprovements = {}
+local SFI = StaticsFurnishingImprovements
+
+-- Static definitions
+SFI.addonName = "StaticsFurnishingImprovements"
+SFI.addonVersion = "1.1.0"
+SFI.author = "|CFF0000Static_Recharge|r"
+SFI.varsVersion = 1
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsFurnishingImprovements:Initialize()
+SFI.Initialize()
 Inputs:				None
 Outputs:			None
 Description:	Initializes all of the variables, object managers, slash commands and main event
 							callbacks.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsFurnishingImprovements:Initialize()
-	-- Static definitions
-  self.addonName = "StaticsFurnishingImprovements"
-	self.addonVersion = "1.1.1"
-	self.author = "|CFF0000Static_Recharge|r"
-	self.varsVersion = 1
-
-	self.Defaults = {
+function SFI.Initialize()
+	SFI.Defaults = {
 		-- Misc
 		chatEnabled = true,
 		debugEnabled = false,
@@ -69,7 +71,7 @@ function StaticsFurnishingImprovements:Initialize()
 		VaultData = {},
 	}
 
-	self.Dialogs = {
+	SFI.Dialogs = {
 		DEPOSIT_SAME = {
 			canQueue = false,
 			title ={text = "Deposit Same from House",},
@@ -78,7 +80,7 @@ function StaticsFurnishingImprovements:Initialize()
 				[1] = {
 					text = SI_YES,
 					callback = function(dialog)
-						self:DepositSameFromHouse()
+						SFI.DepositSameFromHouse()
 					end,
 				},
 				[2] = {
@@ -91,7 +93,7 @@ function StaticsFurnishingImprovements:Initialize()
 		},
 	}
 
-	self.MasterStations = {
+	SFI.MasterStations = {
 		[203555] = true, 					-- Grand Master Blacksmithing Station
 		[203553] = true, 					-- Grand Master Clothing Station
 		[203556] = true, 					-- Grand Master Jewleryaw Crafting Station
@@ -99,7 +101,7 @@ function StaticsFurnishingImprovements:Initialize()
 	}
 	
 	-- Session Variables
-	self.Scenes = {
+	SFI.Scenes = {
 		housingEditorHUD = SM:GetScene("housingEditorHud"),
 		housingEditorHUDUI = SM:GetScene("housingEditorHudUI"),
 		furnitureVaultScene = SM:GetScene("furnitureVault"),
@@ -109,85 +111,85 @@ function StaticsFurnishingImprovements:Initialize()
 	}
 
 	-- Saved Variables Initialization
-	self.SV = ZO_SavedVars:NewAccountWide("StaticsFurnishingImprovementsWideVars", self.varsVersion, nil, self.Defaults, GetWorldName())
+	SFI.SV = ZO_SavedVars:NewAccountWide("StaticsFurnishingImprovementsWideVars", SFI.varsVersion, nil, SFI.Defaults, GetWorldName())
 
 	-- Library Initialization
 	local Options = {
 		addonIdentifier = "SFI",
 		prefixColor = "0086B3",
 		textColor = "FFFFFF",
-		chatEnabled = self.SV.chatEnabled,
-		debugEnabled = self.SV.debugEnabled,
+		chatEnabled = SFI.SV.chatEnabled,
+		debugEnabled = SFI.SV.debugEnabled,
 	}
-	self.Chat = LibStatic:ChatNew(Options)
+	SFI.Chat = LS.ChatNew(Options)
 
 	-- Module Initialization
-	self.Settings:Initialize(self)
-	if self.SV.queueEnabled then
-		self.Queue:Initialize(self)
+	SFI.Settings.Initialize()
+	if SFI.SV.queueEnabled then
+		SFI.Queue.Initialize()
 	else
-		self.Queue = nil
+		SFI.Queue = nil
 	end
-	if self.SV.vaultStatsEnabled then
-		self.VaultStats:Initialize(self)
+	if SFI.SV.vaultStatsEnabled then
+		SFI.VaultStats.Initialize()
 	else
-		self.VaultStats = nil
+		SFI.VaultStats = nil
 	end
 
 	-- Hooks
-	self:StowCraftingStationsHook()	
+	SFI.StowCraftingStationsHook()	
 	
 	-- Event Registrations and Callbacks
-  EM:RegisterForEvent(self.addonName, EVENT_PLAYER_ACTIVATED, function(_, ...) self:OnPlayerActivated(...) end)
+  EM:RegisterForEvent(SFI.addonName, EVENT_PLAYER_ACTIVATED, SFI.OnPlayerActivated)
 
 	-- Slash Commands
-	SLASH_COMMANDS["/sfisamehouse"] = function() self:DepositSameFromHouseDialog() end
+	SLASH_COMMANDS["/sfisamehouse"] = function() SFI.DepositSameFromHouseDialog() end
 
 	-- Keybinds
-	self:AddDepostSameKeybindButton()
+	SFI.AddDepostSameKeybindButton()
 	ZO_CreateStringId("SI_BINDING_NAME_SFI_Deposit_Same_From_House", "Deposit Same From House")
 
 	-- Dialogs
-	ESO_Dialogs[self.addonName .. "Deposit_Same_Confirm"] = self.Dialogs.DEPOSIT_SAME
+	ESO_Dialogs[SFI.addonName .. "Deposit_Same_Confirm"] = SFI.Dialogs.DEPOSIT_SAME
   
-	self.initialized = true
+	SFI.initialized = true
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsFurnishingImprovements:OnPlayerActivated()
+SFI.OnPlayerActivated()
 Inputs:				None
 Outputs:			None
 Description:	Shows or hides the retrieve to bag menu.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsFurnishingImprovements:OnPlayerActivated()
-	self.Chat:Debug("OnPlayerActivated started.")
+function SFI.OnPlayerActivated()
+	SFI.Chat:Debug("OnPlayerActivated started.")
 	if IsOwnerOfCurrentHouse() then
-		if self.SV.showRetrieveToOnHUD then
-			self.Scenes.housingEditorHUD:AddFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
+		if SFI.SV.showRetrieveToOnHUD then
+			SFI.Scenes.housingEditorHUD:AddFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
 		else
-			self.Scenes.housingEditorHUD:RemoveFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
+			SFI.Scenes.housingEditorHUD:RemoveFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
 		end
-		self.Scenes.housingEditorHUDUI:AddFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
+		SFI.Scenes.housingEditorHUDUI:AddFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
 	else
-		self.Scenes.housingEditorHUD:RemoveFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
-		self.Scenes.housingEditorHUDUI:RemoveFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
+		SFI.Scenes.housingEditorHUD:RemoveFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
+		SFI.Scenes.housingEditorHUDUI:RemoveFragment(HOUSING_FURNITURE_RETRIEVE_TO_FRAGMENT)
 	end  
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsFurnishingImprovements:StowCraftingStationsHook()
+SFI.StowCraftingStationsHook()
 Inputs:				None
 Outputs:			None
 Description:	Automatically stores crafting stations in the furnishing vault when picking them up from a house.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsFurnishingImprovements:StowCraftingStationsHook()
+function SFI.StowCraftingStationsHook()
 	local function preHookRetrieve(data)
-		if not self.SV.depositCraftingStations then return end
+		if not SFI.SV.depositCraftingStations then return end
 
-		self.currentRetrieveTo = HousingEditorGetRetrieveToBag()
-		if self.currentRetrieveTo == BAG_FURNITURE_VAULT then return end
+		SFI.currentRetrieveTo = HousingEditorGetRetrieveToBag()
+		if SFI.currentRetrieveTo == BAG_FURNITURE_VAULT then return end
 
 		local furnitureLink
 		if data then
@@ -197,23 +199,23 @@ function StaticsFurnishingImprovements:StowCraftingStationsHook()
 		end
 		local itemId = GetItemLinkItemId(furnitureLink)
 		local _, subCategory = GetFurnitureDataInfo(GetItemLinkFurnitureDataId(furnitureLink))
-		self.Chat:Debug(zo_strformat("link: <<1>>, subCategory: <<2>>", furnitureLink, subCategory))
+		SFI.Chat:Debug(zo_strformat("link: <<1>>, subCategory: <<2>>", furnitureLink, subCategory))
 
 		if subCategory == CRAFTING_STATIONS then
-			if not self.MasterStations[itemId] then
+			if not SFI.MasterStations[itemId] then
 				HousingEditorSetRetrieveToBag(BAG_FURNITURE_VAULT)
-				self.Chat:Msg(zo_strformat("<<1>> sent to the Furnishing Vault.", furnitureLink))
+				SFI.Chat:Msg(zo_strformat("<<1>> sent to the Furnishing Vault.", furnitureLink))
 			else
-				HousingEditorSetRetrieveToBag(self.currentRetrieveTo)
-				self.Chat:Msg(zo_strformat("<<1>> can't be sent to the Furnishing Vault. Sending to previously selected bag.", furnitureLink))
+				HousingEditorSetRetrieveToBag(SFI.currentRetrieveTo)
+				SFI.Chat:Msg(zo_strformat("<<1>> can't be sent to the Furnishing Vault. Sending to previously selected bag.", furnitureLink))
 			end
 		end
 	end
 
 	local function postHookRetrieve()
-		if self.currentRetrieveTo then
-			HousingEditorSetRetrieveToBag(self.currentRetrieveTo)
-			self.currentRetrieveTo = nil
+		if SFI.currentRetrieveTo then
+			HousingEditorSetRetrieveToBag(SFI.currentRetrieveTo)
+			SFI.currentRetrieveTo = nil
 		end
 	end
 
@@ -225,13 +227,13 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsFurnishingImprovements:DepositSameFromInventory()
+SFI.DepositSameFromInventory()
 Inputs:				None
 Outputs:			None
 Description:	Deposits already existing stacks into the furnishing vault.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsFurnishingImprovements:DepositSameFromInventory()
-	if not self.SV.depositSameFromInventory then return end
+function SFI.DepositSameFromInventory()
+	if not SFI.SV.depositSameFromInventory then return end
 
   local FurnitureCache = SHARED_INVENTORY:GetOrCreateBagCache(BAG_FURNITURE_VAULT)
 	local backpackCache = SHARED_INVENTORY:GetOrCreateBagCache(BAG_BACKPACK)
@@ -242,7 +244,7 @@ function StaticsFurnishingImprovements:DepositSameFromInventory()
 		for backpackIndex, backpackData in pairs(backpackCache) do
 			local backpackID = GetItemId(BAG_BACKPACK, backpackIndex)
 			local link = GetItemLink(BAG_BACKPACK, backpackIndex)
-			self.Chat:Debug(zo_strformat("furnitureID: <<1>>, backpackID: <<2>>", furnitureID, backpackID))
+			SFI.Chat:Debug(zo_strformat("furnitureID: <<1>>, backpackID: <<2>>", furnitureID, backpackID))
 			if furnitureID == backpackID then
 				if IsProtectedFunction("PickupInventoryItem") then
 					CallSecureProtected("PickupInventoryItem", BAG_BACKPACK, backpackIndex)
@@ -254,23 +256,23 @@ function StaticsFurnishingImprovements:DepositSameFromInventory()
 				else
 					PlaceInTransfer()
 				end
-				self.Chat:Msg(zo_strformat("<<1>> moved to furnishing vault.", link))
+				SFI.Chat:Msg(zo_strformat("<<1>> moved to furnishing vault.", link))
 				count = count + 1
 			end			
 		end
 	end
-	self.Chat:Msg(zo_strformat("<<1>> items moved to furnishing vault.", count))
+	SFI.Chat:Msg(zo_strformat("<<1>> items moved to furnishing vault.", count))
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsFurnishingImprovements:DepositSameFromHouseDialog()
+SFI.DepositSameFromHouseDialog()
 Inputs:				None
 Outputs:			None
 Description:	Starts the dialog to confirm moving furniture from the house to the furnishing vault.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsFurnishingImprovements:DepositSameFromHouseDialog()
-	if not self.SV.depositSameFromHouse then return end
+function SFI.DepositSameFromHouseDialog()
+	if not SFI.SV.depositSameFromHouse then return end
 
   local FurnitureCache = SHARED_INVENTORY:GetOrCreateBagCache(BAG_FURNITURE_VAULT)
 
@@ -289,73 +291,73 @@ function StaticsFurnishingImprovements:DepositSameFromHouseDialog()
 	end
 
 	-- Count how many would be removed and index them
-	self.found = {}
+	SFI.found = {}
 	for furnitureIndex, furnitureData in pairs(FurnitureCache) do
 		local furnitureID = GetItemId(BAG_FURNITURE_VAULT, furnitureIndex)
 		for houseIndex, houseData in pairs(HouseCache) do
 			local houseID = GetItemLinkItemId(houseData.link)
 			local link = houseData.link
-			self.Chat:Debug(zo_strformat("furnitureID: <<1>>, houseID: <<2>>", furnitureID, houseID))
+			SFI.Chat:Debug(zo_strformat("furnitureID: <<1>>, houseID: <<2>>", furnitureID, houseID))
 			if furnitureID == houseID then
-				table.insert(self.found, houseData)
+				table.insert(SFI.found, houseData)
 			end			
 		end
 	end
 
 	-- Show confirm dialog
-	if #self.found > 0 then
-		ZO_Dialogs_ShowDialog(self.addonName .. "Deposit_Same_Confirm", nil, {mainTextParams={#self.found}}, false)
+	if #SFI.found > 0 then
+		ZO_Dialogs_ShowDialog(SFI.addonName .. "Deposit_Same_Confirm", nil, {mainTextParams={#SFI.found}}, false)
 	else
-		self.Chat:Msg("No matching furnishings found to move to the Furnishing Vault.")
+		SFI.Chat:Msg("No matching furnishings found to move to the Furnishing Vault.")
 	end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsFurnishingImprovements:DepositSameFromHouse()
+SFI.DepositSameFromHouse()
 Inputs:				None
 Outputs:			None
 Description:	Moves furniture from the house to the furnishing vault.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsFurnishingImprovements:DepositSameFromHouse()
+function SFI.DepositSameFromHouse()
   -- If dialog passed then remove the furniture to the furnishing vault
 	local currentRetrieveTo = HousingEditorGetRetrieveToBag()
 	local count = 0
-	local total = #self.found
+	local total = #SFI.found
 	HousingEditorSetRetrieveToBag(BAG_FURNITURE_VAULT)
-	for index, data in ipairs(self.found) do
+	for index, data in ipairs(SFI.found) do
 		local result = HousingEditorRequestRemoveFurniture(data.id)
 		ZO_AlertEvent(EVENT_HOUSING_EDITOR_REQUEST_RESULT, result)
     PlaySound(SOUNDS.DEFAULT_CLICK)
 		if result == HOUSING_REQUEST_RESULT_SUCCESS then
 			count = count + 1
-			self.Chat:Msg(zo_strformat("<<1>> moved to furnishing vault from house.", data.link))
+			SFI.Chat:Msg(zo_strformat("<<1>> moved to furnishing vault from house.", data.link))
 		end
 	end
-	self.Chat:Msg(zo_strformat("<<1>> items moved to furnishing vault from house.", count))
+	SFI.Chat:Msg(zo_strformat("<<1>> items moved to furnishing vault from house.", count))
 	HousingEditorSetRetrieveToBag(currentRetrieveTo)
 	if count ~= total then
-		self.Chat:Msg(zo_strformat("<<1>> items were skipped.", total - count))
+		SFI.Chat:Msg(zo_strformat("<<1>> items were skipped.", total - count))
 	end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-StaticsFurnishingImprovements:AddDepostSameKeybindButton()
+SFI.AddDepostSameKeybindButton()
 Inputs:				None
 Outputs:			None
 Description:	Adds the Deposit Same keybinding to the strip.
 ------------------------------------------------------------------------------------------------]]--
-function StaticsFurnishingImprovements:AddDepostSameKeybindButton()
+function SFI.AddDepostSameKeybindButton()
 	local furnitureVaultLeftKeybindStrip = {
 		alignment = KEYBIND_STRIP_ALIGN_LEFT,
 		name = "Deposit Same",
 		keybind = "UI_SHORTCUT_TERTIARY",
-		callback = function() self:DepositSameFromInventory() end,
+		callback = function() SFI.DepositSameFromInventory() end,
 	}
 
-	self.Scenes.furnitureVaultScene:RegisterCallback("StateChange", function(oldState, newState)
-		if newState == SCENE_SHOWING and self.SV.depositSameFromInventory then
+	SFI.Scenes.furnitureVaultScene:RegisterCallback("StateChange", function(oldState, newState)
+		if newState == SCENE_SHOWING and SFI.SV.depositSameFromInventory then
 			KEYBIND_STRIP:AddKeybindButton(furnitureVaultLeftKeybindStrip)
 		elseif newState == SCENE_HIDDEN then
 			KEYBIND_STRIP:RemoveKeybindButton(furnitureVaultLeftKeybindStrip)
@@ -367,8 +369,8 @@ end
 --[[------------------------------------------------------------------------------------------------
 Main add-on event registration. Creates the global object, StaticsLetterOpener, of the LO class.
 ------------------------------------------------------------------------------------------------]]--
-EM:RegisterForEvent("StaticsFurnishingImprovements", EVENT_ADD_ON_LOADED, function(eventCode, addonName)
-	if addonName ~= "StaticsFurnishingImprovements" then return end
-	EM:UnregisterForEvent("StaticsFurnishingImprovements", EVENT_ADD_ON_LOADED)
-	StaticsFurnishingImprovements:Initialize()
+EM:RegisterForEvent(SFI.addonName, EVENT_ADD_ON_LOADED, function(eventCode, addonName)
+	if addonName ~= SFI.addonName then return end
+	EM:UnregisterForEvent(SFI.addonName, EVENT_ADD_ON_LOADED)
+	SFI.Initialize()
 end)

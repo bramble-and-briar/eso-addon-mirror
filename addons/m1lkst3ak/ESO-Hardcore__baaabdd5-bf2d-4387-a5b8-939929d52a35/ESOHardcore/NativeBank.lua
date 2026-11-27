@@ -43,8 +43,8 @@ local function scan()
    local name=(s(GetItemLinkName,link) or link):gsub('%^%a+','');if zo_strformat then name=s(zo_strformat,'<<1>>',name) or name end
    local quality=readQuality(bag,slot,link)
    local value;local gs=GoldStandard;if gs and s(gs.IsSlotMarketable,gs,bag,slot,link)==true then value=s(gs.Estimate,gs,link,qty) end
-   local k=link:gsub('|H%d+:','|H0:'):gsub('|h.-|h$','|h|h');if remaining[k]==nil then remaining[k]=N.hcEligible(link,not I.deposit) end;local physical=qty;qty=math.min(qty,remaining[k]);remaining[k]=remaining[k]-qty
-   if qty>0 and (I.category==1 or cat==I.category) then rows[#rows+1]={bag=bag,slot=slot,link=link,icon=icon or s(GetItemLinkIcon,link),qty=qty,physical=physical,name=name,quality=quality,cat=cat,value=value} end
+   local k=link:gsub('|H%d+:','|H0:'):gsub('|h.-|h$','|h|h');if remaining[k]==nil then remaining[k]=N.hcEligible(link,not I.deposit) end;local physical=qty;local eligible=math.min(qty,remaining[k]);remaining[k]=remaining[k]-eligible
+   if qty>0 and (I.category==1 or cat==I.category) then rows[#rows+1]={bag=bag,slot=slot,link=link,icon=icon or s(GetItemLinkIcon,link),qty=qty,physical=physical,eligible=eligible,name=name,quality=quality,cat=cat,value=value} end
   end
  end
  end
@@ -70,7 +70,7 @@ end
 local function detail(e)
  if not e then I.detailTitle:SetColor(.94,.87,.72,1);I.detailTitle:SetText('No items in this category');I.detail:SetText('');return end
  local c=qualityColor(e.quality);I.detailTitle:SetColor(c[1],c[2],c[3],1);I.detailTitle:SetText(coloredName(e)..'  ×'..fmt(e.qty))
- local lines={rarity[e.quality+1] or ('Quality '..fmt(e.quality))}
+ local lines={rarity[e.quality+1] or ('Quality '..fmt(e.quality)), 'HC eligible: '..fmt(e.eligible or 0)..' / '..fmt(e.qty)}
  local function add(v) if type(v)=='string' and v~='' then lines[#lines+1]=v end end
  local function stat(n,v) if type(v)=='number' and v>0 then add(n..': '..fmt(v)) end end
  local link=e.link
@@ -87,8 +87,8 @@ local function detail(e)
  stat('Vendor gold / item',s(GetItemLinkValue,link,true));if e.value then add('Market estimate: '..fmt(e.value)..'g') end
  I.detail:SetText(table.concat(lines,'\n'))
 end
-local currencies={{name='HC Gold',id=CURT_MONEY}}
-local function balance(c,loc) if c.id and loc then local p,b=N.hcGold();return math.min(loc==CURRENCY_LOCATION_CHARACTER and p or b,s(GetCurrencyAmount,c.id,loc) or 0) end end
+local currencies={{name='HC Gold',id=CURT_MONEY,mode='hc'},{name='Standard Gold',id=CURT_MONEY,mode='standard'}}
+local function balance(c,loc) if c.id and loc then return s(GetCurrencyAmount,c.id,loc) or 0 end end
 local function moneyfmt(n) if type(n)~='number' then return '—' end;local v=tostring(math.floor(n));return (v:reverse():gsub('(%d%d%d)','%1,'):reverse():gsub('^,','')) end
 local function render()
  if I.dirty then scan() end
@@ -97,7 +97,7 @@ local function render()
  I.filter:SetText('Category: '..categories[I.category]..'     |     Sort: '..sorts[I.sort]..'     |     Page '..I.page..' / '..total)
  for j,c in ipairs(I.cells) do local e=I.rows[(I.page-1)*60+j];c.icon:SetHidden(not e);c.qty:SetText(e and e.qty>1 and fmt(e.qty) or '');local col=e and qualityColor(e.quality) or {.25,.21,.15};if e and e.icon then c.icon:SetTexture(e.icon) else c.icon:SetHidden(true) end;c.bg:SetEdgeColor(col[1],col[2],col[3],1);local active=j==I.selected and e~=nil;c.sel:SetHidden(not active);c.icon:SetColor(active and 1 or .78,active and 1 or .78,active and 1 or .78,1) end
  local e=I.rows[(I.page-1)*60+I.selected];detail(e)
- for j,c in ipairs(currencies) do I.money[j]:SetText(c.name..'   Carried: '..moneyfmt(balance(c,CURRENCY_LOCATION_CHARACTER))..'   |   Bank: '..moneyfmt(balance(c,CURRENCY_LOCATION_BANK))) end
+ local h,b=N.hcGold();I.money[1]:SetText('HC Gold   Carried: '..moneyfmt(h)..'   |   Bank: '..moneyfmt(b));if I.money[2] then I.money[2]:SetText('Total gold   Carried: '..moneyfmt(balance(currencies[1],CURRENCY_LOCATION_CHARACTER))..'   |   Bank: '..moneyfmt(balance(currencies[1],CURRENCY_LOCATION_BANK))) end
 end
 local function build()
  local p=WINDOW_MANAGER:CreateTopLevelWindow('HCNativeBankGrid');I.root=p
@@ -121,7 +121,7 @@ local function build()
  end
  I.detailTitle=label(p,840,114,271,76,23);I.detail=label(p,840,198,271,407,18)
  local footerRule=frame(p,24,628,1102,1);footerRule:SetEdgeColor(.40,.32,.19,1)
- I.money={};for j=1,3 do I.money[j]=label(p,24+(j-1)*370,638,365,34,17) end
+ I.money={};for j=1,2 do I.money[j]=label(p,24+(j-1)*550,638,545,34,17) end
 end
 
 local function current() return I.rows[(I.page-1)*60+I.selected] end
@@ -162,9 +162,17 @@ end
 local function back() release();SCENE_MANAGER:HideCurrentScene() end
 local function handoff() native() end
 local function secureAction(name,...)
- if type(IsProtectedFunction)=='function' and s(IsProtectedFunction,name)==false and type(_G[name])=='function' then return pcall(_G[name],...) end
- if type(CallSecureProtected)=='function' then return pcall(CallSecureProtected,name,...) end
- return false,'Secure API unavailable'
+ -- Never read a protected native function from _G: even type() can taint it.
+ -- For known protected actions use only the supported string-based dispatcher.
+ if name=='RequestMoveItem' or name=='UseItem' or s(IsProtectedFunction,name)==true then
+  if type(CallSecureProtected)=='function' then return pcall(CallSecureProtected,name,...) end
+  return false,'Secure API unavailable; use native UI'
+ end
+ -- Only explicitly documented public actions may use the direct path.
+ if name=='RequestEquipItem' or name=='DestroyItem' or name=='TransferCurrency' then
+  return pcall(function(...) local f=_G[name];if type(f)~='function' then return false end;return f(...) end,...)
+ end
+ return false,'Unsupported action; use native UI'
 end
 local function bankOpen() return INTERACTION_BANK~=nil and s(GetInteractionType)==INTERACTION_BANK end
 local function findTarget(bags)
@@ -174,10 +182,8 @@ local function primary(e,kind)
  if I.pending or not bankOpen() or s(IsUnitInCombat,'player')~=false then notice('Bank action unavailable.');return end
  local function execute()
   if I.pending or not bankOpen() or s(IsUnitInCombat,'player')~=false or s(GetItemLink,e.bag,e.slot,LINK_STYLE_DEFAULT)~=e.link or s(GetSlotStackSize,e.bag,e.slot)~=(e.physical or e.qty) then notice('Bank or item changed; cancelled.');return end
-  if not N.hcActive() or N.hcEligible(e.link,e.bag~=BAG_BACKPACK)<e.qty then notice('HC eligibility changed.');return end
   local name,args,dest,slot
   if kind=='Destroy' then
-   if e.physical~=e.qty then notice('Mixed stack cannot be destroyed.');return end
    if s(IsItemPlayerLocked,e.bag,e.slot)~=false then notice('Locked item protected.');return end
    name='DestroyItem';args={e.bag,e.slot}
   else
@@ -187,7 +193,7 @@ local function primary(e,kind)
    name='RequestMoveItem';args={e.bag,e.slot,dest,slot,e.qty}
   end
   local ok,result=secureAction(name,(unpack or table.unpack)(args))
-  if not ok then notice(name..' error: '..tostring(result));return end
+  if not ok or result==false then notice(kind..' unavailable. R2 opens native bank.');return end
   I.pending=true
   zo_callLater(function()
    I.pending=false;I.dirty=true
@@ -222,7 +228,7 @@ local function paintSplit()
  I.splitText:SetText('New stack: '..m.amount..'     Remaining: '..(m.item.qty-m.amount)..'\n\nLeft / Right: -1 / +1\nUp / Down: +10 / -10\nL1: quarter    R1: half\nSquare: leave one\n\nX: split     Circle: cancel')
 end
 local function openSplit(e)
- if I.pending or e.qty<2 or e.physical~=e.qty then return end
+ if I.pending or e.qty<2 then return end
  if not I.splitPanel then
   local p=frame(I.root,265,125,620,365);p:SetDrawLayer(DL_OVERLAY);p:SetDrawLevel(40);I.splitPanel=p
   I.splitTitle=label(p,20,15,580,50,23);I.splitTitle:SetDrawLayer(DL_OVERLAY);I.splitTitle:SetDrawLevel(41)
@@ -239,7 +245,7 @@ local function executeSplit()
  if not zo_callLater then notice('Split verification unavailable.');return end
  closeSplit()
  local ok,result=secureAction('RequestMoveItem',e.bag,e.slot,e.bag,slot,amount)
- if not ok then notice('Split error: '..tostring(result));return end
+ if not ok or result==false then notice('Split unavailable. R2 opens native bank.');return end
  I.pending=true;zo_callLater(function()
  I.pending=false;I.dirty=true
  if s(GetSlotStackSize,e.bag,e.slot)==e.qty-amount and s(GetItemLink,e.bag,slot,LINK_STYLE_DEFAULT)==e.link and s(GetSlotStackSize,e.bag,slot)==amount then notice('Split confirmed: '..amount..' / '..(e.qty-amount)) else notice('Split not confirmed (return '..tostring(result)..').') end
@@ -278,14 +284,14 @@ local function paintCurrency()
  local m=I.currency;if not m then return end
  local c=currencies[m.index];local limit=currencyMax(m);m.amount=math.min(limit,math.max(0,m.amount))
  I.currencyTitle:SetText('CURRENCY MANAGEMENT')
- I.currencyText:SetText((m.stage==1 and '> ' or '  ')..'Currency: '..c.name..'\n'..(m.stage==2 and '> ' or '  ')..'Direction: '..(m.deposit and 'Deposit' or 'Withdraw')..'\n'..(m.stage==3 and '> ' or '  ')..'Amount: '..moneyfmt(m.amount)..' / '..moneyfmt(limit)..'\n\nCarried: '..moneyfmt(balance(c,CURRENCY_LOCATION_CHARACTER))..'    Bank: '..moneyfmt(balance(c,CURRENCY_LOCATION_BANK))..'\n\nLeft / Right: change selection or amount\nUp / Down: select field     L1 / R1: amount step\nStep: '..moneyfmt(m.step)..'    Square: maximum\nX: confirm transfer    Circle: cancel')
+ I.currencyText:SetText((m.stage==1 and '> ' or '  ')..'Currency: '..c.name..'\n'..(m.stage==2 and '> ' or '  ')..'Direction: '..(m.deposit and 'Deposit' or 'Withdraw')..'\n'..(m.stage==3 and '> ' or '  ')..'Amount: '..moneyfmt(m.amount)..' / '..moneyfmt(limit)..'\n\nHC carried: '..moneyfmt(select(1,N.hcGold()))..'    HC bank: '..moneyfmt(select(2,N.hcGold()))..'\nTotal carried: '..moneyfmt(balance(c,CURRENCY_LOCATION_CHARACTER))..'    Total bank: '..moneyfmt(balance(c,CURRENCY_LOCATION_BANK))..'\n\nLeft / Right: change selection or amount\nUp / Down: select field     L1 / R1: amount step\nStep: '..moneyfmt(m.step)..'    Square: HC balance / total maximum\nX: confirm transfer    Circle: cancel')
 end
 local function openCurrency()
  if I.pending or not bankOpen() then return end
  if not I.currencyPanel then
-  local p=frame(I.root,265,125,620,445);p:SetDrawLayer(DL_OVERLAY);p:SetDrawLevel(30);I.currencyPanel=p
+  local p=frame(I.root,265,125,620,500);p:SetDrawLayer(DL_OVERLAY);p:SetDrawLevel(30);I.currencyPanel=p
   I.currencyTitle=label(p,20,15,580,45,25);I.currencyTitle:SetDrawLayer(DL_OVERLAY);I.currencyTitle:SetDrawLevel(31)
-  I.currencyText=label(p,20,65,580,365,21);I.currencyText:SetDrawLayer(DL_OVERLAY);I.currencyText:SetDrawLevel(31)
+  I.currencyText=label(p,20,65,580,420,21);I.currencyText:SetDrawLayer(DL_OVERLAY);I.currencyText:SetDrawLevel(31)
  end
  I.currency={index=1,stage=1,deposit=I.deposit==true,amount=0,step=1};I.currencyPanel:SetHidden(false);paintCurrency()
 end
@@ -296,8 +302,8 @@ local function transferFunds()
  local function execute()
   if I.pending or not bankOpen() or not I.focus or s(IsUnitInCombat,'player')~=false or amount>currencyMax(m) then notice('Currency transfer cancelled: balance or interaction changed.');return end
   local before=s(GetCurrencyAmount,c.id,from);local target=s(GetCurrencyAmount,c.id,to);if type(before)~='number' or type(target)~='number' then return end
-  local ok,result=secureAction('TransferCurrency',c.id,amount,from,to);if not ok then notice('Currency transfer error: '..tostring(result));return end
-  I.pending=true;zo_callLater(function() I.pending=false;local after=s(GetCurrencyAmount,c.id,from);local dest=s(GetCurrencyAmount,c.id,to);if after==before-amount and dest==target+amount then notice(kind..' '..moneyfmt(amount)..' '..c.name..' confirmed.') else notice('Currency transfer not confirmed (return '..tostring(result)..'). R2 opens native bank.') end end,1500)
+  N.goldTransferIntent(m.deposit,amount,c.mode);local ok,result=secureAction('TransferCurrency',c.id,amount,from,to);if not ok then N.cancelGoldTransferIntent(); notice('Currency transfer error: '..tostring(result));return end
+  I.pending=true;zo_callLater(function() I.pending=false;local after=s(GetCurrencyAmount,c.id,from);local dest=s(GetCurrencyAmount,c.id,to);if after==before-amount and dest==target+amount then if N.refreshHCGold then N.refreshHCGold() end;notice(kind..' '..moneyfmt(amount)..' '..c.name..' confirmed.') else notice('Currency transfer not confirmed (return '..tostring(result)..'). R2 opens native bank.') end end,1500)
  end
  if not (ZO_Dialogs_RegisterCustomDialog and ZO_Dialogs_ShowGamepadDialog and GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.BASIC and zo_callLater) then notice('Confirmation unavailable.');return end
  if not I.currencyDialog then ZO_Dialogs_RegisterCustomDialog('ESOHC_NATIVE_CURRENCY_CONFIRM',{gamepadInfo={dialogType=GAMEPAD_DIALOGS.BASIC},title={text='Confirm currency transfer'},mainText={text='<<1>>'},buttons={{keybind='DIALOG_PRIMARY',text='Confirm',callback=function(dialog) if dialog.data and dialog.data.execute then dialog.data.execute() end end},{keybind='DIALOG_NEGATIVE',text='Cancel'}}});I.currencyDialog=true end
@@ -318,8 +324,8 @@ function HCNativeBankInput(action)
   local m=I.currency
   if action=='back' then closeCurrency();return elseif action=='primary' then transferFunds();return
   elseif action=='up' or action=='down' then m.stage=(m.stage-1+(action=='up' and -1 or 1))%3+1
-  elseif action=='left' or action=='right' then local d=action=='left' and -1 or 1;if m.stage==1 then m.index=(m.index-1+d)%3+1;m.amount=0 elseif m.stage==2 then m.deposit=not m.deposit;m.amount=0 else m.amount=m.amount+d*m.step end
-  elseif action=='prev' then m.step=math.max(1,m.step/10) elseif action=='next' then m.step=math.min(100000000,m.step*10) elseif action=='sort' then m.amount=currencyMax(m) end
+  elseif action=='left' or action=='right' then local d=action=='left' and -1 or 1;if m.stage==1 then m.index=(m.index-1+d)%#currencies+1;m.amount=0 elseif m.stage==2 then m.deposit=not m.deposit;m.amount=0 else m.amount=m.amount+d*m.step end
+  elseif action=='prev' then m.step=math.max(1,m.step/10) elseif action=='next' then m.step=math.min(100000000,m.step*10) elseif action=='sort' then local h,b=N.hcGold();m.amount=m.index==1 and math.min(currencyMax(m),m.deposit and h or b) or currencyMax(m) end
   paintCurrency();return
  end
  if I.menu then
@@ -352,7 +358,7 @@ local function setup()
  key('UI_SHORTCUT_LEFT_SHOULDER','Category','prev');key('UI_SHORTCUT_RIGHT_SHOULDER','Category','next')
  key('UI_SHORTCUT_PRIMARY','Item actions','primary');key('UI_SHORTCUT_SECONDARY','Sort','sort')
  key('UI_SHORTCUT_TERTIARY','Deposit / Withdraw','mode')
- key('UI_SHORTCUT_LEFT_TRIGGER','Currency','currency')
+ key('UI_SHORTCUT_LEFT_TRIGGER','Gold transfer','currency')
  key('UI_SHORTCUT_RIGHT_TRIGGER','Native bank','native')
  key('UI_SHORTCUT_NEGATIVE','Back','back')
  I.scene:RegisterCallback('StateChange',function(_,state)
@@ -382,7 +388,7 @@ function I.close() if I.focus then back() end end
 local function tick()
  local name=sceneNameNow()
  if name==sceneName and not N.hcActive() then back();return end
- if name==sceneName then if not bankOpen() then back();return end;if I.focus then I.dirty=true;render() end;return end
+ if name==sceneName then if not bankOpen() then back();return end;if I.focus then render() end;return end
  if I.focus then release() end
  if name==nativeName then
   if N.hcActive() and bankOpen() and not I.disabled and not I.bypass and not (ZO_Dialogs_IsShowingDialog and s(ZO_Dialogs_IsShowingDialog)) then

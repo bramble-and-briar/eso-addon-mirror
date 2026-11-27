@@ -70,6 +70,52 @@ function R.Tags(unit)
     return {}
 end
 
+-- Shield, trauma and "can't be healed" on a unit's health (5.22.0, AyDeeS: "how can i show trauma and shield on the hp
+-- bar"; Yarden: also the "not healable" state -- Ring of the Pale Order, the vampire toggle). The game reports them as
+-- attribute visuals on health (APIPatchNotesP34: EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED / UPDATED / REMOVED;
+-- GetAllUnitAttributeVisualizerEffectInfo(tag) = groups of six: visual, stat, attribute, power type, value, max) --
+-- read the way LuiExtended's unit frames do (UnitAttributeVisuals/PowerShield.lua: ATTRIBUTE_VISUAL_POWER_SHIELDING,
+-- ATTRIBUTE_VISUAL_TRAUMA, ATTRIBUTE_VISUAL_NO_HEALING on STAT_MITIGATION / ATTRIBUTE_HEALTH /
+-- COMBAT_MECHANIC_FLAGS_HEALTH). Returns shield, trauma (amounts of health) and whether healing is blocked.
+function R.HealthVisuals(tag)
+    if type(GetAllUnitAttributeVisualizerEffectInfo) ~= "function" or not ATTRIBUTE_VISUAL_POWER_SHIELDING then
+        return 0, 0, false
+    end
+    local r = { GetAllUnitAttributeVisualizerEffectInfo(tag) }
+    local shield, trauma, noHeal = 0, 0, false
+    for i = 1, #r - 5, 6 do
+        if r[i + 1] == STAT_MITIGATION and r[i + 2] == ATTRIBUTE_HEALTH and r[i + 3] == COMBAT_MECHANIC_FLAGS_HEALTH then
+            local visual, value = r[i], tonumber(r[i + 4]) or 0
+            if visual == ATTRIBUTE_VISUAL_POWER_SHIELDING then shield = shield + math.max(0, value)
+            elseif visual == ATTRIBUTE_VISUAL_TRAUMA then trauma = trauma + math.max(0, value)
+            elseif visual == ATTRIBUTE_VISUAL_NO_HEALING then noHeal = noHeal or value > 0 end
+        end
+    end
+    return shield, trauma, noHeal
+end
+
+-- The changes are listened to only while a health bar shows them (Engine.Rebuild): an update right away instead of at
+-- the next tick. Rare events (a shield going up or breaking), unfiltered by unit (any unit a tracker might show).
+local visualWatch = false
+local VISUAL_EVENTS = { "EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED", "EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED", "EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED" }
+function R.SetVisualWatch(on)
+    on = on == true
+    if on == visualWatch then return end
+    visualWatch = on
+    for i, name in ipairs(VISUAL_EVENTS) do
+        local ev = rawget(_G, name)
+        if ev then
+            local ns = "DebuffTracker5_HealthVisual" .. i
+            if on then
+                EVENT_MANAGER:RegisterForEvent(ns, ev, function() DT.Engine.RequestUpdate() end)
+            else
+                EVENT_MANAGER:UnregisterForEvent(ns, ev)
+            end
+        end
+    end
+end
+function R.VisualWatching() return visualWatch end
+
 function R.Read(tag, powerType)
     local current, max = GetUnitPower(tag, C.PowerConstant(powerType))
     current, max = current or 0, max or 0
@@ -148,6 +194,7 @@ function G.Refresh()
         end
     end
     G.countsAll = all
+    if DT.Engine and DT.Engine.StandingChanged then DT.Engine.StandingChanged() end
 end
 
 -- the full bonus is on (both bars counted: the other bar's set is still "worn" for swapping)

@@ -143,6 +143,14 @@ local FEATURES = {
         settings = function() OpenPanel(Module("raffle").panel) end,
     },
     {
+        id = "milestones", name = "Member anniversaries", reload = true, perGuild = true, tab = "members",
+        text = "When a member reaches 30, 90 or 365 days in the guild, a congratulation waits in guild chat for your Enter.",
+        tip = "Uses the join dates from roster history (Time in guild on the Members tab). The milestones and the message are in the settings under Member anniversaries.",
+        get = function() return Module("milestones").sv.enabled end,
+        set = function(on) Module("milestones").sv.enabled = on end,
+        settings = function() GT.Settings:Open() end,
+    },
+    {
         id = "crier", name = "Guild Crier", always = true, tab = "crier",
         text = "Your saved guild, zone and whisper messages. Click one to load it into chat; you press Enter.",
         tip = "Always on. Open it from the Crier tab, with /crier or with a keybind.",

@@ -4,7 +4,7 @@ local Project = NODE_RUNNER
 Project.Config = {
     addonName = "NodeRunner",
     displayName = "Node Runner",
-    version = "0.1.0-test1",
+    version = "0.2.1",
     savedVariablesName = "NodeRunner_SV",
     savedVariablesVersion = 1,
     moduleId = "node_runner",
@@ -57,7 +57,7 @@ Project.Defaults = {
 }
 
 function Project:NotifyChanged()
-    if LibSTARSConnect and type(LibSTARSConnect.NotifyDataChanged) == "function" then
-        LibSTARSConnect:NotifyDataChanged(self.Config.moduleId)
+    if DragonWallReverb and type(DragonWallReverb.NotifyDataChanged) == "function" then
+        DragonWallReverb:NotifyDataChanged(self.Config.moduleId)
     end
 end

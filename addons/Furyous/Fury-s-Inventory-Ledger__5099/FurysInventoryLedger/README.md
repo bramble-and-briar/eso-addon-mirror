@@ -68,7 +68,7 @@ Changes are shown in green when they went up and in rose when they went down. Go
 3. Double-click `ExportToExcel.cmd`. It writes `ESO Inventory <date time>.csv` to your Desktop and opens it.
 
 **Keep the Excel file ready** (a setting, starts turned off): when on, the full list is saved every time you
-log out, reload or change zone, so step 1 is not needed. It about doubles the size of the addon's saved file.
+log out, switch characters or reload, so step 1 is not needed. It about doubles the size of the addon's saved file.
 If you used the addon before 1.5.0 it is on for you, as before.
 
 **In game:** `/ledger copy` (or **Copy for Excel** on the summary) opens the copy window. Click **Select All**, press Ctrl+C, paste into Excel.

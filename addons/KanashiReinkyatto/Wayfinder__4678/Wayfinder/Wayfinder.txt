@@ -7,8 +7,8 @@
 ## Title: |cD9A441Wayfinder|r
 ## Author: |cFF77CCKanashiReinkyatto|r
 ## Description: Open delve and public dungeon maps from world map pins, and find/teleport to group, friends, and guildmates.
-## Version: 1.1
-## APIVersion: 101050
+## Version: 1.2.0
+## APIVersion: 101051
 ## DependsOn: LibCustomMenu>=730 LibAddonMenu-2.0>=43
 ## SavedVariables: WayfinderSV
 

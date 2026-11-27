@@ -18,7 +18,7 @@
     "CGESO"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2062/",
-  "fingerprint": "6cc4a1771ec1de4921085366a2c32c4ff81f4821dcd8851efff0a9824bac384e",
+  "fingerprint": "1d10a94513c8d7955ec7f7c3826da712b17c3433d05a03a2400d528b5a092949",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18472.png",
     "https://cdn-eso.mmoui.com/preview/pvw18469.png",
@@ -35,11 +35,11 @@
   "source_id": "2062",
   "source_url": "https://www.esoui.com/downloads/info2062-CommunityLevelingGuides.html",
   "stats": {
-    "downloads": 163928,
+    "downloads": 164365,
     "favorites": 142,
-    "monthly_downloads": 270
+    "monthly_downloads": 612
   },
   "title": "Community Leveling Guides",
-  "updated_at": 1794703370000,
-  "version": "1185"
+  "updated_at": 1795710407000,
+  "version": "1225"
 }

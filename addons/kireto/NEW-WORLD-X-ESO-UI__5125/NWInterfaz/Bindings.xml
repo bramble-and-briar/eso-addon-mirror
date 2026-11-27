@@ -1,0 +1,15 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="NW Interfaz">
+            <Action name="NWUI_QS_1"><Down>NWUI.SelectQuickslot(1)</Down></Action>
+            <Action name="NWUI_QS_2"><Down>NWUI.SelectQuickslot(2)</Down></Action>
+            <Action name="NWUI_QS_3"><Down>NWUI.SelectQuickslot(3)</Down></Action>
+            <Action name="NWUI_QS_4"><Down>NWUI.SelectQuickslot(4)</Down></Action>
+            <Action name="NWUI_QS_5"><Down>NWUI.SelectQuickslot(5)</Down></Action>
+            <Action name="NWUI_QS_6"><Down>NWUI.SelectQuickslot(6)</Down></Action>
+            <Action name="NWUI_QS_7"><Down>NWUI.SelectQuickslot(7)</Down></Action>
+            <Action name="NWUI_QS_8"><Down>NWUI.SelectQuickslot(8)</Down></Action>
+            <Action name="NWUI_TOGGLE_MOVE"><Down>NWUI.SetUnlocked(not NWUI.unlocked)</Down></Action>
+        </Category>
+    </Layer>
+</Bindings>

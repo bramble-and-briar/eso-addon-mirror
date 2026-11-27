@@ -101,6 +101,7 @@ Crutch.format = {
     [222609] = 800, -- Gloomy Impact (Knot)
     [215107] = 408.8, -- Tempest
     [214355] = 400, -- Lightning Flood (Xoryn cone)
+    [222832] = 30500, -- Unwritten Shift
 
 -- Maw of Lorkhaj
     [ 75507] = 001601.1, -- Void Shackle (Rakkhat tethers)
@@ -141,6 +142,7 @@ Crutch.format = {
     [234680] = {info = 31403, text = "Sparking Cold-Flame Atronach"}, -- Radiance (Sparking Cold-Flame Atronach)
     [C.ID.SEEKING_SURGE_DROPPED] = 31503, -- Seeking Surge called from OsseinCage.lua
     [245208] = 20503, -- Seething Vile Leap
+    [237011] = 100, -- Immolating Sphere (Incinerator)
 
 -- Rockgrove
     [152688] = 2.5, -- Cinder Cleave (Havocrel Annihilator)

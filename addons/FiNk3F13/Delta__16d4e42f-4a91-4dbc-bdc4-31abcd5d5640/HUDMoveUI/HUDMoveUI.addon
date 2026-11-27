@@ -1,7 +1,7 @@
 ## Title: HUD Move UI
 ## Author: FiNk3--F13--
-## Version: 1.0.0-test
-## AddOnVersion: 10000
+## Version: 1.1.0-test
+## AddOnVersion: 10100
 ## APIVersion: 101051 101052
 ## DependsOn: LibHarvensAddonSettings
 ## SavedVariables: HUDMoveUISavedVariables
@@ -10,5 +10,6 @@
 Registry.lua
 HUDMoveUI.lua
 MoveUI.lua
+Discovery.lua
 Settings.lua
 Bindings.xml

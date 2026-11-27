@@ -18,7 +18,7 @@
     "ShosBuildExporter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5113/",
-  "fingerprint": "a886ebe9be9232442f4a1a455cbbc7dcef7a25a107f1947e2ac2712dfbbe8698",
+  "fingerprint": "7e54d4fdab1f2bbe45171a704066fe39ff281c6e3e59468afa34977dd7350c9f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18809.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "5113",
   "source_url": "https://www.esoui.com/downloads/info5113-ShosBuildExporter.html",
   "stats": {
-    "downloads": 6,
-    "favorites": 0,
-    "monthly_downloads": 1
+    "downloads": 11,
+    "favorites": 1,
+    "monthly_downloads": 8
   },
   "title": "Sho's Build Exporter",
-  "updated_at": 1795635435000,
-  "version": "1.0.0"
+  "updated_at": 1795726466000,
+  "version": "1.0.1"
 }

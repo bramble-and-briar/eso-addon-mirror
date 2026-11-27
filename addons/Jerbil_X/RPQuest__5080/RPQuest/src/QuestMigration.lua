@@ -2,6 +2,7 @@
 -- Ref: docs/adr/0013-protocolo-versionado-de-esquema-y-migraciones-de-misiones.md
 -- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 -- Ref: docs/adr/0015-separacion-ciclo-de-vida-y-estado-de-resolucion.md
+-- Ref: docs/adr/0018-ejes-de-victoria-modo-freeform-y-objetivos-requeridos.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -173,6 +174,29 @@ QuestMigration.SCHEMA_MIGRATORS[4] = function(quest)
                     target.customMessage = legacyOut
                 end
                 target.customMessageOutsideLocation = nil
+            end
+        end
+    end
+    return true
+end
+
+QuestMigration.SCHEMA_MIGRATORS[5] = function(quest)
+    if type(quest) ~= "table" then
+        return true
+    end
+    quest.sequentialDiscoveries = (quest.sequentialDiscoveries == true)
+    if type(quest.discoveries) == "table" then
+        for _, discovery in ipairs(quest.discoveries) do
+            if type(discovery) == "table" then
+                discovery.required = (discovery.required == true)
+            end
+        end
+    end
+    if type(quest.dialogues) == "table" then
+        for _, dialogue in ipairs(quest.dialogues) do
+            if type(dialogue) == "table" then
+                dialogue.required = (dialogue.required == true)
+                dialogue.executed = (dialogue.executed == true)
             end
         end
     end

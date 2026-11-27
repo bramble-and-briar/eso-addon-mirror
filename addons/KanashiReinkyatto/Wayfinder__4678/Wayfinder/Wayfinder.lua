@@ -6,8 +6,21 @@
 
 Wayfinder = Wayfinder or {}
 
-local ADDON_VERSION = "1.1"
+local ADDON_VERSION = "1.2.0"
 local wfDebug = false
+
+-- POI display name -> list of candidate mapIds. The click handler's show() check can run often,
+-- and matching a name walks the whole map name index, so each POI is only matched once.
+local mapCandidateCache = {}
+
+-- ZO_Menu is a single control shared by the game and every addon, so "a menu is open" says
+-- nothing about whose it is. This records which of OUR map menus currently occupies it
+-- ("zonelist" or "pin"). Anyone calling ClearMenu or ShowMenu - us included - drops the claim,
+-- so we set it right after our own ShowMenu.
+local ownedMenu = nil
+local function ReleaseMenu() ownedMenu = nil end
+ZO_PreHook("ClearMenu", ReleaseMenu)
+ZO_PreHook("ShowMenu", ReleaseMenu)
 
 local function TColor(hex, text)
 	return "|c"..hex..text.."|r"
@@ -83,8 +96,9 @@ local function SortPlayers(players)
 end
 
 -- Build teleport menu from sorted player list. zoneId scopes the "recently teleported" dot to
--- the zone this list is actually for (see GetRecentTeleportIndicator).
-local function BuildTeleportMenu(players, owner, zoneId)
+-- the zone this list is actually for (see GetRecentTeleportIndicator). refCount is passed on
+-- to ShowMenu: how many mouse-ups outside the menu it takes to close it (nil = game default).
+local function BuildTeleportMenu(players, owner, zoneId, refCount)
 	ClearMenu()
 	local sorted = SortPlayers(players)
 	local lastRel = nil
@@ -101,20 +115,18 @@ local function BuildTeleportMenu(players, owner, zoneId)
 			Wayfinder.TeleportTo(displayName, zoneId)
 		end)
 	end
-	ShowMenu(owner)
+	ShowMenu(owner, refCount)
+	ownedMenu = "zonelist"
 end
 
 -------------------------------------------------------------------------------
 -- Friends/group/guild lookup, by zone or by POI
 --
--- Only one full group/friends/guild scan happens at a time, cached for a couple seconds. Both
--- the "Players in Zone" button (polls every 5s) and the POI hover tooltip/click (used to fire on
--- every single pin the mouse crossed) previously each did their own full guild walk - up to
--- ~2500 members across 5 guilds - so just moving the mouse across a cluster of pins on the map
--- could trigger that scan many times a second. Now they both just filter this one cached list.
+-- One cached group/friends/guild scan is shared by the "Players in Zone" button and the POI hover
+-- tooltip/click. A scan walks every guild - up to ~2500 members across 5 guilds - so doing it per
+-- caller would repeat it many times a second just from moving the mouse across a cluster of pins.
 -------------------------------------------------------------------------------
 
-local CACHE_MAX_AGE_MS = 2000
 local onlinePlayersCache = nil
 local onlinePlayersCacheTime = 0
 
@@ -158,11 +170,13 @@ local function ScanOnlinePlayers()
 	return players
 end
 
--- A couple seconds of staleness is irrelevant for a "click to teleport" list, and both callers
--- below only ever run while the world map is open anyway.
+-- The cache lifetime is the "Update interval" setting, so it limits how often a scan happens
+-- from ANY caller (the button's poll loop or hovering pins), not just the poll loop.
+-- ">=" so a poll firing exactly one interval after the last scan gets fresh data.
 local function GetOnlinePlayers()
 	local now = GetGameTimeMilliseconds()
-	if not onlinePlayersCache or (now - onlinePlayersCacheTime) > CACHE_MAX_AGE_MS then
+	local maxAgeMs = (Wayfinder.SV and Wayfinder.SV.mapButtonPollIntervalSec or 5) * 1000
+	if not onlinePlayersCache or (now - onlinePlayersCacheTime) >= maxAgeMs then
 		onlinePlayersCache = ScanOnlinePlayers()
 		onlinePlayersCacheTime = now
 	end
@@ -317,6 +331,7 @@ local function HookMapPins()
 	-- starts with it followed by a space - plus any NAME_OVERRIDES entries for this POI.
 	local function FindCandidateMaps(poiName)
 		if not poiName or poiName == "" then return {} end
+		if mapCandidateCache[poiName] then return mapCandidateCache[poiName] end
 		local index = BuildMapNameIndex()
 		local core = NormalizeMapName(poiName)
 		local prefix = core .. " "
@@ -358,6 +373,7 @@ local function HookMapPins()
 			end
 		end
 
+		mapCandidateCache[poiName] = mapIds
 		return mapIds
 	end
 
@@ -397,34 +413,48 @@ local function HookMapPins()
 		return false
 	end
 
-	local function OnPOIPinClicked(pin)
-		local zoneIndex = pin:GetPOIZoneIndex()
-		local poiIndex  = pin:GetPOIIndex()
+	local function GetPinPOIName(pin)
+		local rawName = GetPOIInfo(pin:GetPOIZoneIndex(), pin:GetPOIIndex())
+		return zo_strformat("<<t:1>>", rawName)
+	end
 
-		local rawName = GetPOIInfo(zoneIndex, poiIndex)
-		local poiName = zo_strformat("<<t:1>>", rawName)
-		if not poiName or poiName == "" then return end
-
+	-- What we could offer for this pin: whether to try an Open Map item, and who's inside.
+	-- Shared by the show() check and the menu itself so the two can't disagree.
+	local function GetPOIOffer(zoneIndex, poiIndex, poiName)
 		local openMapEnabled = not (Wayfinder.SV and not Wayfinder.SV.enableOpenMap)
 		local teleportEnabled = not (Wayfinder.SV and not Wayfinder.SV.enableNearbyPlayers)
-		local isDungeon = openMapEnabled and IsGroupPOI(zoneIndex, poiIndex)
 
-		if wfDebug then
-			DebugPrint("clicked '" .. poiName .. "' isDungeon=" .. tostring(isDungeon))
-		end
-
+		local hasMaps = openMapEnabled and IsGroupPOI(zoneIndex, poiIndex)
+			and #FindCandidateMaps(poiName) > 0
 		local players = {}
 		if teleportEnabled then
 			players = GetPlayersInPOI(poiName)
 		end
+		return hasMaps, players
+	end
 
-		-- Nothing of ours to show - don't eat the click, let the map behave normally.
-		if not isDungeon and #players == 0 then return end
+	-- Without this the game treats every POI pin (mundus stones, dolmens, ...) as clickable by
+	-- us, and lists us in its "which pin?" menu even when we have nothing to show.
+	local function HasPOIOffer(pin)
+		local poiName = GetPinPOIName(pin)
+		if poiName == "" then return false end
+		local hasMaps, players = GetPOIOffer(pin:GetPOIZoneIndex(), pin:GetPOIIndex(), poiName)
+		return hasMaps or #players > 0
+	end
+
+	local function ShowPOIMenu(zoneIndex, poiIndex, poiName)
+		local hasMaps, players = GetPOIOffer(zoneIndex, poiIndex, poiName)
+
+		if wfDebug then
+			DebugPrint("clicked '" .. poiName .. "' hasMaps=" .. tostring(hasMaps))
+		end
+
+		if not hasMaps and #players == 0 then return end
 
 		ClearMenu()
 		local hasItems = false
 
-		if isDungeon then
+		if hasMaps then
 			hasItems = AddOpenMapMenuItem(poiName) or hasItems
 		end
 
@@ -441,15 +471,32 @@ local function HookMapPins()
 			hasItems = true
 		end
 
-		if hasItems then ShowMenu() end
+		-- Opened after the click has finished (see OnPOIPinClicked), so one click outside closes it.
+		if hasItems then
+			ShowMenu(nil, 1)
+			ownedMenu = "pin"
+		end
+	end
+
+	local function OnPOIPinClicked(pin)
+		-- Read from the pin now: pin objects can be recycled before the deferred call runs.
+		local zoneIndex, poiIndex = pin:GetPOIZoneIndex(), pin:GetPOIIndex()
+		local poiName = GetPinPOIName(pin)
+		if poiName == "" then return end
+
+		-- When pins overlap, this runs from an item in the game's own "which pin?" menu, which
+		-- calls ClearMenu() right after we return - a menu opened immediately would be wiped.
+		zo_callLater(function() ShowPOIMenu(zoneIndex, poiIndex, poiName) end, 10)
 	end
 
 	if ZO_MapPin.PIN_CLICK_HANDLERS then
 		local left = ZO_MapPin.PIN_CLICK_HANDLERS[MOUSE_BUTTON_INDEX_LEFT]
 		if not left[MAP_PIN_TYPE_POI_SEEN] then left[MAP_PIN_TYPE_POI_SEEN] = {} end
 		if not left[MAP_PIN_TYPE_POI_COMPLETE] then left[MAP_PIN_TYPE_POI_COMPLETE] = {} end
-		table.insert(left[MAP_PIN_TYPE_POI_SEEN],    { callback = OnPOIPinClicked })
-		table.insert(left[MAP_PIN_TYPE_POI_COMPLETE], { callback = OnPOIPinClicked })
+		-- name labels our entry in the overlapping-pins menu; without it the entry is blank.
+		local handler = { name = GetPinPOIName, show = HasPOIOffer, callback = OnPOIPinClicked }
+		table.insert(left[MAP_PIN_TYPE_POI_SEEN],     handler)
+		table.insert(left[MAP_PIN_TYPE_POI_COMPLETE], handler)
 	end
 end
 
@@ -459,6 +506,7 @@ end
 
 SLASH_COMMANDS["/wfdebug"] = function()
 	wfDebug = not wfDebug
+	mapCandidateCache = {} -- so map matching is redone, and printed, on the next hover/click
 	DebugPrint("Debug report: " .. (wfDebug and TColor("33cc33", "ON") or TColor("cc3333", "OFF")))
 end
 
@@ -634,6 +682,8 @@ local function WFHookLinkHandler()
 		-- and assume something else calls ShowMenu() - it has to show it, same as PriceTooltip's
 		-- own link-menu extension does (confirmed by reading its code: no ClearMenu(), just adds
 		-- items and calls ShowMenu() itself so it works with or without other chat addons present).
+		-- If one of our map menus is still up (nothing replaced it), don't append to it.
+		if ownedMenu then ClearMenu() end
 		AddCustomMenuItem("Travel to Player", function()
 			WFTeleportTo(name)
 		end)
@@ -704,7 +754,7 @@ local function InitMapTeleportButton()
 		self:SetColor(1, 1, 1, 1)
 	end)
 
-	local menuOpenTime = nil
+	local menuX, menuY -- where the zone list was opened; live rebuilds stay there
 	local lastPlayerKey = nil
 
 	local function SetAnchorVisible(visible)
@@ -808,13 +858,14 @@ local function InitMapTeleportButton()
 	RefreshEyeButton()
 	RefreshLockState()
 
-	local function IsOurMenuOpen()
-		if not menuOpenTime then return false end
-		if not ZO_Menu or ZO_Menu:IsHidden() then
-			menuOpenTime = nil
-			return false
-		end
-		return true
+	local function IsZoneListOpen()
+		return ownedMenu == "zonelist" and not ZO_Menu:IsHidden()
+	end
+
+	-- ShowMenu always puts the menu at the mouse cursor, so move it back after every build.
+	local function PlaceZoneList()
+		ZO_Menu:ClearAnchors()
+		ZO_Menu:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, menuX, menuY)
 	end
 
 	btn:SetHandler("OnClicked", function()
@@ -823,11 +874,10 @@ local function InitMapTeleportButton()
 		local players = Wayfinder.GetPlayersInZoneId(zoneId)
 		if #players == 0 then return end
 		BuildTeleportMenu(players, btn, zoneId)
-		menuOpenTime = GetGameTimeMilliseconds()
 		-- Pin menu to bottom-left of button
-		local btnLeft, btnTop, _, btnBottom = btn:GetScreenRect()
-		ZO_Menu:ClearAnchors()
-		ZO_Menu:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, btnLeft, btnBottom)
+		local btnLeft, _, _, btnBottom = btn:GetScreenRect()
+		menuX, menuY = btnLeft, btnBottom
+		PlaceZoneList()
 	end)
 
 	CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", function()
@@ -838,9 +888,12 @@ local function InitMapTeleportButton()
 	end)
 
 	-- Polling while map is open; interval is configurable in Settings (seconds, converted to ms).
-	local function SchedulePoll()
+	-- Each time the map is shown starts a new generation. A call still pending from an earlier one
+	-- would otherwise find the map open again and keep polling alongside the new chain.
+	local pollGeneration = 0
+	local function SchedulePoll(generation)
 		zo_callLater(function()
-			if not WORLD_MAP_SCENE:IsShowing() then return end
+			if generation ~= pollGeneration or not WORLD_MAP_SCENE:IsShowing() then return end
 
 			local zoneId = GetCurrentMapZoneId()
 			local players = zoneId and Wayfinder.GetPlayersInZoneId(zoneId) or {}
@@ -856,27 +909,22 @@ local function InitMapTeleportButton()
 			if newKey ~= lastPlayerKey then
 				lastPlayerKey = newKey
 				UpdateButton()
-				if IsOurMenuOpen() then
-					if #players > 0 then
-						-- Save menu position before rebuild
-						local menuX, menuY = ZO_Menu:GetScreenRect()
-						BuildTeleportMenu(players, btn, zoneId)
-						menuOpenTime = GetGameTimeMilliseconds()
-						-- Restore position after rebuild
-						ZO_Menu:ClearAnchors()
-						ZO_Menu:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, menuX, menuY)
-					end
+				if IsZoneListOpen() and #players > 0 then
+					-- No click is in progress here, so one click outside should close it.
+					BuildTeleportMenu(players, btn, zoneId, 1)
+					PlaceZoneList()
 				end
 			end
 
-			SchedulePoll()
+			SchedulePoll(generation)
 		end, (Wayfinder.SV.mapButtonPollIntervalSec or 5) * 1000)
 	end
 
 	WORLD_MAP_SCENE:RegisterCallback("StateChange", function(oldState, newState)
 		if newState == SCENE_SHOWN then
 			UpdateButton()
-			SchedulePoll()
+			pollGeneration = pollGeneration + 1
+			SchedulePoll(pollGeneration)
 		else
 			SetAnchorVisible(false)
 		end

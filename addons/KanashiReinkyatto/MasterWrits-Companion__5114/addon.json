@@ -18,7 +18,7 @@
     "MasterWritsCompanion"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5114/",
-  "fingerprint": "047d20bb446d3c1ed40e18b9652874875868ac3d15f479ce594e712801ea288b",
+  "fingerprint": "521ff85463cf0ee538babd777737d767ae4797ec95c2b3e53c1c7154c2cd4442",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18812.png",
     "https://cdn-eso.mmoui.com/preview/pvw18813.png",
@@ -33,11 +33,11 @@
   "source_id": "5114",
   "source_url": "https://www.esoui.com/downloads/info5114-MasterWritsCompanion.html",
   "stats": {
-    "downloads": 48,
+    "downloads": 67,
     "favorites": 2,
-    "monthly_downloads": 0
+    "monthly_downloads": 57
   },
   "title": "MasterWrits Companion",
-  "updated_at": 1795653844000,
-  "version": "0.4.6b"
+  "updated_at": 1795731885000,
+  "version": "0.4.7b"
 }

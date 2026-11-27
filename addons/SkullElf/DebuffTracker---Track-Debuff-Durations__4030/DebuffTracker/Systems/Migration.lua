@@ -1509,3 +1509,253 @@ function M.RemoveGcdImport()
     for _, id in ipairs(old) do DT.Profiles.RemoveTracker(id) end
     return #old
 end
+
+------------------------------------------------------------------------------
+-- Alternative Group Frames -> a "Group frames" tracker plus "On group frames" trackers for its buff icons, debuff
+-- icons and the buff it shows along the frame's border (/dt altgroupframes). Where it keeps its settings:
+--   AltGroupFramesSavedVariables, account-wide (ZO_SavedVars:NewAccountWide, version 4): UNIT_FRAME_WIDTH / _HEIGHT,
+--     _PAD_X / _PAD_Y, FRAMES_PER_COLUMN, FRAME_CONTAINER_BASE_OFFSET_X / _Y (the frames' top left on the screen; the
+--     first frame 5 px in), FADED_ALPHA_VALUE (out of range), USE_CHARACTER_NAMES, SHOW_CLASS_ICONS, SHOW_NOGROUP,
+--     FONT_SIZE, LFG_COLORS[role] = { start, end } (a gradient per role), COMPANION_COLORS, SHIELD_COLOR, TRAUMA_COLOR,
+--     NO_HEALING_COLOR (colours saved as { r, g, b, a }); while it's loaded ALT_GROUP_FRAMES.SAVEVARS is that table.
+--   Its buffs module, AltGroupFramesBuffTrackerSV, per character (NewCharacterIdSettings): ENABLED, TRACK / TRACK_CUSTOM
+--     { [abilityId] = true } and TRACK_CUSTOM_BY_NAME { [lower-case name] = true } (buff icons), TRACK_DEBUFF,
+--     TRACK_DEBUFF_CUSTOM, TRACK_DEBUFF_CUSTOM_BY_NAME (debuff icons, red timers), TRACK_ADVANCED (groups of IDs / names
+--     shown only while all of a group is up -- here each one is listed), BORDER_AB_ID / BORDER_COLOR { r, g, b, a } /
+--     BORDER_THICK (one buff as a bar running out along the frame).
+------------------------------------------------------------------------------
+
+local function LooksLikeAltGF(t)
+    return type(t) == "table" and (t.UNIT_FRAME_WIDTH ~= nil or t.FRAMES_PER_COLUMN ~= nil or t.LFG_COLORS ~= nil
+        or t.FRAME_CONTAINER_BASE_OFFSET_X ~= nil)
+end
+local function LooksLikeAltGFBuffs(t)
+    return type(t) == "table" and (t.TRACK ~= nil or t.TRACK_DEBUFF ~= nil or t.BORDER_AB_ID ~= nil)
+end
+
+-- returns the frames' settings (or {} when only the file's defaults apply) and the buffs module's, or nil if neither
+function M.FindAltGF()
+    local frames, buffs
+    local live = rawget(_G, "ALT_GROUP_FRAMES")
+    if type(live) == "table" and LooksLikeAltGF(live.SAVEVARS) then frames = live.SAVEVARS end
+    if not frames then
+        local raw = rawget(_G, "AltGroupFramesSavedVariables")
+        local mine = raw and ThisAccount(raw)
+        if mine and LooksLikeAltGF(mine["$AccountWide"]) then frames = mine["$AccountWide"]
+        elseif mine and type(mine["$AccountWide"]) == "table" then frames = mine["$AccountWide"]
+        elseif type(raw) == "table" then frames = Walk(raw, 1, LooksLikeAltGF, {})[1] end
+    end
+    local rawB = rawget(_G, "AltGroupFramesBuffTrackerSV")
+    if type(rawB) == "table" then
+        local acct = ThisAccount(rawB)
+        local charId = type(GetCurrentCharacterId) == "function" and tostring(GetCurrentCharacterId()) or nil
+        if acct and charId and LooksLikeAltGFBuffs(acct[charId]) then buffs = acct[charId] end
+        if not buffs then buffs = Walk(acct or rawB, 1, LooksLikeAltGFBuffs, {})[1] end
+    end
+    if not frames and not buffs then return nil end
+    return { frames = frames or {}, buffs = buffs }
+end
+
+local function AGFColor(c)
+    if type(c) ~= "table" then return nil end
+    if tonumber(c.r) then return { tonumber(c.r), tonumber(c.g) or 0, tonumber(c.b) or 0, tonumber(c.a) or 1 } end
+    if tonumber(c[1]) then return { tonumber(c[1]), tonumber(c[2]) or 0, tonumber(c[3]) or 0, tonumber(c[4]) or 1 } end
+    return nil
+end
+-- a gradient { start, end } -> the colour half way along it
+local function AGFGradient(g)
+    if type(g) ~= "table" then return nil end
+    local a, b = AGFColor(g[1]), AGFColor(g[2])
+    if a and b then return U.LerpColor(a, b, 0.5) end
+    return a or b or AGFColor(g)
+end
+local function Keys(set, numeric)
+    local out = {}
+    if type(set) ~= "table" then return out end
+    for k, v in pairs(set) do
+        if v then
+            if numeric and tonumber(k) and tonumber(k) > 0 then out[#out + 1] = math.floor(tonumber(k))
+            elseif not numeric and type(k) == "string" and k ~= "" then out[#out + 1] = k end
+        end
+    end
+    table.sort(out, function(a, b) return tostring(a) < tostring(b) end)
+    return out
+end
+
+function M.ConvertAltGF(found)
+    local f, b = found.frames or {}, found.buffs
+    local lfg = type(f.LFG_COLORS) == "table" and f.LFG_COLORS or {}
+    local height = math.floor(tonumber(f.UNIT_FRAME_HEIGHT) or 32)
+    local t = DT.Presets.GroupFrames({
+        width = math.floor(tonumber(f.UNIT_FRAME_WIDTH) or 230), height = height,
+        perColumn = math.floor(tonumber(f.FRAMES_PER_COLUMN) or 12), spacing = math.floor(tonumber(f.UNIT_FRAME_PAD_Y) or 2),
+        rangeAlpha = tonumber(f.FADED_ALPHA_VALUE) or 0.4,
+        names = f.USE_CHARACTER_NAMES == true and "character" or "account",
+        classIcon = f.SHOW_CLASS_ICONS ~= false, solo = f.SHOW_NOGROUP == true,
+        fontSize = tonumber(f.FONT_SIZE) and math.floor(tonumber(f.FONT_SIZE)) or nil,
+        tank = AGFGradient(lfg[LFG_ROLE_TANK]), healer = AGFGradient(lfg[LFG_ROLE_HEAL]), dps = AGFGradient(lfg[LFG_ROLE_DPS]),
+        companion = AGFGradient(f.COMPANION_COLORS),
+        shield = AGFColor(f.SHIELD_COLOR), trauma = AGFColor(f.TRAUMA_COLOR), noHeal = AGFColor(f.NO_HEALING_COLOR),
+        -- its frames start 5 px inside its container; ours sit inside the window's padding
+        left = (tonumber(f.FRAME_CONTAINER_BASE_OFFSET_X) or 50) + 5 - 6, top = (tonumber(f.FRAME_CONTAINER_BASE_OFFSET_Y) or 55) + 5 - 6,
+    })
+    -- its tooltip: sets (LibSetDetection) and buffs on the member
+    t.display.frameTipSets = f.SHOW_SETS ~= false
+    t.display.frameTipEffects = f.SHOW_BUFFS == false and "none" or "all"
+    -- its frames show the account name unless "Use Character Names" is on
+    t.trigger.groupNames = f.USE_CHARACTER_NAMES == true and "character" or "account"
+    -- (a column gap of its own: the space between columns is ours too)
+    local list = { t }
+    if type(b) == "table" and b.ENABLED ~= false then
+        local function Icons(name, ids, names, debuff)
+            if #ids == 0 and #names == 0 then return end
+            local x = {
+                name = name,
+                trigger = { type = "effect", abilityIds = ids, names = names, scope = "group", mode = "present",
+                            effectType = debuff and "debuff" or "buff", source = "any" },
+                display = { type = "onframes", frameShow = "icons", frameSpot = "right", maxShown = 6, showTimer = true,
+                            iconTimer = "none", frameIconSize = math.max(16, height - 2) },
+            }
+            if debuff then
+                x.display.separateTextColors = true
+                x.display.timerColor = { 1, 0.2, 0.2, 1 }
+            end
+            list[#list + 1] = x
+        end
+        local ids = Keys(b.TRACK, true)
+        for _, id in ipairs(Keys(b.TRACK_CUSTOM, true)) do ids[#ids + 1] = id end
+        local names = Keys(b.TRACK_CUSTOM_BY_NAME, false)
+        -- (groups shown only while all of them are up: each one is listed here)
+        for _, group in ipairs(type(b.TRACK_ADVANCED) == "table" and b.TRACK_ADVANCED or {}) do
+            for _, token in ipairs(type(group) == "table" and group or {}) do
+                if tonumber(token) then ids[#ids + 1] = math.floor(tonumber(token))
+                elseif type(token) == "string" and token ~= "" then names[#names + 1] = token:lower() end
+            end
+        end
+        Icons(L("Buffs on group frames"), ids, names, false)
+        local dids = Keys(b.TRACK_DEBUFF, true)
+        for _, id in ipairs(Keys(b.TRACK_DEBUFF_CUSTOM, true)) do dids[#dids + 1] = id end
+        Icons(L("Debuffs on group frames"), dids, Keys(b.TRACK_DEBUFF_CUSTOM_BY_NAME, false), true)
+        local border = tonumber(b.BORDER_AB_ID)
+        if border and border > 0 then
+            list[#list + 1] = {
+                name = L("Buff along the group frames"),
+                trigger = { type = "effect", abilityIds = { math.floor(border) }, scope = "group", mode = "present", effectType = "any", source = "any" },
+                display = { type = "onframes", frameShow = "bar", frameSpot = "bottom", frameBarSize = math.floor(tonumber(b.BORDER_THICK) or 4),
+                            colorMode = "solid", colorSolid = AGFColor(b.BORDER_COLOR) or { 0.2, 0.75, 0.15, 1 }, blink = false },
+            }
+        end
+    end
+    for _, x in ipairs(list) do x.fromAltGF = true end
+    return list
+end
+
+local function FromAltGF(t) return t.fromAltGF == true end
+M.IsFromAltGF = FromAltGF
+
+function M.ImportAltGF()
+    local found = M.FindAltGF()
+    if not found then
+        return nil, L("Alternative Group Frames isn't loaded. Enable it in the add-ons list (just once, for the import), reload, and try again.")
+    end
+    local old = {}
+    for _, x in ipairs(DT.Profiles.ActiveTrackers()) do if FromAltGF(x) then old[#old + 1] = x.id end end
+    for _, oid in ipairs(old) do DT.Profiles.RemoveTracker(oid) end
+    local added = DT.Profiles.AddTrackers(M.ConvertAltGF(found))
+    return added, { replaced = #old, extra = #added - 1 }
+end
+
+function M.RemoveAltGFImport()
+    local old = {}
+    for _, t in ipairs(DT.Profiles.ActiveTrackers()) do if FromAltGF(t) then old[#old + 1] = t.id end end
+    for _, id in ipairs(old) do DT.Profiles.RemoveTracker(id) end
+    return #old
+end
+
+
+------------------------------------------------------------------------------
+-- WeaveDelays -> a "Weave strip" tracker (/dt weavedelays). Its settings: WeaveDelaysVars, per character name
+-- (ZO_SavedVars:NewCharacterNameSettings, version 1), or account-wide when its "Account wide settings" is on
+-- (NewAccountWide); while it's loaded WeaveDelays.savedVariables is the one in use. Fields: numDelayBarSlots /
+-- numDelayBarRows, scale (a slot's width), delayBarOffsetX / Y (the bar's top left on the screen), delayBarAlpha (the
+-- box), delayBarFrameR / G / B / A + delayBarFrameThickness, showDelayBar, showSkillsInDelayBar, showAverageDelay,
+-- showDelayBarOnlyInCombat, showDelayBarAfterCombat (s), showDelayBarOnlyInHomes, delayBarPalette, text*,
+-- highLatencyMode, confirmSkillCasts.
+------------------------------------------------------------------------------
+
+-- its palettes as our four colours: each read at 25 ms (good), 125 ms (okay), 300 ms (slow) and no light attack (its
+-- 1000 ms), with its own colour scale (WeaveDelays.lua palettes, GetPaletteColor + HSVToRGB)
+M.WEAVE_PALETTES = {
+    cividis = { { 0.212, 0.277, 0.425, 1 }, { 0.339, 0.485, 0.371, 1 }, { 0.775, 0.711, 0.407, 1 }, { 0.859, 0.780, 0.350, 1 } },
+    delay = { { 0.000, 1.000, 0.000, 1 }, { 1.000, 0.775, 0.000, 1 }, { 1.000, 0.233, 0.000, 1 }, { 0.937, 0.196, 0.059, 1 } },
+    greenred = { { 0.000, 1.000, 0.000, 1 }, { 1.000, 0.775, 0.000, 1 }, { 1.000, 0.233, 0.000, 1 }, { 1.000, 0.157, 0.000, 1 } },
+    greenred2 = { { 0.000, 1.000, 0.250, 1 }, { 0.750, 1.000, 0.000, 1 }, { 1.000, 0.417, 0.000, 1 }, { 1.000, 0.312, 0.000, 1 } },
+    greenredpink = { { 0.000, 1.000, 0.000, 1 }, { 1.000, 0.775, 0.000, 1 }, { 1.000, 0.233, 0.000, 1 }, { 1.000, 0.000, 1.000, 1 } },
+    okabeito = { { 0.142, 0.737, 0.765, 1 }, { 0.920, 0.770, 0.124, 1 }, { 0.820, 0.242, 0.275, 1 }, { 0.000, 0.000, 0.000, 1 } },
+    purplegreenyellow = { { 0.134, 0.099, 0.330, 1 }, { 0.154, 0.421, 0.445, 1 }, { 0.357, 0.832, 0.170, 1 }, { 1.000, 0.167, 0.000, 1 } },
+    rainbow = { { 0.000, 1.000, 0.250, 1 }, { 0.750, 1.000, 0.000, 1 }, { 1.000, 0.000, 0.500, 1 }, { 1.000, 0.000, 1.000, 1 } },
+    strict = { { 0.000, 0.731, 0.765, 1 }, { 0.890, 0.579, 0.000, 1 }, { 0.640, 0.384, 0.498, 1 }, { 0.000, 0.000, 0.000, 1 } },
+    viridis = { { 0.202, 0.229, 0.525, 1 }, { 0.137, 0.595, 0.583, 1 }, { 0.351, 0.805, 0.258, 1 }, { 0.990, 0.902, 0.139, 1 } },
+}
+
+local function LooksLikeWeaveDelays(t)
+    return type(t) == "table" and (t.numDelayBarSlots ~= nil or t.delayBarPalette ~= nil or t.delayBarOffsetX ~= nil)
+end
+
+function M.FindWeaveDelays()
+    local live = rawget(_G, "WeaveDelays")
+    if type(live) == "table" and LooksLikeWeaveDelays(live.savedVariables) then return live.savedVariables end
+    local raw = rawget(_G, "WeaveDelaysVars")
+    if type(raw) ~= "table" then return nil end
+    local acct = ThisAccount(raw)
+    if acct then
+        local name = type(GetUnitName) == "function" and GetUnitName("player") or nil
+        local mine = name and acct[name]
+        -- its account-wide switch lives in the character's own settings
+        if LooksLikeWeaveDelays(mine) and mine.accountWide and LooksLikeWeaveDelays(acct["$AccountWide"]) then return acct["$AccountWide"] end
+        if LooksLikeWeaveDelays(mine) then return mine end
+        if LooksLikeWeaveDelays(acct["$AccountWide"]) then return acct["$AccountWide"] end
+    end
+    return Walk(acct or raw, 1, LooksLikeWeaveDelays, {})[1]
+end
+
+function M.WeaveDelaysTracker(sv)
+    local function N(v, d) return tonumber(v) or d end
+    local w = math.floor(N(sv.scale, 50) + 0.5)
+    local t = DT.Presets.WeaveStrip({
+        -- (its slot width is its scale; our tiles are square, so a bit smaller than its bar + icon was tall)
+        slots = math.floor(N(sv.numDelayBarSlots, 10)), rows = math.floor(N(sv.numDelayBarRows, 1)), size = math.max(24, math.floor(w * 0.85 + 0.5)),
+        icons = sv.showSkillsInDelayBar ~= false, average = sv.showAverageDelay ~= false,
+        always = sv.showDelayBarOnlyInCombat == false, linger = N(sv.showDelayBarAfterCombat, 10), homes = sv.showDelayBarOnlyInHomes == true,
+        palette = M.WEAVE_PALETTES[sv.delayBarPalette or "greenred"] or M.WEAVE_PALETTES.greenred,
+        -- (its look -- the frame round the bar, the see-through box, the bar's opacity -- isn't taken: the strip gets
+        -- DebuffTracker's own; Yarden: "I don't like the border around the frame")
+        latency = sv.highLatencyMode == true, confirm = sv.confirmSkillCasts == true,
+        textMissed = sv.textLightAttackMissed, textVanished = sv.textLightAttackDisappeared,
+        textQueued = sv.textLightAttackQueued, textBashed = sv.textBashed,
+        -- its bar's top left; ours sits inside the window's padding (no header: 6 px each side)
+        left = N(sv.delayBarOffsetX, 300) - 6, top = N(sv.delayBarOffsetY, 400) - 6,
+    })
+    t.enabled = sv.showDelayBar ~= false
+    t.fromWeaveDelays = true
+    return t
+end
+
+function M.ImportWeaveDelays()
+    local sv = M.FindWeaveDelays()
+    if not sv then
+        return nil, L("WeaveDelays isn't loaded. Enable it in the add-ons list (just once, for the import), reload, and try again.")
+    end
+    local old = {}
+    for _, x in ipairs(DT.Profiles.ActiveTrackers()) do if x.fromWeaveDelays then old[#old + 1] = x.id end end
+    for _, oid in ipairs(old) do DT.Profiles.RemoveTracker(oid) end
+    local added = DT.Profiles.AddTrackers({ M.WeaveDelaysTracker(sv) })
+    return added, { replaced = #old }
+end
+
+function M.RemoveWeaveDelaysImport()
+    local old = {}
+    for _, t in ipairs(DT.Profiles.ActiveTrackers()) do if t.fromWeaveDelays then old[#old + 1] = t.id end end
+    for _, id in ipairs(old) do DT.Profiles.RemoveTracker(id) end
+    return #old
+end

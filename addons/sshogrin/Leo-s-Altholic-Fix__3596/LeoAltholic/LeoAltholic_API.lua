@@ -1,4 +1,4 @@
-
+local LeoAltholic = LeoAltholic
 local function get(tbl, k, ...)
     if tbl == nil or tbl[k] == nil then return nil end
     if select('#', ...) == 0 then return tbl[k] end
@@ -9,14 +9,22 @@ end
 Return the timestamp from today's reset (specifically for craft writs)
 ]]
 function LeoAltholic.TodayReset()
-    local diff = zo_floor(GetDiffBetweenTimeStamps(GetTimeStamp(), 1538200800) / 86400)
-    return 1538200800 + (diff * 86400)
+    local secondsUntilNextReset = GetTimeUntilNextDailyLoginRewardClaimS()
+    if secondsUntilNextReset and secondsUntilNextReset > 0 then
+        return (GetTimeStamp() + secondsUntilNextReset) - 86400
+    end
+
+    -- Fallback if called before EVENT_ADD_ON_LOADED (10:00 UTC NA / 03:00 UTC EU)
+    local baseReset = (GetWorldName() == "EU Megaserver") and 1538190000 or 1538215200
+    local diff = zo_floor(GetDiffBetweenTimeStamps(GetTimeStamp(), baseReset) / 86400)
+    return baseReset + (diff * 86400)
 end
 
 --[[
 Return if the timestamp is after the today's reset.
 ]]
 function LeoAltholic.IsAfterReset(timestamp)
+    if not timestamp then return false end
     return timestamp >= LeoAltholic.TodayReset()
 end
 

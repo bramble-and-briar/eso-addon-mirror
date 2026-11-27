@@ -87,3 +87,14 @@
 
 - `MANABank.txt` — манифест аддона
 - `MANABank.lua` — весь код
+
+## Использование ИИ
+
+Код и переводы аддона написаны с помощью ИИ-ассистента (Claude, Anthropic) по моему замыслу и инструкциям. Я проверяю релизы в игре и поддерживаю аддон.
+
+## Благодарности
+
+- LibAddonMenu-2.0 by Seerah, sirinsidiator and contributors
+- LibCustomMenu by votan
+- FCO ItemSaver API by Baertram
+- Inspired by Bank Manager Revived

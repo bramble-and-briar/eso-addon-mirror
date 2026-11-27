@@ -36,6 +36,22 @@ function Announcements:AnnounceQuestProgress(quest, matchedTarget)
     emitSmallBanner(text, SOUNDS.QUEST_OBJECTIVE_INCREMENT)
 end
 
+function Announcements:AnnounceDialogueProgress(quest, dialogue)
+    if not quest then return end
+
+    local dialogues = quest.dialogues or {}
+    local total = #dialogues
+    local executed = 0
+    for _, d in ipairs(dialogues) do
+        if d.executed then
+            executed = executed + 1
+        end
+    end
+    local npcName = (dialogue and dialogue.npcName) or ""
+    local text = Addon.Locale:Get("CSA_DIALOGUE_PROGRESS", npcName, executed, total)
+    emitSmallBanner(text, SOUNDS.QUEST_OBJECTIVE_INCREMENT)
+end
+
 local function emitLargeBanner(mainText, subText, soundId, csaType)
     local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, soundId)
     params:SetText(mainText, subText)

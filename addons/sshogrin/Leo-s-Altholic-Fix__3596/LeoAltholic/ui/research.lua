@@ -1,6 +1,6 @@
-
-LeoAltholicResearchList = ZO_SortFilterList:Subclass()
-function LeoAltholicResearchList:New(control)
+local LeoAltholic = LeoAltholic
+LeoAltholic.ResearchList = ZO_SortFilterList:Subclass()
+function LeoAltholic.ResearchList:New(control)
 
     ZO_SortFilterList.InitializeSortFilterList(self, control)
 
@@ -22,7 +22,7 @@ function LeoAltholicResearchList:New(control)
     return self
 end
 
-function LeoAltholicResearchList:SetupEntry(control, data)
+function LeoAltholic.ResearchList:SetupEntry(control, data)
 
     control.data = data
 
@@ -106,7 +106,7 @@ function LeoAltholicResearchList:SetupEntry(control, data)
     ZO_SortFilterList.SetupRow(self, control, data)
 end
 
-function LeoAltholicResearchList:ColorRow(control, data, mouseIsOver)
+function LeoAltholic.ResearchList:ColorRow(control, data, mouseIsOver)
 
     local color = ZO_SECOND_CONTRAST_TEXT
     local r, g, b = GetInterfaceColor(INTERFACE_COLOR_TYPE_ITEM_QUALITY_COLORS, ITEM_QUALITY_MAGIC)
@@ -119,7 +119,7 @@ function LeoAltholicResearchList:ColorRow(control, data, mouseIsOver)
     end
 end
 
-function LeoAltholicResearchList:BuildMasterList()
+function LeoAltholic.ResearchList:BuildMasterList()
     self.masterList = {}
     local list = LeoAltholic.ExportCharacters(true)
     for k, v in ipairs(list) do
@@ -132,7 +132,7 @@ function LeoAltholicResearchList:BuildMasterList()
     end
 end
 
-function LeoAltholicResearchList:SortScrollList()
+function LeoAltholic.ResearchList:SortScrollList()
     local scrollData = ZO_ScrollList_GetDataList(self.list)
     if self.currentSortKey == "queueIndex" then
         table.sort(scrollData, function(listEntry1, listEntry2)
@@ -143,7 +143,7 @@ function LeoAltholicResearchList:SortScrollList()
     end
 end
 
-function LeoAltholicResearchList:FilterScrollList()
+function LeoAltholic.ResearchList:FilterScrollList()
     local scrollData = ZO_ScrollList_GetDataList(self.list)
     ZO_ClearNumericallyIndexedTable(scrollData)
     for i = 1, #self.masterList do
@@ -164,7 +164,7 @@ local function addLineTitle(tooltip, text, color)
     tooltip:AddLine(text, "ZoFontHeader3", r, g, b, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
 end
 
-function LeoAltholicUI.TooltipResearch(control, visible)
+function LeoAltholic.UI.TooltipResearch(control, visible)
 
     if visible then
         if #control.list == 0 then return end
@@ -186,6 +186,6 @@ function LeoAltholicUI.TooltipResearch(control, visible)
     end
 end
 
-function LeoAltholicUI:updateResearch()
-    LeoAltholicUI.researchList:RefreshData()
+function LeoAltholic.UI:updateResearch()
+    LeoAltholic.UI.researchList:RefreshData()
 end

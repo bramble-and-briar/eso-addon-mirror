@@ -1009,12 +1009,21 @@ local function createTile(self,index)
     -- same renderer (A:SetGoldLoop / A:FlashWidget, drawn in A:Render), so
     -- a tile costs nothing per frame unless one of them is running.
     tile.widget=true
-    tile.goldBase=u.texture(p,u.path.."glow.dds",72,72,-12,-12,4)
-    tile.goldBase:SetColor(1,.76,.22,1); tile.goldBase:SetHidden(true)
-    tile.goldBase2=u.texture(p,u.path.."glow.dds",70,70,-11,-11,4)
-    tile.goldBase2:SetColor(1,.76,.22,1); tile.goldBase2:SetHidden(true)
-    tile.goldLoop=u.texture(p,u.path.."goldloop.dds",64,64,-8,-8,5)
+    tile.goldLoop=u.texture(p,u.path.."goldloop.dds",78,78,-15,-15,5)
     tile.goldLoop:SetTextureCoords(0,1/8,0,1/4); tile.goldLoop:SetHidden(true)
+    tile.goldLoopSize=78
+    tile.goldSnap=u.texture(p,u.path.."goldsnap.dds",78,78,0,0,6)
+    tile.goldSnap:SetDrawLayer(DL_OVERLAY or DL_CONTROLS)
+    tile.goldSnap:ClearAnchors(); tile.goldSnap:SetAnchor(CENTER,tile.base,CENTER,0,0)
+    tile.goldSnap:SetHidden(true)
+    tile.goldExit=u.texture(p,u.path.."goldexit.dds",71,71,0,0,7)
+    tile.goldExit:SetDrawLayer(DL_OVERLAY or DL_CONTROLS)
+    tile.goldExit:ClearAnchors(); tile.goldExit:SetAnchor(CENTER,tile.base,CENTER,0,0)
+    tile.goldExit:SetHidden(true)
+    tile.goldExitSize=71
+    tile.goldFlash=u.texture(p,u.path.."goldflash.dds",42,42,3,3,6)
+    tile.goldFlash:SetColor(1,.99,.97,1); tile.goldFlash:SetAlpha(0); tile.goldFlash:SetHidden(true)
+    if TEX_BLEND_MODE_ADD and tile.goldFlash.SetBlendMode then tile.goldFlash:SetBlendMode(TEX_BLEND_MODE_ADD) end
     tile.glow=u.texture(p,u.path.."glow.dds",68,68,-10,-10,7)
     tile.wave=u.texture(p,u.path.."wave.dds",68,68,-10,-10,6)
     tile.burst=u.texture(p,u.path.."burst.dds",48,48,0,0,6)
@@ -1105,10 +1114,15 @@ function C:Layout()
         place(t.frame,t.p,size,size,ix,iy)
         local bloom=math.floor(size/8+.5)
         place(t.aura,t.p,size+2*bloom,size+2*bloom,ix-bloom,iy-bloom)
-        local function around(c,k)
-            local d=math.floor(size*k+.5); place(c,t.p,d,d,ix+(size-d)/2,iy+(size-d)/2)
-        end
-        around(t.goldLoop,1.36); around(t.goldBase,1.53); around(t.goldBase2,1.47)
+        local loopDim=math.floor(size*1.625+.5)
+        local exitDim=math.floor(size*95/64+.5)
+        t.goldLoopSize=loopDim; t.goldExitSize=exitDim
+        place(t.goldLoop,t.p,loopDim,loopDim,ix+(size-loopDim)/2,iy+(size-loopDim)/2)
+        t.goldSnap:ClearAnchors(); t.goldSnap:SetAnchor(CENTER,t.base,CENTER,0,0)
+        t.goldSnap:SetDimensions(loopDim,loopDim); t.goldSnapDim=nil
+        t.goldExit:ClearAnchors(); t.goldExit:SetAnchor(CENTER,t.base,CENTER,0,0)
+        t.goldExit:SetDimensions(exitDim,exitDim); t.goldExitDim=nil
+        place(t.goldFlash,t.p,inner,inner,ix+inset,iy+inset)
         local flashSize=math.floor(size*1.41+.5)
         t.glowSize=flashSize
         for _,c in ipairs({t.glow,t.wave,t.burst}) do c:ClearAnchors(); c:SetAnchor(CENTER,t.base,CENTER,0,0) end

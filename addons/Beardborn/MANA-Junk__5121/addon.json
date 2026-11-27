@@ -1,0 +1,44 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Beardborn/MANA-Junk__5121",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Beardborn",
+  "canonical_id": "esoui:5121",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5121",
+  "deleted": false,
+  "directories": [
+    "MANAJunk"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5121/",
+  "fingerprint": "2c5a99b51037dd91f3d369b791cdc6dee8ccd01d1e957fea86ffad25b8fe509e",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18826.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18827.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18828.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5121",
+  "source_url": "https://www.esoui.com/downloads/info5121-MANAJunk.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 2,
+    "monthly_downloads": 4
+  },
+  "title": "MANA Junk",
+  "updated_at": 1795785786000,
+  "version": "1.0.1"
+}

@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/KanashiReinkyatto/Wayfinder__4678",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "KanashiReinkyatto",
   "canonical_id": "esoui:4678",
   "category_id": "24",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -21,7 +26,7 @@
     "Wayfinder"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4678/",
-  "fingerprint": "91d3bf53eaed3e7f16e2d24126781dc63dbd8976bde1bb916d706d3f71ec3cb2",
+  "fingerprint": "5fb1eb126a020308d9b0e1e820b2ada3feb344c392327cf15645ad26ce0002b5",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16545.png",
     "https://cdn-eso.mmoui.com/preview/pvw16546.png",
@@ -37,11 +42,11 @@
   "source_id": "4678",
   "source_url": "https://www.esoui.com/downloads/info4678-Wayfinder.html",
   "stats": {
-    "downloads": 209,
-    "favorites": 2,
-    "monthly_downloads": 207
+    "downloads": 455,
+    "favorites": 3,
+    "monthly_downloads": 65
   },
   "title": "Wayfinder",
-  "updated_at": 1784404369000,
-  "version": "1.1"
+  "updated_at": 1795714931000,
+  "version": "1.2.0"
 }

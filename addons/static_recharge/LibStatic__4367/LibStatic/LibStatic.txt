@@ -1,0 +1,19 @@
+## Title: LibStatic
+## Author: |cFF0000Static_Recharge|r
+## Version: 3.0.0
+## AddOnVersion: 300
+## APIVersion: 101051
+## IsLibrary: true
+## DependsOn: LibChatMessage>=120
+## Description: Static_Recharge common utility functions.
+
+# This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 
+# The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. 
+# All rights reserved
+
+# You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+LibStatic.lua
+Chat.lua
+PairedList.lua
+Timer.Lua

@@ -183,6 +183,7 @@ function CMA:StartBankingProcess()
     for slotIndex = 0, totalSlots do
         if HasItemInSlot(self.sourceBag, slotIndex) then
             local itemLink = GetItemLink(self.sourceBag, slotIndex)
+            local itemQuality = GetItemLinkFunctionalQuality(itemLink)
             local stackCount = GetSlotStackSize(self.sourceBag, slotIndex)
             local uniqueId = self:GetUniqueIdString(self.sourceBag, slotIndex)
             local isLocked = IsItemPlayerLocked(self.sourceBag, slotIndex)
@@ -200,9 +201,14 @@ function CMA:StartBankingProcess()
                 elseif action == "junk" then
                     if self.db.markAsTrashIfNotBanked then
                         if not IsItemJunk(self.sourceBag, slotIndex) then
-                            SetItemIsJunk(self.sourceBag, slotIndex, true)
-                            table.insert(self.junkedItems, itemLink .. " (" .. stackCount .. ")")
-                            table.insert(self.junkedIds, uniqueId)
+                            -- prevent selling of gold items
+                            if itemQuality > ITEM_DISPLAY_QUALITY_ARTIFACT then
+                                self:SendChatMessage("Prevented selling of " .. itemLink .. ". Was marked to sell but not selling 'Gold' quality items.")
+                            else
+                                SetItemIsJunk(self.sourceBag, slotIndex, true)
+                                table.insert(self.junkedItems, itemLink .. " (" .. stackCount .. ")")
+                                table.insert(self.junkedIds, uniqueId)
+                            end
                         end
                     else
                         table.insert(self.ignoredItems, itemLink .. " (" .. stackCount .. ")")

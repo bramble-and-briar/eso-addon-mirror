@@ -1,33 +1,84 @@
 -- Templar catalog retained from v0.9.22
+local M=RamaladniMastery
+local d = d
+local ipairs = ipairs
+local math = math
+local pairs = pairs
+local string = string
+local tonumber = tonumber
+local tostring = tostring
+local type = type
+local ACTION_RESULT_CRITICAL_DAMAGE = ACTION_RESULT_CRITICAL_DAMAGE
+local ACTION_RESULT_CRITICAL_HEAL = ACTION_RESULT_CRITICAL_HEAL
+local ACTION_RESULT_DAMAGE = ACTION_RESULT_DAMAGE
+local ACTION_RESULT_HEAL = ACTION_RESULT_HEAL
+local ACTION_RESULT_HOT_TICK = ACTION_RESULT_HOT_TICK
+local ACTION_RESULT_HOT_TICK_CRITICAL = ACTION_RESULT_HOT_TICK_CRITICAL
+local BUFF_EFFECT_TYPE_DEBUFF = BUFF_EFFECT_TYPE_DEBUFF
+local COMBAT_UNIT_TYPE_PLAYER = COMBAT_UNIT_TYPE_PLAYER
+local DoesUnitExist = DoesUnitExist
+local EFFECT_RESULT_FADED = EFFECT_RESULT_FADED
+local EFFECT_RESULT_FULL_REFRESH = EFFECT_RESULT_FULL_REFRESH
+local EFFECT_RESULT_GAINED = EFFECT_RESULT_GAINED
+local EFFECT_RESULT_UPDATED = EFFECT_RESULT_UPDATED
+local EVENT_ACTION_SLOT_ABILITY_USED = EVENT_ACTION_SLOT_ABILITY_USED
+local EVENT_COMBAT_EVENT = EVENT_COMBAT_EVENT
+local EVENT_EFFECT_CHANGED = EVENT_EFFECT_CHANGED
+local EVENT_MANAGER = EVENT_MANAGER
+local EVENT_POWER_UPDATE = EVENT_POWER_UPDATE
+local GetAbilityName = GetAbilityName
+local GetFrameTimeSeconds = GetFrameTimeSeconds
+local GetNumBuffs = GetNumBuffs
+local GetNumSkillAbilities = GetNumSkillAbilities
+local GetNumSkillLines = GetNumSkillLines
+local GetSkillAbilityId = GetSkillAbilityId
+local GetSkillAbilityInfo = GetSkillAbilityInfo
+local GetSlotBoundId = GetSlotBoundId
+local GetUnitBuffInfo = GetUnitBuffInfo
+local GetUnitClassId = GetUnitClassId
+local GetUnitPower = GetUnitPower
+local IsBlockActive = IsBlockActive
+local IsPlayerMoving = IsPlayerMoving
+local IsSkillAbilityPurchased = IsSkillAbilityPurchased
+local IsUnitInCombat = IsUnitInCombat
+local IsUnitPlayer = IsUnitPlayer
+local COMBAT_MECHANIC_FLAGS_HEALTH = COMBAT_MECHANIC_FLAGS_HEALTH
+local COMBAT_MECHANIC_FLAGS_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE
+local REGISTER_FILTER_COMBAT_RESULT = REGISTER_FILTER_COMBAT_RESULT
+local REGISTER_FILTER_POWER_TYPE = REGISTER_FILTER_POWER_TYPE
+local REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE = REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE
+local REGISTER_FILTER_UNIT_TAG = REGISTER_FILTER_UNIT_TAG
+local SKILL_TYPE_CLASS = SKILL_TYPE_CLASS
+local SLASH_COMMANDS = SLASH_COMMANDS
 do
 local e={key="Templar:Bastion of Light",class="Templar",en="Bastion of Light",title="Оплот света / Bastion of Light",passiveId=263585,candidateIDs={},model="templar_sacred",value=2144,cap=0,target=false,kind="sacred_ground+healing_tick",mechanic="Sacred Ground: 2144 Health per second; at full Health in combat +2 Ultimate per qualified heal",durationRule="Conditional Sacred Ground uptime; not a 1-second aura timer"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Templar:Devout Guardian",class="Templar",en="Devout Guardian",title="Благочестивый страж / Devout Guardian",passiveId=263586,candidateIDs={},model="templar_shield",value=300,cap=0,target=false,kind="shield_timer+recovery",mechanic="Sacred Ground generates a six-second shield (tooltip capacity 5055), +300 recoveries while shield holds, +10 Ultimate when broken",durationRule="6 sec shield and once-per-6s gate; actual aura endTime overrides estimates"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Templar:Bright Harbinger",class="Templar",en="Bright Harbinger",title="Сияющий предвестник / Bright Harbinger",passiveId=263587,candidateIDs={263672,266179},model="templar_illuminate",value=600,cap=0,target=false,kind="group_numeric+timer",mechanic="Illuminate II grants +300 Weapon/Spell Damage allies, +600 self",durationRule="Match own Bright Harbinger buff endTime; fallback predicted from recognized Dawn Wrath cast"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Templar:Judgment's Brand",class="Templar",en="Judgment's Brand",title="Клеймо правосудия / Judgment's Brand",passiveId=263588,candidateIDs={263660},model="templar_burning",value=1400,cap=0,target=false,kind="numeric+timer",mechanic="+1400 Templar ability damage, half to players",durationRule="3.1 sec from observed owned Burning Light damage; fallback exact own Brand aura"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Templar:Steadfast Candescence",class="Templar",en="Steadfast Candescence",title="Непоколебимое сияние / Steadfast Candescence",passiveId=263589,candidateIDs={263643,263644,263645},model="templar_block",value=0,cap=0,target=false,kind="blocking+stationary",mechanic="Sacred Ground while bracing; blocking benefit while stationary (numeric magnitude differs across tooltips)",durationRule="No timer; IsBlockActive and IsPlayerMoving are checked live"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 
 -- Templar isolated module. Loaded after RamaladniMastery.lua.
@@ -87,7 +138,7 @@ local TEM_DAWN_NAMES={
 local TEM_ILLUMINATE_NAMES={['illuminate']=true,['освещение']=true,
   ['Освещение']=true,['Illuminate']=true}
 local function TemplarLog(v)
-  if d then d('|cFFD071Ramaladni Templar|r '..tostring(v)) end
+  d('|cFFD071Ramaladni Templar|r '..tostring(v))
 end
 local function TemplarName(n)
   if type(n)~='string' then return '' end
@@ -106,21 +157,20 @@ local TEM_PASSIVE_NAMES={
 }
 local TEM_OWN_CACHE={}
 local function TemplarLearned(key)
-  local b=RamaladniMastery.TemplarSkillState(key)
+  local b=M.TemplarSkillState(key)
   if b~=nil then return b end
-  if GetUnitClassId and GetUnitClassId('player')~=6 then return false end
+  if GetUnitClassId('player')~=6 then return false end
   local now=TemplarNow()
   local cached=TEM_OWN_CACHE[key]
   if cached and now-cached.time<3 then return cached.state end
   local owned=nil
-  if SKILL_TYPE_CLASS and GetNumSkillLines and GetNumSkillAbilities and
-      GetSkillAbilityInfo then
+  do
     for line=1,(GetNumSkillLines(SKILL_TYPE_CLASS) or 0) do
       for i=1,(GetNumSkillAbilities(SKILL_TYPE_CLASS,line) or 0) do
         local name,_,_,_,_,purchased=GetSkillAbilityInfo(SKILL_TYPE_CLASS,line,i)
         local candidates=TEM_PASSIVE_NAMES[key]
         if candidates and candidates[TemplarName(name)] then
-          if IsSkillAbilityPurchased then
+          do
             purchased=IsSkillAbilityPurchased(SKILL_TYPE_CLASS,line,i)
           end
           if type(purchased)=='boolean' then owned=purchased end
@@ -135,8 +185,7 @@ local function TemplarLearned(key)
 end
 -- Does not mistake Illuminate rank 1 or a group aura for own rank 2.
 local function TemplarIlluminate2()
-  if not (SKILL_TYPE_CLASS and GetNumSkillLines and GetNumSkillAbilities and
-    GetSkillAbilityInfo) then return nil end
+
   for line=1,(GetNumSkillLines(SKILL_TYPE_CLASS) or 0) do
     for i=1,(GetNumSkillAbilities(SKILL_TYPE_CLASS,line) or 0) do
       local name,_,earnedRank,_,_,purchased,_,rank=GetSkillAbilityInfo(SKILL_TYPE_CLASS,line,i)
@@ -149,22 +198,20 @@ local function TemplarIlluminate2()
   return nil -- never default unknown prerequisite to TRUE
 end
 local function TemplarOwnSource(sourceType)
-  return sourceType~=nil and COMBAT_UNIT_TYPE_PLAYER~=nil and
-    sourceType==COMBAT_UNIT_TYPE_PLAYER
+  return sourceType==COMBAT_UNIT_TYPE_PLAYER
 end
 local function TemplarHealthFull()
-  if not (GetUnitPower and POWERTYPE_HEALTH) then return false end
-  local current,max=GetUnitPower('player',POWERTYPE_HEALTH)
+  local current,max=GetUnitPower('player',COMBAT_MECHANIC_FLAGS_HEALTH)
   return type(current)=='number' and type(max)=='number' and max>0 and current>=max
 end
 local function TemplarInCombat()
-  return IsUnitInCombat and IsUnitInCombat('player')==true
+  return IsUnitInCombat('player')==true
 end
 local function TemplarBlocking()
-  return IsBlockActive and IsBlockActive()==true
+  return IsBlockActive()==true
 end
 local function TemplarStill()
-  return IsPlayerMoving and IsPlayerMoving()==false
+  return IsPlayerMoving()==false
 end
 local function TemplarTryShield(now,source)
   if TemplarLearned(TEM_DEVOUT)~=true then return end
@@ -183,11 +230,11 @@ local function TemplarReadPlayerAuras(now)
   local brightEnd=0
   local brandEnd=0
   local shieldId,brightId,brandId=0,0,0
-  if GetNumBuffs and GetUnitBuffInfo then
+  do
     local num=GetNumBuffs('player') or 0
     for i=1,math.min(num,128) do
       local name,started,finish,_,_,_,_,effectType,_,_,abilityId,_,castByPlayer=GetUnitBuffInfo('player',i)
-      if BUFF_EFFECT_TYPE_DEBUFF==nil or effectType~=BUFF_EFFECT_TYPE_DEBUFF then
+      if effectType~=BUFF_EFFECT_TYPE_DEBUFF then
         local valid=type(finish)=='number' and finish>now
         if TemplarIs(name,'sacred') then
           sacred=true
@@ -235,7 +282,7 @@ local function TemplarReadPlayerAuras(now)
   end
 end
 local function TemplarAbilityLine(id)
-  if not (SKILL_TYPE_CLASS and GetNumSkillAbilities and GetSkillAbilityId and GetNumSkillLines) then return nil end
+
   -- The core Templar skill line layout is Aedric Spear (1), Dawn Wrath (2),
   -- Restoring Light (3). Some morph IDs do not equal the base line ID.
   for line=1,(GetNumSkillLines(SKILL_TYPE_CLASS) or 0) do
@@ -248,11 +295,11 @@ local function TemplarAbilityLine(id)
   return nil
 end
 local function TemplarCast(_,slot)
-  if not (GetSlotBoundId and type(slot)=='number') then return end
+  if not (type(slot)=='number') then return end
   local id=GetSlotBoundId(slot)
   if type(id)~='number' or id<=0 then return end
   templar.lastCastId=id
-  local name=GetAbilityName and GetAbilityName(id) or ''
+  local name=GetAbilityName(id) or ''
   local dawn=TEM_DAWN_NAMES[TemplarName(name)] or (TemplarAbilityLine(id)==2)
   if dawn then
     templar.lastDawnId=id;templar.lastDawnAt=TemplarNow()
@@ -266,7 +313,7 @@ end
 local function TemplarEffect(_,change,_,name,unitTag,start,finish,stacks,
   icon,buffType,effectType,abilityType,statusType,unitName,unitId,abilityId,sourceType)
   if unitTag~='player' then return end
-  if BUFF_EFFECT_TYPE_DEBUFF~=nil and effectType==BUFF_EFFECT_TYPE_DEBUFF then return end
+  if effectType==BUFF_EFFECT_TYPE_DEBUFF then return end
   if not (TemplarIs(name,'sacred') or TemplarIs(name,'shield') or
      TemplarIs(name,'bright') or TemplarIs(name,'brand')) then return end
   -- Named OWN mastery buffs are acceptable if the client says owner PLAYER,
@@ -334,7 +381,7 @@ end
 local function TemplarUltimate(_,unitTag,_,powerType,powerValue,powerMax,powerEffectiveMax)
   -- EVENT_POWER_UPDATE can be dispatched with powerValue but previous
   -- values may be missing. Read current power and compare with snapshot.
-  if unitTag~='player' or powerType~=POWERTYPE_ULTIMATE then return end
+  if unitTag~='player' or powerType~=COMBAT_MECHANIC_FLAGS_ULTIMATE then return end
   local value=tonumber(powerValue)
   if value==nil then return end
   local last=templar.lastUlt
@@ -381,37 +428,55 @@ local function TemplarDebug(input)
     tostring(templar.lastDamageId),templar.bastion.healCount,
     templar.bastion.ultCount,templar.shield.breakCount))
 end
-function RamaladniMastery.InitTemplar()
+local syncEvents=M.NewEventSet()
+local previousSelection={}
+local function SyncTemplarEvents(selected)
+  local power=selected[TEM_BASTION] or selected[TEM_DEVOUT]
+  local previousPower=previousSelection[TEM_BASTION] or previousSelection[TEM_DEVOUT]
+  if power and not previousPower then templar.lastUlt=GetUnitPower('player',COMBAT_MECHANIC_FLAGS_ULTIMATE) end
+  if not selected[TEM_BASTION] then templar.bastion.healAt=-100 end
+  if selected[TEM_DEVOUT] and not previousSelection[TEM_DEVOUT] then
+    -- Let the existing aura scan detect Ground for the newly learned shield.
+    templar.sacred.active=false
+  end
+  if not selected[TEM_DEVOUT] then
+    templar.shield.untilTime=0;templar.shield.nextAt=0;templar.shield.lastStart=-100
+    templar.shield.observed=false;templar.shield.breakAt=-100
+  end
+  if not selected[TEM_BRIGHT] then
+    templar.bright.untilTime=0;templar.bright.observed=false;templar.lastDawnAt=-100
+  end
+  if not selected[TEM_JUDGMENT] then templar.brand.untilTime=0;templar.brand.observed=false end
+  templar.at=-100 -- rescan after a committed selection refresh
+  syncEvents(function(Add)
+    if selected[TEM_BRIGHT] then Add('RamaladniTemplarCast',EVENT_ACTION_SLOT_ABILITY_USED,TemplarCast) end
+    if selected[TEM_BASTION] or selected[TEM_DEVOUT] or selected[TEM_BRIGHT] or selected[TEM_JUDGMENT] then
+      Add('RamaladniTemplarEffect',EVENT_EFFECT_CHANGED,TemplarEffect,REGISTER_FILTER_UNIT_TAG,'player')
+    end
+    if power then
+      Add('RamaladniTemplarUlt',EVENT_POWER_UPDATE,TemplarUltimate,
+        REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_POWER_TYPE,COMBAT_MECHANIC_FLAGS_ULTIMATE)
+    end
+    local results={}
+    if selected[TEM_JUDGMENT] then results[ACTION_RESULT_DAMAGE]=true;results[ACTION_RESULT_CRITICAL_DAMAGE]=true end
+    if selected[TEM_BASTION] then
+      results[ACTION_RESULT_HEAL]=true;results[ACTION_RESULT_CRITICAL_HEAL]=true
+      results[ACTION_RESULT_HOT_TICK]=true;results[ACTION_RESULT_HOT_TICK_CRITICAL]=true
+    end
+    for result in pairs(results) do
+      Add('RamaladniTemplarCombat_'..result,EVENT_COMBAT_EVENT,TemplarCombat,
+        REGISTER_FILTER_COMBAT_RESULT,result,REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
+    end
+  end)
+  previousSelection=selected
+end
+function M.InitTemplar()
   if templar.initialized then return end
   templar.initialized=true
   SLASH_COMMANDS['/rmtemplar']=TemplarDebug
   SLASH_COMMANDS['/rmtemp']=TemplarDebug
-  if GetUnitPower and POWERTYPE_ULTIMATE then
-    templar.lastUlt=GetUnitPower('player',POWERTYPE_ULTIMATE)
-  end
-  EVENT_MANAGER:RegisterForEvent('RamaladniTemplarCast',EVENT_ACTION_SLOT_ABILITY_USED,TemplarCast)
-  EVENT_MANAGER:RegisterForEvent('RamaladniTemplarEffect',EVENT_EFFECT_CHANGED,TemplarEffect)
-  if REGISTER_FILTER_UNIT_TAG then
-    -- TemplarEffect already ignores every unitTag except 'player'.
-    EVENT_MANAGER:AddFilterForEvent('RamaladniTemplarEffect',EVENT_EFFECT_CHANGED,
-      REGISTER_FILTER_UNIT_TAG,'player')
-  end
-  if EVENT_POWER_UPDATE and POWERTYPE_ULTIMATE then
-    EVENT_MANAGER:RegisterForEvent('RamaladniTemplarUlt',EVENT_POWER_UPDATE,TemplarUltimate)
-    if REGISTER_FILTER_UNIT_TAG and REGISTER_FILTER_POWER_TYPE then
-      EVENT_MANAGER:AddFilterForEvent('RamaladniTemplarUlt',EVENT_POWER_UPDATE,
-        REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_POWER_TYPE,POWERTYPE_ULTIMATE)
-    end
-  end
-  if EVENT_COMBAT_EVENT then
-    EVENT_MANAGER:RegisterForEvent('RamaladniTemplarCombat',EVENT_COMBAT_EVENT,TemplarCombat)
-    if REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE and COMBAT_UNIT_TYPE_PLAYER then
-      EVENT_MANAGER:AddFilterForEvent('RamaladniTemplarCombat',EVENT_COMBAT_EVENT,
-        REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
-    end
-  end
 end
-function RamaladniMastery.TemplarDisplay(key,state,now)
+function M.TemplarDisplay(key,state,now)
   local owned=TemplarLearned(key)
   state.cooldownUntil=0
   state.timerEstimated=false
@@ -467,8 +532,7 @@ function RamaladniMastery.TemplarDisplay(key,state,now)
     if owned==true and p.untilTime>now then
       state.activeFlag=true;state.untilTime=p.untilTime
       state.timerEstimated=not p.observed
-      local player=DoesUnitExist and IsUnitPlayer and
-        DoesUnitExist('reticleover') and IsUnitPlayer('reticleover')
+      local player=DoesUnitExist('reticleover') and IsUnitPlayer('reticleover')
       return true,player and '+700' or '+1400'
     end
     return true,nil
@@ -485,4 +549,4 @@ function RamaladniMastery.TemplarDisplay(key,state,now)
 end
 
 
-RamaladniMastery.modules.Templar={Init=function() RamaladniMastery.InitTemplar() end, Display=function(key,state,now) return RamaladniMastery.TemplarDisplay(key,state,now) end}
+M.modules.Templar={Init=function() M.InitTemplar() end, SyncEvents=SyncTemplarEvents, Display=function(key,state,now) return M.TemplarDisplay(key,state,now) end}

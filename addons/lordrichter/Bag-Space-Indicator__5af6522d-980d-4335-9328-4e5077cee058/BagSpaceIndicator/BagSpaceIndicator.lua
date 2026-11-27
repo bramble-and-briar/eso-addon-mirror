@@ -9,7 +9,7 @@
 ----------------------------------------------------------------------------------------------------------------------------------------
 local AddonInfo = {
     addon = "BagSpaceIndicator",
-    version = "3.49.0",
+    version = "3.52.0",
     author = "Lord Richter",
     savename = "BagSpaceIndicatorVars"
 }
@@ -335,7 +335,7 @@ local function InitConfigPanel()
         return
     end
 
-    BSI.configpanel.settings.version = "3.49.0"
+    BSI.configpanel.settings.version = "3.52.0"
 
     BSI.configpanel.disabled = false;
 

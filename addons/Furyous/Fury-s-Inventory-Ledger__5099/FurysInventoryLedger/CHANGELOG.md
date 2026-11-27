@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.5
+- **Lighter loading screens.** With "Keep the Excel file ready" on, the addon rebuilt the whole Excel list (thousands of rows, every character and account) at every loading screen after anything in your bags changed. On a recruit tour or a writ run that meant heavy work at each port, the moment the game is busiest. The list and the daily totals are now built only when you log out, switch characters, quit or reload, which is when the game writes them to your PC anyway. The Excel file is the same as before.
+
 ## 1.7.4
 - **Smaller version number.** The version in the title bar is now in small print, the same in every Fury window, so the name and your other Fury addons' icons stand out.
 

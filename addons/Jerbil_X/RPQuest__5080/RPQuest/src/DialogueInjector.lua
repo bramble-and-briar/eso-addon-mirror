@@ -70,6 +70,31 @@ local function HookInteractionClass(cls)
         match = nil,
     }
 
+    local function BuildDialogueOptionCallback(interactionSelf, controlID, match, seenKey)
+        local responseText = match.response
+        local questId = match.questId
+        local dialogueIndex = match.dialogueIndex
+        return function()
+            if seenKey then
+                seenDialogues[seenKey] = true
+            end
+            DisplayDialogueResponse(interactionSelf, responseText)
+            ApplySeenOptionColor(interactionSelf, controlID)
+            if questId and dialogueIndex then
+                local ok, quest, isCompleted, triggeredDialogue, questFailed, failReason = Addon.QuestRepository:MarkDialogueTriggered(questId, dialogueIndex)
+                if ok and quest then
+                    if questFailed then
+                        Addon.Announcements:AnnounceQuestFailed(quest, nil, failReason)
+                    elseif isCompleted then
+                        Addon.Announcements:AnnounceQuestCompleted(quest)
+                    else
+                        Addon.Announcements:AnnounceDialogueProgress(quest, triggeredDialogue)
+                    end
+                end
+            end
+        end
+    end
+
     cls.PopulateChatterOptions = function(interactionSelf, optionCount, backToTOCOption)
         local npcName = GetUnitName("interact") or ""
         local zoneId = GetCurrentPlayerZoneId()
@@ -112,17 +137,10 @@ local function HookInteractionClass(cls)
             if controlID and controlID < maxOptions then
                 local match = state.match
                 local injectedText = match.clue
-                local responseText = match.response
                 local seenKey = GetSeenDialogueKey(match)
-                local wasChosenBefore = (seenKey and seenDialogues[seenKey]) == true
+                local wasChosenBefore = (match.executed == true) or ((seenKey and seenDialogues[seenKey]) == true)
                 local injectedControlID = controlID
-                local callback = function()
-                    if seenKey then
-                        seenDialogues[seenKey] = true
-                    end
-                    DisplayDialogueResponse(interactionSelf, responseText)
-                    ApplySeenOptionColor(interactionSelf, injectedControlID)
-                end
+                local callback = BuildDialogueOptionCallback(interactionSelf, injectedControlID, match, seenKey)
                 origPopulateOption(
                     interactionSelf,
                     injectedControlID,
@@ -167,14 +185,8 @@ local function HookInteractionClass(cls)
                 state.injected = true
                 local match = state.match
                 local seenKey = GetSeenDialogueKey(match)
-                local wasChosenBefore = (seenKey and seenDialogues[seenKey]) == true
-                local callback = function()
-                    if seenKey then
-                        seenDialogues[seenKey] = true
-                    end
-                    DisplayDialogueResponse(interactionSelf, match.response)
-                    ApplySeenOptionColor(interactionSelf, nextID)
-                end
+                local wasChosenBefore = (match.executed == true) or ((seenKey and seenDialogues[seenKey]) == true)
+                local callback = BuildDialogueOptionCallback(interactionSelf, nextID, match, seenKey)
                 origPopulateOption(
                     interactionSelf,
                     nextID,
@@ -233,7 +245,7 @@ function DialogueInjector:Initialize()
         Addon.QuestRepository:RegisterListener(function(evType, payload)
             if evType == "QUEST_IMPORTED" or evType == "ACTIVE_QUEST_CHANGED" or evType == "QUEST_ACCEPTED" then
                 self:InstallHooks()
-            elseif evType == "QUEST_RESET" and type(payload) == "table" then
+            elseif (evType == "QUEST_RESET" or evType == "QUEST_UPDATED") and type(payload) == "table" then
                 self:ClearSeenDialoguesForQuest(payload.id)
             end
         end)

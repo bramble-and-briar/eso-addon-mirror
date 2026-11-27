@@ -100,6 +100,18 @@ local function BuildDetailHeaderAndBody(tab, pane, panelName)
     if objText.SetColor then objText:SetColor(1, 1, 1, 1) end
     tab.detailObjText = objText
 
+    local completionHeader = CreateDetailLabel(contentParent, panelName .. "_DetailCompletionHeader", 500, 24, "ZoFontWinH3", objText, BOTTOMLEFT, -25, 14)
+    if completionHeader.SetColor then completionHeader:SetColor(1, 1, 1, 1) end
+    if completionHeader.SetModifyTextType then completionHeader:SetModifyTextType(MODIFY_TEXT_TYPE_UPPERCASE) end
+    completionHeader:SetText(Addon.Locale:Get("LABEL_COMPLETION_MESSAGE_HEADER"))
+    completionHeader:SetHidden(true)
+    tab.detailCompletionHeader = completionHeader
+
+    local completionText = CreateDetailLabel(contentParent, panelName .. "_DetailCompletionText", 495, 24, "ZoFontWinH4", completionHeader, BOTTOMLEFT, 25, 10)
+    if completionText.SetColor then completionText:SetColor(0.77, 0.76, 0.62, 1) end
+    completionText:SetHidden(true)
+    tab.detailCompletionText = completionText
+
     return contentParent
 end
 
@@ -273,7 +285,7 @@ local function RegisterAbandonDialogAndKeybinds(tab, pane, parent, panelName)
             return false
         end
         local quest = Addon.QuestRepository:GetQuestById(tab.selectedQuestId)
-        return quest ~= nil and not Addon.QuestRepository:IsOfferedQuest(quest)
+        return quest ~= nil and ((not Addon.QuestRepository:IsOfferedQuest(quest)) or quest.isTutorial == true)
     end
 
     tab.abandonQuestDescriptor = {
@@ -457,8 +469,9 @@ local function AppendTargetObjectiveLines(objLines, selectedQuest, isMasterSumma
             currentCount = requiredCount
         end
 
+        local formatKey = (t.isPlayer == true) and "OBJECTIVE_DUEL_FORMAT" or "OBJECTIVE_KILL_FORMAT"
         local line = Addon.Locale:Get(
-            "OBJECTIVE_KILL_FORMAT",
+            formatKey,
             t.name or "",
             currentCount,
             requiredCount
@@ -518,6 +531,9 @@ local function AppendExtraObjectiveLines(objLines, selectedQuest, isMasterSummar
     if #discoveries > 0 then
         if isMasterSummary then
             local sumLine = Addon.Locale:Get("DISCOVERY_PREPARED_SUMMARY", #discoveries):gsub("^•%s*", bullet)
+            if selectedQuest.sequentialDiscoveries == true then
+                sumLine = sumLine .. Addon.Locale:Get("DISCOVERY_SEQUENTIAL_SUFFIX")
+            end
             table.insert(objLines, sumLine)
         else
             for _, d in ipairs(discoveries) do
@@ -525,6 +541,28 @@ local function AppendExtraObjectiveLines(objLines, selectedQuest, isMasterSummar
                     local clueLine = Addon.Locale:Get("DISCOVERY_CLUE_FORMAT", d.message or ""):gsub("^•%s*", bullet)
                     table.insert(objLines, clueLine)
                 end
+            end
+        end
+    end
+
+    local dialogues = selectedQuest.dialogues or {}
+    if not isMasterSummary and #dialogues > 0 then
+        local executedCount = 0
+        for _, dlg in ipairs(dialogues) do
+            if dlg.executed == true then
+                executedCount = executedCount + 1
+            end
+        end
+        local progressLine = Addon.Locale:Get("DIALOGUE_PROGRESS_FORMAT", executedCount, #dialogues):gsub("^•%s*", bullet)
+        if executedCount == #dialogues then
+            progressLine = progressLine .. Addon.Locale:Get("OBJECTIVE_COMPLETED_SUFFIX")
+        end
+        table.insert(objLines, progressLine)
+        for _, dlg in ipairs(dialogues) do
+            if dlg.executed == true then
+                local spokenLine = Addon.Locale:Get("DIALOGUE_SPOKEN_FORMAT", dlg.npcName or ""):gsub("^•%s*", bullet)
+                    .. Addon.Locale:Get("OBJECTIVE_COMPLETED_SUFFIX")
+                table.insert(objLines, spokenLine)
             end
         end
     end
@@ -548,7 +586,6 @@ local function AppendExtraObjectiveLines(objLines, selectedQuest, isMasterSummar
             local clueLine = Addon.Locale:Get("DIALOGUE_DETAIL_CLUE_FORMAT", selectedQuest.clue):gsub("^•%s*", bullet)
             table.insert(objLines, clueLine)
         end
-        local dialogues = selectedQuest.dialogues or {}
         if #dialogues > 0 then
             local maxNpcs = (Addon.Constants and Addon.Constants.DIALOGUE and Addon.Constants.DIALOGUE.MAX_NPCS) or 4
             local dlgLine = Addon.Locale:Get("DIALOGUE_DETAIL_NPCS_FORMAT", #dialogues, maxNpcs):gsub("^•%s*", bullet)
@@ -576,10 +613,63 @@ local function BuildObjectiveLines(selectedQuest, isPrepared, isCurrentActive)
     AppendTargetObjectiveLines(objLines, selectedQuest, isMasterSummary, pInfo, isSentCompleted, bullet)
     AppendExtraObjectiveLines(objLines, selectedQuest, isMasterSummary, pInfo, isSentCompleted, isSentFailed, bullet)
 
+    local hasTargets = type(selectedQuest.targets) == "table" and #selectedQuest.targets > 0
+    local hasDiscoveries = type(selectedQuest.discoveries) == "table" and #selectedQuest.discoveries > 0
+    local hasDialogues = type(selectedQuest.dialogues) == "table" and #selectedQuest.dialogues > 0
+    if not hasTargets and not hasDiscoveries and not hasDialogues then
+        local freeformLine = Addon.Locale:Get("OBJECTIVE_FREEFORM"):gsub("^•%s*", bullet)
+        table.insert(objLines, 1, freeformLine)
+    end
+
     return objLines
 end
 
-local function UpdateDetailMapControls(tab, selectedQuest, isOffered, isPrepared, isCurrentActive)
+local function EstimateWrappedTextHeight(text)
+    local totalLines = 0
+    for line in (text .. "\n"):gmatch("(.-)\n") do
+        local len = #line
+        totalLines = totalLines + math.max(1, math.ceil(len / 55))
+    end
+    return math.max(24, totalLines * 24)
+end
+
+local function UpdateCompletionMessageSection(tab, selectedQuest)
+    if not tab.detailCompletionHeader or not tab.detailCompletionText then
+        return tab.detailObjText, -25, 14, 0
+    end
+    local resolution = Addon.QuestRepository:GetQuestResolution(selectedQuest)
+    local isCompleted = (resolution == "completed")
+        or (selectedQuest.completed == true and resolution ~= "failed" and resolution ~= "rejected" and not selectedQuest.failed)
+    local trimmedMsg = type(selectedQuest.completionMessage) == "string"
+        and selectedQuest.completionMessage:gsub("^%s+", ""):gsub("%s+$", "")
+        or ""
+
+    if not (isCompleted and trimmedMsg ~= "") then
+        tab.detailCompletionHeader:SetHidden(true)
+        tab.detailCompletionText:SetText("")
+        tab.detailCompletionText:SetHidden(true)
+        return tab.detailObjText, -25, 14, 0
+    end
+
+    tab.detailCompletionHeader:ClearAnchors()
+    tab.detailCompletionHeader:SetAnchor(TOPLEFT, tab.detailObjText, BOTTOMLEFT, -25, 14)
+    tab.detailCompletionHeader:SetHidden(false)
+
+    tab.detailCompletionText:SetDimensions(495, 0)
+    tab.detailCompletionText:SetText(trimmedMsg)
+    local textHeight = tab.detailCompletionText.GetTextHeight and tab.detailCompletionText:GetTextHeight()
+    local boxHeight = textHeight and (textHeight + 12) or EstimateWrappedTextHeight(trimmedMsg)
+    boxHeight = math.max(24, boxHeight)
+    tab.detailCompletionText:SetDimensions(495, boxHeight)
+    tab.detailCompletionText:SetHidden(false)
+
+    return tab.detailCompletionText, -25, 14, 38 + boxHeight
+end
+
+local function UpdateDetailMapControls(tab, selectedQuest, isOffered, isPrepared, isCurrentActive, anchorControl, offsetX, offsetY)
+    local baseAnchor = anchorControl or tab.detailObjText
+    local baseOffsetX = offsetX or -25
+    local baseOffsetY = offsetY or 14
     local needsMigration = isPrepared and (selectedQuest.needsMigration == true)
     local showToggles = (not isOffered) and (not needsMigration) and ((not isPrepared) or isCurrentActive)
 
@@ -627,7 +717,7 @@ local function UpdateDetailMapControls(tab, selectedQuest, isOffered, isPrepared
 
     if visibleCount > 0 and tab.detailMapMarkersHeader then
         tab.detailMapMarkersHeader:ClearAnchors()
-        tab.detailMapMarkersHeader:SetAnchor(TOPLEFT, tab.detailObjText, BOTTOMLEFT, -25, 14)
+        tab.detailMapMarkersHeader:SetAnchor(TOPLEFT, baseAnchor, BOTTOMLEFT, baseOffsetX, baseOffsetY)
         tab.detailMapMarkersHeader:SetHidden(false)
         return prevControl, -25, 14, 38 + (visibleCount * 30)
     end
@@ -635,7 +725,7 @@ local function UpdateDetailMapControls(tab, selectedQuest, isOffered, isPrepared
     if tab.detailMapMarkersHeader then
         tab.detailMapMarkersHeader:SetHidden(true)
     end
-    return tab.detailObjText, -25, 16, 0
+    return baseAnchor, baseOffsetX, (baseAnchor == tab.detailObjText) and 16 or baseOffsetY, 0
 end
 
 local function UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepared, anchorControl, offsetX, offsetY)
@@ -648,10 +738,12 @@ local function UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepar
     end
     tab.btnReset:ClearAnchors()
     local needsMigration = isPrepared and (selectedQuest.needsMigration == true)
+    local isTutorial = (selectedQuest.isTutorial == true)
+    local canCopy = (isPrepared and not needsMigration) or isTutorial
     if tab.btnAcceptOffered then tab.btnAcceptOffered:SetHidden(not isOffered) end
-    if tab.btnRejectOffered then tab.btnRejectOffered:SetHidden(not isOffered) end
+    if tab.btnRejectOffered then tab.btnRejectOffered:SetHidden((not isOffered) or isTutorial) end
     if tab.btnSendDirect then tab.btnSendDirect:SetHidden((not isPrepared) or needsMigration) end
-    if tab.btnCopy then tab.btnCopy:SetHidden((not isPrepared) or needsMigration) end
+    if tab.btnCopy then tab.btnCopy:SetHidden(not canCopy) end
     if tab.btnMigrate then tab.btnMigrate:SetHidden(not needsMigration) end
 
     if isOffered then
@@ -659,6 +751,10 @@ local function UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepar
         if tab.btnComplete then tab.btnComplete:SetHidden(true) end
         tab.btnEdit:SetHidden(true)
         tab.btnReset:SetHidden(true)
+        if tab.btnCopy and canCopy then
+            tab.btnCopy:ClearAnchors()
+            tab.btnCopy:SetAnchor(TOPLEFT, tab.btnAcceptOffered, BOTTOMLEFT, 0, 10)
+        end
     elseif needsMigration then
         tab.btnActivate:SetHidden(true)
         if tab.btnComplete then tab.btnComplete:SetHidden(true) end
@@ -673,16 +769,36 @@ local function UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepar
         tab.btnEdit:SetHidden(canManualComplete)
         tab.btnReset:SetAnchor(TOPLEFT, tab.btnActivate, BOTTOMLEFT, 0, 10)
         tab.btnReset:SetHidden(false)
+        if tab.btnCopy then
+            tab.btnCopy:ClearAnchors()
+            tab.btnCopy:SetAnchor(TOPLEFT, tab.btnReset, BOTTOMLEFT, 0, 10)
+        end
     else
         local showCompletion = selectedQuest.completed and true or false
         local showFailed = selectedQuest.failed and true or false
+        local showReset = showFailed or isTutorial
         local canManualComplete = Addon.QuestRepository:CanManuallyCompleteQuest(selectedQuest)
         tab.btnActivate:SetHidden(showCompletion or showFailed)
         if tab.btnComplete then tab.btnComplete:SetHidden(not canManualComplete) end
         tab.btnEdit:SetHidden(true)
-        tab.btnReset:SetHidden(not showFailed)
-        if showFailed then
-            tab.btnReset:SetAnchor(TOPLEFT, anchorControl, BOTTOMLEFT, offsetX, offsetY)
+        tab.btnReset:SetHidden(not showReset)
+        if showReset then
+            tab.btnReset:ClearAnchors()
+            if showCompletion or showFailed then
+                tab.btnReset:SetAnchor(TOPLEFT, anchorControl, BOTTOMLEFT, offsetX, offsetY)
+            else
+                tab.btnReset:SetAnchor(TOPLEFT, tab.btnActivate, BOTTOMLEFT, 0, 10)
+            end
+        end
+        if tab.btnCopy and canCopy then
+            tab.btnCopy:ClearAnchors()
+            if showReset then
+                tab.btnCopy:SetAnchor(TOPLEFT, tab.btnReset, BOTTOMLEFT, 0, 10)
+            elseif showCompletion then
+                tab.btnCopy:SetAnchor(TOPLEFT, anchorControl, BOTTOMLEFT, offsetX, offsetY)
+            else
+                tab.btnCopy:SetAnchor(TOPLEFT, tab.btnActivate, BOTTOMLEFT, 0, 10)
+            end
         end
     end
 
@@ -712,6 +828,11 @@ local function RenderEmptyDetailPane(tab)
     if tab.detailMissionText then
         tab.detailMissionText:SetText("")
         tab.detailMissionText:SetHidden(true)
+    end
+    if tab.detailCompletionHeader then tab.detailCompletionHeader:SetHidden(true) end
+    if tab.detailCompletionText then
+        tab.detailCompletionText:SetText("")
+        tab.detailCompletionText:SetHidden(true)
     end
     if tab.detailMapMarkersHeader then tab.detailMapMarkersHeader:SetHidden(true) end
     if tab.mapMarkerSearchRow then tab.mapMarkerSearchRow:SetHidden(true) end
@@ -845,10 +966,13 @@ function DetailPane.Refresh(tab, selectedQuest, activeQuest)
     local textHeight = tab.detailObjText.GetTextHeight and tab.detailObjText:GetTextHeight()
     local objHeight = textHeight and (textHeight + 16) or (#objLines * 24)
     tab.detailObjText:SetDimensions(495, math.max(32, objHeight))
-    local anchorControl, offsetX, offsetY, extraMapHeight = UpdateDetailMapControls(tab, selectedQuest, isOffered, isPrepared, isCurrentActive)
-    if tab.detailScrollChild and tab.detailScrollChild.SetDimensions then
-        tab.detailScrollChild:SetDimensions(526, math.max(650, 645 + missionHeight + objHeight + math.max(0, statusHeight - 24) + extraMapHeight))
-    end
-
+    local completionAnchor, completionOffsetX, completionOffsetY, completionHeight = UpdateCompletionMessageSection(tab, selectedQuest)
+    local anchorControl, offsetX, offsetY, extraMapHeight = UpdateDetailMapControls(
+        tab, selectedQuest, isOffered, isPrepared, isCurrentActive,
+        completionAnchor, completionOffsetX, completionOffsetY
+    )
     UpdateDetailActionButtons(tab, selectedQuest, isOffered, isPrepared, anchorControl, offsetX, offsetY)
+    if tab.detailScrollChild and tab.detailScrollChild.SetDimensions then
+        tab.detailScrollChild:SetDimensions(526, math.max(650, 715 + missionHeight + objHeight + completionHeight + math.max(0, statusHeight - 24) + extraMapHeight))
+    end
 end

@@ -31,7 +31,51 @@ C.TRIGGER_TYPES = {
     { "combatState", L("Combat state") },
     { "tick", L("Resource tick") },
     { "gcd", L("Global cooldown") },
+    { "group", L("Group members") },
+    { "weave", L("Weaving") },
 }
+-- Weave strip colours: ready-made sets (good, okay, slow, no light attack). The colour-blind set is the Okabe-Ito
+-- palette (blue / yellow / vermillion / reddish purple), told apart with the common kinds of colour blindness.
+C.WEAVE_PALETTES = {
+    { "dt", L("DebuffTracker (green, gold, red)"), { { 0.36, 0.95, 0.45, 1 }, { 1, 0.80, 0.30, 1 }, { 0.95, 0.30, 0.30, 1 }, { 0.95, 0.30, 0.30, 1 } } },
+    { "okabeito", L("Colour-blind safe"), { { 0, 0.447, 0.698, 1 }, { 0.941, 0.894, 0.259, 1 }, { 0.835, 0.369, 0, 1 }, { 0.800, 0.475, 0.655, 1 } } },
+    { "calm", L("Calm (teal, amber, coral)"), { { 0.114, 0.620, 0.459, 1 }, { 0.937, 0.624, 0.153, 1 }, { 0.886, 0.294, 0.290, 1 }, { 0.886, 0.294, 0.290, 1 } } },
+}
+-- Group members (Core/Group.lua)
+C.GROUP_SORTS = {
+    { "role", L("Role (tanks, healers, damage)") },
+    { "group", L("Group order") },
+    { "name", L("Name") },
+}
+C.GROUP_NAMES = {
+    { "character", L("Character name") },
+    { "account", L("@Account name") },
+}
+-- Group frames display
+C.FRAME_COLOR_BY = {
+    { "role", L("Role") },
+    { "health", L("Health (the timer colours)") },
+    { "solid", L("One colour") },
+}
+C.FRAME_HEALTH_TEXT = {
+    { "value", L("Health (24.5k)") },
+    { "pct", L("Percent (85%)") },
+    { "both", L("Both") },
+    { "none", L("None") },
+}
+-- On group frames
+C.FRAME_TIP_EFFECTS = {
+    { "timed", L("Timed effects") },
+    { "all", L("All effects") },
+    { "none", L("None") },
+}
+C.FRAME_SHOW = { { "icons", L("Icons") }, { "bar", L("A bar along the frame") } }
+C.FRAME_SPOTS = {
+    { "right", L("Right of the frame") },
+    { "left", L("Left of the frame") },
+    { "inside", L("Inside, at the right end") },
+}
+C.FRAME_BAR_SPOTS = { { "bottom", L("Bottom edge") }, { "top", L("Top edge") } }
 -- resources that regenerate in ticks (Resource tick trigger)
 C.TICK_POWER_TYPES = {
     { "stamina", L("Stamina") },
@@ -198,6 +242,9 @@ C.DISPLAY_TYPES = {
     { "alert", L("Big alert") },
     { "heads", L("Above heads") },
     { "meter", L("Meter") },
+    { "frames", L("Group frames") },
+    { "onframes", L("On group frames") },
+    { "weave", L("Weave strip") },
 }
 -- "Above heads" needs a world position, which the game only gives for allies (never enemies).
 C.HEAD_SCOPES = { group = true, player = true, companion = true }
@@ -324,6 +371,9 @@ C.PANEL_BG = { 0.055, 0.067, 0.082, 0.96 }
 C.PANEL_EDGE = { 0.29, 0.32, 0.36, 1 }
 
 C.DEFAULT_ICON = "/esoui/art/icons/icon_missing.dds"
+-- the game's own (esoui sharedtextures.lua ZO_TIMER_ICON_64; the main menu's group button)
+C.TIMER_ICON = "EsoUI/Art/Miscellaneous/timer_64.dds"
+C.GROUP_ICON = "/esoui/art/mainmenu/menubar_group_up.dds"
 
 ------------------------------------------------------------------------------
 -- Conditions
@@ -351,6 +401,9 @@ C.CONDITION_PROPS = {
     { "onBar", L("Ability on my bars (ID or name; = is on, != isn't)"), "text" },
     { "value", L("Resource value"), "number" },
     { "pct", L("Resource %"), "number" },
+    { "shield", L("Damage shield on the unit (health bars)"), "number" },
+    { "trauma", L("Trauma on the unit (health bars)"), "number" },
+    { "noHeal", L("Can't be healed (health bars)"), "bool" },
     { "inCombat", L("I'm in combat"), "bool" },
     { "unitName", L("Unit name contains"), "text" },
     { "name", L("Effect name contains"), "text" },
@@ -363,6 +416,17 @@ C.CONDITION_PROPS = {
     { "role", L("Unit role is (tank / healer / dps)"), "text" },
     { "distance", L("Distance to the unit (m, allies)"), "number" },
     { "healthPct", L("Unit health %"), "number" },
+    -- group members (any entry about an ally)
+    { "dead", L("Unit is dead"), "bool" },
+    { "offline", L("Unit is offline (group)"), "bool" },
+    { "resurrecting", L("Being resurrected / resurrection waiting"), "bool" },
+    { "leader", L("Group leader"), "bool" },
+    { "companion", L("Is a companion"), "bool" },
+    -- weaving (Core/Weave.lua)
+    { "weaveDelay", L("Weave delay (ms; no light attack = 1000)"), "number" },
+    { "weaveLight", L("Light attack (ok / missed / vanished / queued)"), "text" },
+    { "weaveBash", L("Bash-cancelled"), "bool" },
+    { "weaveAvg", L("Average weave delay this fight (ms)"), "number" },
     -- resource ticks (Core/Ticks.lua)
     { "tickProgress", L("Progress to the next tick (%)"), "number" },
     { "sinceTick", L("Seconds since the last tick"), "number" },
@@ -519,3 +583,44 @@ C.FAVORITE_SOUNDS = {
     "NEW_NOTIFICATION", "ABILITY_ULTIMATE_READY", "DEFAULT_CLICK", "RAID_TRIAL_FAILED",
     "TELVAR_MULTIPLIERUP", "BATTLEGROUND_COUNTDOWN_FINISH", "SKILL_LINE_ADDED", "STATS_PURCHASE",
 }
+
+------------------------------------------------------------------------------
+-- Credits: the add-ons DebuffTracker learned from or imports, and their authors (as their own manifests name them).
+-- Shown in Settings > Credits and by /dt credits. { add-on, authors, what DebuffTracker owes it }
+------------------------------------------------------------------------------
+C.CREDITS = {
+    { "Cooldowns", "g4rr3t, nogetrandom, @B7TxSpeed", L("My procs: set data, timings and behaviour; the Cooldowns import") },
+    { "ExoY's ProcSet Timer", "ExoY", L("My procs: special sets and buff times; the ExoY import") },
+    { "LibSetDetection", "ExoY", L("group members' gear sets in the group frames tooltip (optional)") },
+    { "Untaunted", "Solinur", L("taunts on every enemy") },
+    { "BuffTheGroup", "bitrock, garlicmoon", L("group buff boards") },
+    { "StaggerTracker", "andy.s", L("Stagger / Heat Shock") },
+    { "Meterskull", "bibik92", L("stat tiles (the Meter display)") },
+    { "Miat's Ticks Tracker", "Dorrino, Asquart", L("resource ticks") },
+    { "Combat Metronome", "Darianopolis, barny", L("the global cooldown bar") },
+    { "GCD Bar", "Wheels", L("the global cooldown bar") },
+    { "Global Cooldown Monitor", "CaffeinatedMayhem, Armodeniz", L("the global cooldown bar") },
+    { "WeaveDelays", "Psiioniic", L("light attack weaving") },
+    { "Alternative Group Frames", "BulDeZir, Glande-Pas", L("group frames") },
+    { "HyperTools", "Hyperioxes", L("above heads and its tracker strings") },
+    { "LuiExtended", "DakJaniels", L("shields, trauma and can't be healed on health bars") },
+    { "RoaringOpportunist", "tmbrinks, Wheels", L("Roaring Opportunist tracking") },
+    { "CompsPotSwapper", "Complicative", L("the potion swapper") },
+    { "Pit's Zenkosh Tracker", "@petethepower", L("the Zenkosh preset") },
+    { "Srendarr", "Phinix, Kith, Garkin, DakJaniels", L("adding abilities by name") },
+    { "Vixen's Group Frames", "Vixen Hunny", L("trimming the dark rim off ability icons") },
+    { "Alpha Squad UI", "@SeRuM1", L("trimming ability icons; support buff data") },
+    { "HodorReflexes", "andy.s, m00nyONE", L("counting Pillager's Profit's cooldown once") },
+    { "Combat Metrics", "Solinur", L("the cursor key closing the editor") },
+    { "LibSets", "Baertram", L("set data (optional library)") },
+    { "LibAddonMenu-2.0", "sirinsidiator, Seerah", L("the Add-On Settings entry (optional library)") },
+    { "ESO UI source (ZeniMax Online Studios)", "", L("how the game's own UI does things") },
+}
+
+function C.CreditLines()
+    local out = {}
+    for _, c in ipairs(C.CREDITS) do
+        out[#out + 1] = c[1] .. (c[2] ~= "" and (" (" .. c[2] .. ")") or "") .. " - " .. c[3]
+    end
+    return out
+end

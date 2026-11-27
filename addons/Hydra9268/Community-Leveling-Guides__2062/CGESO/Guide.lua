@@ -408,7 +408,14 @@ function Guide:GetCompletionText(mode)
 end
 
 function Guide:AdvertiseWithPopup(nodelay)
-	if not (CGV.Frame and CGV.Frame:IsShown()) then return end -- If CGV is hidden then we don't need to be suggesting guides.
+	-- Viewer hidden: optional chat ping so the player knows a suggestion is waiting.
+	if not (CGV.Frame and CGV.Frame:IsShown()) then
+		if CGV.Features and CGV.Features.PingSuggestionReady then
+			local target = (CGV.GetPreferredGuideVariant and CGV:GetPreferredGuideVariant(self)) or self
+			CGV.Features:PingSuggestionReady(target)
+		end
+		return
+	end
 
 	local delay = not nodelay
 
@@ -418,7 +425,9 @@ function Guide:AdvertiseWithPopup(nodelay)
 			self:AdvertiseWithPopup(true)
 		end
 		CGV:Print(L['guide_next_ready'])
-
+		if CGV.Features and CGV.Features.PingSuggestionReady then
+			CGV.Features:PingSuggestionReady(self)
+		end
 		return
 	end
 
@@ -431,32 +440,67 @@ function Guide:AdvertiseWithPopup(nodelay)
 	end
 
 	local target = CGV:GetPreferredGuideVariant(self) or self
+	if CGV.Features and CGV.Features.IsSuggestionSnoozed and target.title
+		and CGV.Features:IsSuggestionSnoozed(target.title) then
+		return
+	end
 
 	local popup = CGV.AdvertisePopup
+	-- Old TOPLEVEL suggestions trapped free cursor until Esc — rebuild as overlay.
+	if popup and popup.IsModalTopLevel and popup:IsModalTopLevel() then
+		popup:Hide()
+		CGV.AdvertisePopup = nil
+		popup = nil
+	end
 	if not popup then
-		-- This text hides unless needed
-		popup = CGV.Popup:New("Community_AdvertiseGuide_Popup","sis")
+		popup = CGV.Popup:New("Community_AdvertiseGuide_Overlay","sis",true)
+		popup:EnableGuideViewerAnchor()
 
 		popup.OnAccept = function(me)
+			me._suggestHandled = true
 			CGV:SetGuide(me.guide, me.guide.CurrentStepNum or 1)
 		end
 
+		-- Decline = Not now (session snooze). Close (X) = ignore forever.
 		popup.OnDecline = function(me)
-			CGV.db.char.ignoredguides[me.guide.title] = true
+			me._suggestHandled = true
+			if me.guide and me.guide.title and CGV.Features and CGV.Features.SnoozeSuggestion then
+				CGV.Features:SnoozeSuggestion(me.guide.title)
+			end
+		end
+
+		popup.OnClose = function(me)
+			if me._suggestHandled then
+				me._suggestHandled = nil
+				return
+			end
+			if me.guide and me.guide.title then
+				CGV.db.char.ignoredguides = CGV.db.char.ignoredguides or {}
+				CGV.db.char.ignoredguides[me.guide.title] = true
+			end
 		end
 
 		CGV.AdvertisePopup = popup
+	elseif popup.EnableGuideViewerAnchor then
+		popup:EnableGuideViewerAnchor()
 	end
 
 	-- Restore default labels (style popup may have renamed them).
 	popup.acceptbutton:SetText(L['static_accept'])
-	popup.declinebutton:SetText(L['static_decline'])
+	popup.declinebutton:SetText(L['static_notnow'] or "Not now")
 	if popup.acceptbutton.ResizeToPerfect then popup.acceptbutton:ResizeToPerfect() end
 	if popup.declinebutton.ResizeToPerfect then popup.declinebutton:ResizeToPerfect() end
 
-	popup:SetText(L['static_nextguide'],target.title_short,L['static_nextguide_anyzone'])
+	local snoozeMin = (CGV.db and CGV.db.profile and CGV.db.profile.suggest_snooze_minutes) or 30
+	popup:SetText(
+		L['static_nextguide'],
+		target.title_short,
+		(L['static_nextguide_anyzone'] or "")
+			.. ("\n\nNot now = snooze %d min. Close (X) = never suggest this guide."):format(snoozeMin)
+	)
 	popup:SetDimensionConstraints(225,nil,625,nil)
 	popup.guide = target
+	popup._suggestHandled = nil
 
 	CGV.pause = true -- to avoid a loop of "step complete" clicks.
 

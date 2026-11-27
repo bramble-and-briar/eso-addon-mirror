@@ -177,7 +177,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinKiller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/PinKiller__190) | Shinni | PC / Mac | 2.5 |
 | [PinKiller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni42/PinKiller__b141aa03-f456-45eb-b8b9-eee57c6d78d9) | Shinni42 | Console | — |
 | [Pit's Zenkosh Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pit_Eso/Pit-s-Zenkosh-Tracker__4723) | Pit_Eso | PC / Mac | 1.0.0 |
-| [Pithka Localizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Pithka-Localizer__4258) | Soul_Hagans | PC / Mac | 4.0.2 |
+| [Pithka Localizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Pithka-Localizer__4258) | Soul_Hagans | PC / Mac | 4.0.4 |
 | [Pithka's Achievement Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pithka/Pithka-s-Achievement-Tracker__2892) | pithka | PC / Mac | 9.17 |
 | [PL Patch for Arkadius' Trade Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EmiruTegryfon/PL-Patch-for-Arkadius-Trade-Tools__3863) | EmiruTegryfon | PC / Mac | 2.0.0 |
 | [PL Patch for Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EmiruTegryfon/PL-Patch-for-Dolgubon-s-Lazy-Writ-Crafter__1868) | EmiruTegryfon | PC / Mac | 36.23PL |

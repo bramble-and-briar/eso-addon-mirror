@@ -19,8 +19,9 @@ PairedList                                                - Object containing al
 
 
 --[[------------------------------------------------------------------------------------------------
-Globals
+Libraries and Aliases
 ------------------------------------------------------------------------------------------------]]--
+local LS = LibStatic
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -33,41 +34,21 @@ local PairedList = ZO_InitializingObject:Subclass()
 PairedList:Initialize()
 Inputs:				Choices                             - Table of choices (enums)
               Values                              - (optional) Table of values
-              Translations                        - (optional) Table of translations for the Choices
 Outputs:			None
 Description:	Initializes the object. If Values table is missing the object will be treated as an enumerated list.
               Once created as an enum that shouldn't be changed. It's better to destroy the object and start over.
 ------------------------------------------------------------------------------------------------]]--
-function PairedList:Initialize(Choices, Values, Translations)
-  self.Choices = Choices
-  self.Values = Values
-  self.isEnum = false
+function PairedList:Initialize(Choices, Values)
+  self.Choices = {}
+  self.Values = nil
+  self.List = {}
+  self.isEnum = (Values == nil)
 
-  -- if used as enum
-  if self.Values == nil then
-    self.Values = {}
-    for index, choice in ipairs(self.Choices) do
-      table.insert(self.Values, index)
-      self[choice] = index
-    end
-    self.isEnum = true
-
-  -- if not enum
-  else
-    for index, choice in ipairs(self.Choices) do
-      self[choice] = self.Values[index]
-    end
-  end
-
-  -- Assign Translations or set to "Choices" for compatibility
-  if Translations and type(Translations == "table") then
-    self.Translations = Translations
-  else
-    self.Translations = Choices
-  end
+  self:UpdateData(Choices, Values)
 
   self.initialized = true
 end
+
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -115,68 +96,58 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-PairedList:GetTranslations()
-Inputs:				None
-Outputs:			Tranlsations                        - Table of indexed Translations
-Description:	Returns the Translations table.
-------------------------------------------------------------------------------------------------]]--
-function PairedList:GetTranslations()
-  return self.Translations
-end
-
-
---[[------------------------------------------------------------------------------------------------
 PairedList:GetChoiceByValue(value)
 Inputs:				value                               - Value to look up
 Outputs:			choice                              - Choice found by value
 Description:	Returns the matching choice from the paired list.
 ------------------------------------------------------------------------------------------------]]--
 function PairedList:GetChoiceByValue(value)
-  for i, v in ipairs(self.Values) do
+  for i, v in pairs(self.List) do
     if v == value then
-      return self.Choices[i]
+      return i
     end
   end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-PairedList:UpdateData(Choices, Values, Translations)
+PairedList:GetValueByChoice(choice)
+Inputs:				choice                              - Choice to look up
+Outputs:			choice                              - Value found by choice
+Description:	Returns the matching value from the paired list.
+------------------------------------------------------------------------------------------------]]--
+function PairedList:GetValueByChoice(choice)
+  return self.List[choice]
+end
+
+
+--[[------------------------------------------------------------------------------------------------
+PairedList:UpdateData(Choices, Values)
 Inputs:				Choices                             - Table of choices (enums)
               Values                              - (optional) Table of values
-              Translations                        - (optional) Table of translations
 Outputs:			None
-Description:	Updates the Choices, Values and Translations tables.
+Description:	Updates the Choices, Values.
 ------------------------------------------------------------------------------------------------]]--
-function PairedList:UpdateData(Choices, Values, Translations)
+function PairedList:UpdateData(Choices, Values)
   -- clear old info
   if Choices ~= nil then
-    for index, choice in ipairs(self.Choices) do
-      self[choice] = nil
-    end
-    self.Choices = Choices
+    self.List = {}
+    self.Choices = ZO_ShallowTableCopy(Choices)
   end
 
   if self.isEnum then
     self.Values = {}
     for index, choice in ipairs(self.Choices) do
       table.insert(self.Values, index)
-      self[choice] = index
+      self.List[choice] = index
     end
   else
     if Values ~= nil then
-      self.Values = Values
+      self.Values = ZO_ShallowTableCopy(Values)
     end
     for index, choice in ipairs(self.Choices) do
-      self[choice] = self.Values[index]
+      self.List[choice] = self.Values[index]
     end
-  end
-  
-  -- Assign Translations or set to "Choices" for compatibility
-  if Translations and type(Translations == "table") then
-    self.Translations = Translations
-  else
-    self.Translations = Choices
   end
 end
 
@@ -189,35 +160,30 @@ Outputs:			None
 Description:	Sorts the paired list by the specified sortType (use globals). Defaults to LIBSTATIC_LIST_SORT_ASCENDING
 ------------------------------------------------------------------------------------------------]]--
 function PairedList:Sort(sortType, sortKey)
-  -- set default if not specified
   if sortType == nil then sortType = LIBSTATIC_LIST_SORT_ASCENDING end
-  
-  -- check range
   if sortType < LIBSTATIC_LIST_SORT_MIN or sortType > LIBSTATIC_LIST_SORT_MAX then return end
-
-  -- check sortKey
   if not sortKey then sortKey = "choice" end
 
-  -- merge the lists to sort easy
-  local Merged = {}
+  -- Build an indexed array of pairs so LS.Sort can sort them
+  local tempList = {}
   for index, choice in ipairs(self.Choices) do
-    table.insert(Merged, {choice = choice, value = self.Values[index], translation = self.Translations[index]})
+    table.insert(tempList, { choice = choice, value = self.Values[index] })
   end
 
-  -- sort the merged list
-  LibStatic:Sort(Merged, sortType, sortKey)
+  -- Sort the temporary indexed list
+  LS.Sort(tempList, sortType, sortKey)
 
-  -- unmerge and update data
+  -- Unmerge and save back onto self
   local Choices = {}
   local Values = {}
-  local Translations = {}
-  for index, data in ipairs(Merged) do
+  for index, data in ipairs(tempList) do
     table.insert(Choices, data.choice)
     table.insert(Values, data.value)
-    table.insert(Translations, data.translation)
   end
-  self:UpdateData(Choices, Values, Translations)
+
+  self:UpdateData(Choices, Values)
 end
+
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -263,4 +229,4 @@ end
 --[[------------------------------------------------------------------------------------------------
 Global template assignment
 ------------------------------------------------------------------------------------------------]]--
-LibStatic.PAIREDLIST = PairedList
+LS.PAIREDLIST = PairedList

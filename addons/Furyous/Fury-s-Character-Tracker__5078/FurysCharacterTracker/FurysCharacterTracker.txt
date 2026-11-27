@@ -1,8 +1,8 @@
-## Title: |cA08CFFFury's Character Tracker|r |c8A86B0v1.8.4|r
+## Title: |cA08CFFFury's Character Tracker|r |c8A86B0v1.8.5|r
 ## Description: Every character on one board: skill and class lines, crafting, research, daily writs, weekly leaderboards, skill points still to earn, wallet, gear, companions and progress over time, read when you log in. A brag card, copy for Discord, export to Excel.
 ## Author: Furyous
-## Version: 1.8.4
-## AddOnVersion: 184
+## Version: 1.8.5
+## AddOnVersion: 185
 ## APIVersion: 101051 101052
 ## SavedVariables: FuryCT_SV
 ## DependsOn: LibAddonMenu-2.0>=43

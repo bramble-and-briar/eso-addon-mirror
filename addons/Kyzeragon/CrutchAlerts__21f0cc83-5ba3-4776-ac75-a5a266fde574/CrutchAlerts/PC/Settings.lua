@@ -162,7 +162,7 @@ function Crutch:CreateSettingsMenu()
                     type = "checkbox",
                     name = "Show begin casts",
                     tooltip = "Show alerts when you are targeted by the beginning of a cast (ACTION_RESULT_BEGIN)",
-                    default = true,
+                    default = Crutch.defaultOptions.general.showBegin,
                     getFunc = function() return Crutch.savedOptions.general.showBegin end,
                     setFunc = function(value)
                         Crutch.savedOptions.general.showBegin = value
@@ -193,7 +193,7 @@ function Crutch:CreateSettingsMenu()
                     type = "checkbox",
                     name = "Show gained casts",
                     tooltip = "Show alerts when you \"Gain\" a cast from an enemy (ACTION_RESULT_EFFECT_GAINED or manually curated ACTION_RESULT_EFFECT_GAINED_DURATION)",
-                    default = true,
+                    default = Crutch.defaultOptions.general.showGained,
                     getFunc = function() return Crutch.savedOptions.general.showGained end,
                     setFunc = function(value)
                         Crutch.savedOptions.general.showGained = value
@@ -928,6 +928,7 @@ function Crutch:CreateSettingsMenu()
 
                                         if (not Crutch.savedOptions.drawing.attached.individualIcons[name]) then
                                             Crutch.AddIndividualIcon(name)
+                                            Crutch.Drawing.RefreshGroup()
                                         end
 
                                         selectedIndividual = name
@@ -1024,6 +1025,23 @@ function Crutch:CreateSettingsMenu()
                                     disabled = function() return selectedIndividual == nil or Crutch.savedOptions.drawing.attached.individualIcons[selectedIndividual].type ~= C.CUSTOM end,
                                 },
                                 {
+                                    type = "checkbox",
+                                    name = "Use role colors",
+                                    tooltip = "Whether to set the texture's color using the group member's tank / healer / dps color. The opacity is based on the opacity you choose in the following \"Texture color\" option",
+                                    default = false,
+                                    getFunc = function()
+                                        if (selectedIndividual) then
+                                            return Crutch.savedOptions.drawing.attached.individualIcons[selectedIndividual].useRoleColor
+                                        end
+                                    end,
+                                    setFunc = function(value)
+                                        Crutch.savedOptions.drawing.attached.individualIcons[selectedIndividual].useRoleColor = value
+                                        Crutch.Drawing.RefreshGroup()
+                                    end,
+                                    width = "half",
+                                    disabled = function() return selectedIndividual == nil end,
+                                },
+                                {
                                     type = "colorpicker",
                                     name = "Texture color",
                                     tooltip = "Color of the icon texture",
@@ -1060,7 +1078,7 @@ function Crutch:CreateSettingsMenu()
                                 },
                                 {
                                     type = "divider",
-                                    width = "half",
+                                    width = "full",
                                 },
                                 {
                                     type = "editbox",
@@ -1079,6 +1097,27 @@ function Crutch:CreateSettingsMenu()
                                     isExtraWide = true,
                                     width = "full",
                                     disabled = function() return selectedIndividual == nil end,
+                                },
+                                {
+                                    type = "checkbox",
+                                    name = "Use role colors",
+                                    tooltip = "Whether to set the text's color using the group member's tank / healer / dps color. The opacity is based on the opacity you choose in the following \"Text color\" option",
+                                    default = false,
+                                    getFunc = function()
+                                        if (selectedIndividual) then
+                                            return Crutch.savedOptions.drawing.attached.individualIcons[selectedIndividual].useRoleColorText
+                                        end
+                                    end,
+                                    setFunc = function(value)
+                                        Crutch.savedOptions.drawing.attached.individualIcons[selectedIndividual].useRoleColorText = value
+                                        Crutch.Drawing.RefreshGroup()
+                                    end,
+                                    width = "half",
+                                    disabled = function()
+                                        if (selectedIndividual == nil) then return true end
+                                        local text = Crutch.savedOptions.drawing.attached.individualIcons[selectedIndividual].text
+                                        return text == nil or text == ""
+                                    end,
                                 },
                                 {
                                     type = "colorpicker",
@@ -1409,7 +1448,13 @@ function Crutch:CreateSettingsMenu()
                     type = "checkbox",
                     name = "Enable \"fun\" stuff",
                     tooltip = function()
-                        local hint = Crutch.Drawing.Model.AreGravesEnabled() and "\n\nHint: if your friends are wondering why they don't see graves, it might not be Halloween for them yet, or they are on console, or they don't have SubSampling set to high. To disregard and show graves anyway, use /crutch meme graves" or ""
+                        local hint = ""
+                        if (Crutch.Drawing.Model.AreGravesEnabled()) then
+                            hint = hint .. "\n\nHint: if your friends are wondering why they don't see graves, it might not be Halloween for them yet, or they are on console, or they don't have SubSampling set to high. To disregard and show graves anyway, use\n/crutch meme graves"
+                        end
+                        if (Crutch.Drawing.Model.ArePresentsEnabled()) then
+                            hint = hint .. "\n\nHint: if your friends are wondering why they don't see presents, it might not be December 24~31 for them, or they are on console, or they don't have SubSampling set to high. To disregard and show presents anyway, use\n/crutch meme presents"
+                        end
                         return "This is where I'd put my Easter eggs... if I had any! To revisit previous or never-released shenanigans, check out /crutch meme" .. hint
                     end,
                     default = true,
@@ -1418,6 +1463,33 @@ function Crutch:CreateSettingsMenu()
                         Crutch.savedOptions.general.showSpeshul = value
                     end,
                     width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = "Enable fun effects",
+                    tooltip = function()
+                        return "You might \"earn\" some effects while participating in seasonal Crutch nonsense"
+                    end,
+                    default = true,
+                    getFunc = function() return Crutch.savedOptions.general.showSpeshulEffects end,
+                    setFunc = function(value)
+                        Crutch.savedOptions.general.showSpeshulEffects = value
+                        Crutch.Drawing.Trail.OnPlayerActivated()
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = "    Enable effects out of season",
+                    tooltip = "Snowflakes all year round!",
+                    default = false,
+                    getFunc = function() return Crutch.savedOptions.general.showEffectsOutOfSeason end,
+                    setFunc = function(value)
+                        Crutch.savedOptions.general.showEffectsOutOfSeason = value
+                        Crutch.Drawing.Trail.OnPlayerActivated()
+                    end,
+                    width = "full",
+                    disabled = function() return not Crutch.savedOptions.general.showSpeshulEffects end,
                 },
             }
         },
@@ -2179,6 +2251,24 @@ function Crutch:CreateSettingsMenu()
                     end,
                     disabled = function() return not Crutch.savedOptions.lucentcitadel.showTempestIcons end,
                 },
+                {
+                    type = "description",
+                    title = "|c08BD1DInfo Panel|r",
+                    text = "Shows timers or other info in a consolidated panel. Unlock the UI or |c99FF99/crutch unlock|r to reposition the info panel.",
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = "Show Fate Sealer timer",
+                    tooltip = "Shows a timer in the info panel for when Fate Sealer may next occur",
+                    default = false,
+                    getFunc = function() return Crutch.savedOptions.lucentcitadel.infoPanel.showFateSealer end,
+                    setFunc = function(value)
+                        Crutch.savedOptions.lucentcitadel.infoPanel.showFateSealer = value
+                        Crutch.OnPlayerActivated()
+                    end,
+                    width = "full",
+                },
             })),
         },
         {
@@ -2321,6 +2411,18 @@ function Crutch:CreateSettingsMenu()
                 },
                 {
                     type = "checkbox",
+                    name = "Show Immolating Sphere circle",
+                    tooltip = "Draws circles on the ground following players who are targeted by Immolating Sphere",
+                    default = true,
+                    getFunc = function() return Crutch.savedOptions.osseincage.showImmolating end,
+                    setFunc = function(value)
+                        Crutch.savedOptions.osseincage.showImmolating = value
+                        Crutch.OnPlayerActivated()
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
                     name = "Show titans' health bars",
                     tooltip = "Shows Blazeforged Valneer's and Sparkstorm Myrinax's health using the vertical boss health bars",
                     default = true,
@@ -2333,29 +2435,27 @@ function Crutch:CreateSettingsMenu()
                     disabled = function() return not Crutch.savedOptions.bossHealthBar.enabled end,
                 },
                 {
-                    type = "checkbox",
+                    type = "dropdown",
                     name = "Show curse positioning icons",
-                    tooltip = "In the Jynorah + Skorkhif fight, shows icons in the world for close positioning",
-                    default = true,
-                    getFunc = function() return Crutch.savedOptions.osseincage.showTwinsIcons end,
+                    tooltip = "In the Jynorah + Skorkhif fight, shows icons in the world for close positioning during curse",
+                    choices = {"None", "Standard", "Asquart's OC Helper"},
+                    default = "None",
+                    getFunc = function()
+                        if (not Crutch.savedOptions.osseincage.showTwinsIcons) then return "None" end
+                        if (Crutch.savedOptions.osseincage.useAOCHIcons) then return "Asquart's OC Helper" end
+                        return "Standard"
+                    end,
                     setFunc = function(value)
-                        Crutch.savedOptions.osseincage.showTwinsIcons = value
+                        if (value == "None") then
+                            Crutch.savedOptions.osseincage.showTwinsIcons = false
+                        elseif (value == "Asquart's OC Helper") then
+                            Crutch.savedOptions.osseincage.useAOCHIcons = true
+                        else
+                            Crutch.savedOptions.osseincage.useAOCHIcons = false
+                        end
                         Crutch.OnPlayerActivated()
                     end,
                     width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = "    Match AOCH icons",
-                    tooltip = "Use icons that match Asquart's Ossein Cage Helper's icons",
-                    default = false,
-                    getFunc = function() return Crutch.savedOptions.osseincage.useAOCHIcons end,
-                    setFunc = function(value)
-                        Crutch.savedOptions.osseincage.useAOCHIcons = value
-                        Crutch.OnPlayerActivated()
-                    end,
-                    width = "full",
-                    disabled = function() return not Crutch.savedOptions.osseincage.showTwinsIcons end,
                 },
                 {
                     type = "checkbox",

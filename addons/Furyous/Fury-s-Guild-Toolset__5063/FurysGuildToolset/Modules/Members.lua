@@ -741,6 +741,9 @@ function Members:RegisterTabs()
                 self.sv.filter.hideOffline = not self.sv.filter.hideOffline
                 GT.Report:Refresh()
             end }
+            -- 1.34.0: waiting anniversary congratulations (Modules/Milestones.lua).
+            local congrats = GT.Milestones:FooterButton()
+            if congrats then table.insert(footer, 1, congrats) end
             return footer
         end,
     }

@@ -1,24 +1,82 @@
--- Ramaladni Buff & Debuff Tracker v1.0.0 STABLE (release from user-tested v1.0.4g RC5)
+-- Ramaladni Buff & Debuff Tracker v1.0.1-Stable
 -- No external libraries. Player buffs do not depend on reticle target.
 -- Debuffs are tracked from effect events even if reticle moves away.
 -- Effect duration comes from observed ESO start/end. User cooldown is editable only for manual IDs.
 
 local ADDON = 'Ramaladni_buff_debuff_tracker'
-local MASTERY=RamaladniMastery or {byKey={},byClass={},classes={}}
-local GROUPS=RamaladniEffectGroups or {Find=function()return nil end,Members=function()return nil end,Count=function()return 0 end}
-local SEARCH=RamaladniEffectSearch
+local DL_CONTROLS = DL_CONTROLS
+local DL_OVERLAY = DL_OVERLAY
+local DT_HIGH = DT_HIGH
+local DT_LOW = DT_LOW
+local MOUSE_BUTTON_INDEX_LEFT = MOUSE_BUTTON_INDEX_LEFT
+local TEXT_ALIGN_BOTTOM = TEXT_ALIGN_BOTTOM
+local TEXT_ALIGN_CENTER = TEXT_ALIGN_CENTER
+local TEXT_ALIGN_RIGHT = TEXT_ALIGN_RIGHT
+local d = d
+local ipairs = ipairs
+local math = math
+local next = next
+local pairs = pairs
+local string = string
+local table = table
+local tonumber = tonumber
+local tostring = tostring
+local type = type
+local AreUnitsEqual = AreUnitsEqual
+local BOTTOMRIGHT = BOTTOMRIGHT
+local BUFF_EFFECT_TYPE_DEBUFF = BUFF_EFFECT_TYPE_DEBUFF
+local CT_BACKDROP = CT_BACKDROP
+local CT_BUTTON = CT_BUTTON
+local CT_CONTROL = CT_CONTROL
+local CT_LABEL = CT_LABEL
+local CT_TEXTURE = CT_TEXTURE
+local DoesUnitExist = DoesUnitExist
+local EFFECT_RESULT_FADED = EFFECT_RESULT_FADED
+local EFFECT_RESULT_FULL_REFRESH = EFFECT_RESULT_FULL_REFRESH
+local EFFECT_RESULT_GAINED = EFFECT_RESULT_GAINED
+local EFFECT_RESULT_UPDATED = EFFECT_RESULT_UPDATED
+local EVENT_ADD_ON_LOADED = EVENT_ADD_ON_LOADED
+local EVENT_ARMORY_BUILD_RESTORE_RESPONSE = EVENT_ARMORY_BUILD_RESTORE_RESPONSE
+local EVENT_EFFECTS_FULL_UPDATE = EVENT_EFFECTS_FULL_UPDATE
+local EVENT_EFFECT_CHANGED = EVENT_EFFECT_CHANGED
+local EVENT_MANAGER = EVENT_MANAGER
+local REGISTER_FILTER_ABILITY_ID = REGISTER_FILTER_ABILITY_ID
+local EVENT_PLAYER_ACTIVATED = EVENT_PLAYER_ACTIVATED
+local EVENT_PLAYER_COMBAT_STATE = EVENT_PLAYER_COMBAT_STATE
+local EVENT_RETICLE_TARGET_CHANGED = EVENT_RETICLE_TARGET_CHANGED
+local EVENT_SKILL_POINTS_CHANGED = EVENT_SKILL_POINTS_CHANGED
+local GetAbilityIcon = GetAbilityIcon
+local GetAbilityName = GetAbilityName
+local GetCVar = GetCVar
+local GetFrameTimeSeconds = GetFrameTimeSeconds
+local GetNumBuffs = GetNumBuffs
+local GetUnitBuffInfo = GetUnitBuffInfo
+local GetUnitName = GetUnitName
+local GuiRoot = GuiRoot
+local IsUnitInCombat = IsUnitInCombat
+local RequestOpenUnsafeURL = RequestOpenUnsafeURL
+local SCENE_MANAGER = SCENE_MANAGER
+local SKILLS_DATA_MANAGER = SKILLS_DATA_MANAGER
+local SKILL_TYPE_CLASS = SKILL_TYPE_CLASS
+local SLASH_COMMANDS = SLASH_COMMANDS
+local TOP = TOP
+local TOPLEFT = TOPLEFT
+local TOPRIGHT = TOPRIGHT
+local WINDOW_MANAGER = WINDOW_MANAGER
+local ZO_CreateStringId = ZO_CreateStringId
+local MASTERY=RamaladniMastery
+local GROUPS=MASTERY.EffectGroups
+local SEARCH=MASTERY.EffectSearch
 local WM = WINDOW_MANAGER
 local EM = EVENT_MANAGER
-local R = {sv=nil, ui={}, widgets={}, states={}, observed={buff={},debuff={}}, selected={},
-           widgetsFree={}, widgetsMade=0, cacheSize={buff=0,debuff=0},
-           learnedCount={buff=0,debuff=0}, index={byId={},byName={},hasNames=false},
+local R = {sv=nil, entries={}, autoMastery={}, masteryDirty=true, ui={}, widgets={}, states={}, selected={},
+           widgetsFree={}, widgetsMade=0, index={byId={},byName={},hasNames=false},
            combat=false, cleanupPending=false, debug=false, hudVisible=true, hudSceneVisible=false,
            debugWindow=0, debugPrinted=0, debugSuppressed=0}
-local CACHE_LIMIT=256
 local MAX_TARGETS_PER_EFFECT=64
 local DEBUG_MESSAGES_PER_SECOND=6
 local MAX = 12
-local DEFAULTS = {nextId=1,entries={},window={x=240,y=120},learned={buff={},debuff={}}}
+local DEFAULTS = {nextId=1,entries={},masteryPositions={},window={x=240,y=120},learned={buff={},debuff={}}}
 local PRESETS = {
     buff = {
         { name='Малая свирепость / Minor Savagery', id=61898 },
@@ -45,7 +103,7 @@ local PRESETS = {
         { name='Малая уязвимость / Minor Vulnerability', id=81519 },
         { name='Малое похищение здоровья / Minor Lifesteal', id=80020 },
         { name='Малое похищение магии / Minor Magickasteal', id=39100 },
-        { name='Потеря равновесия / Off Balance', id=45902 },
+        { name='Потеря равновесия / Off Balance', id=45902, aliases={1347,2727,29598,39077,62988,131562} },
         { name='Ослабление / Weakening', id=17945 },
     },
 }
@@ -89,7 +147,7 @@ local CATALOG = {
 -- RU/EN labels for the status catalog. RU labels are readable descriptions,
 -- not guaranteed to be literal client-localization strings on every server.
 local RU = {
- ['Major Aegis']='Великий эгид',['Minor Aegis']='Малый эгид',
+ ['Major Aegis']='Великая эгида',['Minor Aegis']='Малый эгид',
  ['Major Berserk']='Великая ярость',['Minor Berserk']='Малая ярость',
  ['Major Brutality']='Великая жестокость',['Minor Brutality']='Малая жестокость',
  ['Major Courage']='Великая храбрость',['Minor Courage']='Малая храбрость',
@@ -171,19 +229,6 @@ local function StatusFromObserved(name)
   return nil
 end
 
-local ICON_CHOICES = {
- {name='Авто / Auto: иконка эффекта', iconId=0},
- {name='Клинок / Nightblade: Blade', iconId=33375},
- {name='Метка / Nightblade: Mark', iconId=36968},
- {name='Тень / Nightblade: Shadow', iconId=35441},
- {name='ДК: штандарт', iconId=28988},
- {name='ДК: каменный кулак', iconId=31837},
- {name='Оружие: колющий удар', iconId=38250},
- {name='Посох: сила стихий', iconId=39011},
- {name='Оборотень: рёв', iconId=32632},
- {name='НБ: кровоизлияние', iconId=61898},
- {name='Насмешка головореза', iconId=268259},
-}
 local FALLBACK = { mastery='/esoui/art/icons/ability_nightblade_020.dds',buff='/esoui/art/icons/ability_nightblade_020.dds',debuff='/esoui/art/icons/ability_nightblade_011.dds'}
 
 local function Now() return GetFrameTimeSeconds() end
@@ -291,26 +336,15 @@ local function Edit(name,parent,x,y,w,initial)
   e:SetText(initial or '')
   return e
 end
-local function Combo(name,parent,x,y,w)
-  local container=WM:CreateControlFromVirtual(name,parent,'ZO_ComboBox')
-  container:SetDimensions(w,30)
-  container:SetAnchor(TOPLEFT,parent,TOPLEFT,x,y)
-  local combo=ZO_ComboBox_ObjectFromContainer(container)
-  combo:SetSortsItems(false)
-  -- Decorative border only. Mouse input stays on the original combo box.
-  local rim=WM:CreateControl(nil,parent,CT_BACKDROP)
-  rim:SetAnchor(TOPLEFT,container,TOPLEFT,0,0)
-  rim:SetDimensions(w,30)
-  rim:SetCenterColor(0,0,0,0)
-  rim:SetEdgeTexture('/esoui/art/tooltips/UI-Border.dds',128,16,1)
-  rim:SetEdgeColor(.55,.47,.29,.6)
-  rim:SetMouseEnabled(false)
-  return combo
-end
 local function SavePos(entry,control)
   if not R.sv then return end
   local x,y=control:GetLeft(),control:GetTop()
-  if x and y then entry.x,entry.y=math.floor(x+.5),math.floor(y+.5) end
+  if x and y then
+    entry.x,entry.y=math.floor(x+.5),math.floor(y+.5)
+    if entry.kind=='mastery' then
+      R.sv.masteryPositions[entry.masteryKey]={x=entry.x,y=entry.y}
+    end
+  end
 end
 local function DisplayName(entry)
   if type(entry.name)=='string' and entry.name~='' then return entry.name end
@@ -361,18 +395,13 @@ end
 -- Draw tiers alone cannot guarantee that standalone HUD windows stay behind
 -- inventory/skills; hide them while game menus own the active scene instead.
 local function IsGameplayHudScene()
-  if not SCENE_MANAGER then return false end
-  if SCENE_MANAGER.IsShowing then
-    return SCENE_MANAGER:IsShowing('hud') or SCENE_MANAGER:IsShowing('hudui')
-  end
-  local scene=SCENE_MANAGER.GetCurrentScene and SCENE_MANAGER:GetCurrentScene()
-  local name=scene and scene.GetName and scene:GetName()
-  return name=='hud' or name=='hudui'
+  return SCENE_MANAGER:IsShowing('hud') or SCENE_MANAGER:IsShowing('hudui')
 end
 local function UpdateHudSceneVisibility()
   local visible=IsGameplayHudScene()
   if R.hudSceneVisible==visible then return end
   R.hudSceneVisible=visible
+  if visible then R.masteryDirty=true end
   local show=R.hudVisible and visible
   for _,widget in pairs(R.widgets) do
     widget.win:SetHidden(not show)
@@ -381,13 +410,12 @@ end
 local function RegisterHudSceneCallbacks()
   if R.hudSceneCallbacks then return end
   R.hudSceneCallbacks=true
-  if not SCENE_MANAGER or not SCENE_MANAGER.GetScene then return end
   local function OnGameplaySceneStateChanged()
     UpdateHudSceneVisibility()
   end
   for _,sceneName in ipairs({'hud','hudui'}) do
     local scene=SCENE_MANAGER:GetScene(sceneName)
-    if scene and scene.RegisterCallback then
+    if scene then
       scene:RegisterCallback('StateChange',OnGameplaySceneStateChanged)
     end
   end
@@ -505,7 +533,7 @@ local function CopyIds(ids,first)
 end
 local function ResolvedGroup(entry)
   if entry.kind=='mastery' then return nil end
-  if entry.groupKey and GROUPS.Contains and GROUPS.Contains(entry.groupKey,entry.abilityId) then
+  if entry.groupKey and GROUPS.Contains(entry.groupKey,entry.abilityId) then
     return entry.groupKey
   end
   return GROUPS.Find(entry.kind,entry.abilityId)
@@ -534,9 +562,17 @@ local function SyncEffectIds(entry)
     entry.autoIconId=iconId
   end
 end
+local SyncEffectEvents
 local function RebuildTrackingIndex()
+  local entries={}
+  for _,entry in ipairs(R.sv.entries) do entries[#entries+1]=entry end
+  for _,meta in ipairs(MASTERY.all) do
+    local entry=R.autoMastery[meta.key]
+    if entry then entries[#entries+1]=entry end
+  end
+  R.entries=entries
   local byId,byName={},{}
-  for _,entry in ipairs(R.sv.entries) do
+  for _,entry in ipairs(R.entries) do
     local id=entry.abilityId
     SyncEffectIds(entry)
     local assigned=entry.groupKey
@@ -580,6 +616,7 @@ local function RebuildTrackingIndex()
   end
   R.index={byId=byId,byName=byName,hasNames=(next(byName)~=nil),
            nameMemo={},nameMemoRing={},memoNext=1}
+  if R.effectEventsReady then SyncEffectEvents() end
 end
 local EMPTY_MATCHES={}
 local NAME_MEMO_CAP=256
@@ -658,10 +695,10 @@ local function EntryMatches(entry,seenId,seenName)
 end
 local function IsPlayerUnit(unitTag,unitName)
   if unitTag=='player' then return true end
-  if unitTag and unitTag~='' and AreUnitsEqual and AreUnitsEqual(unitTag,'player') then return true end
+  if unitTag and unitTag~='' and AreUnitsEqual(unitTag,'player') then return true end
   -- Some events have no unit tag. Compare the player name rather than
   -- requiring a current reticle or a focus target.
-  if (unitTag==nil or unitTag=='') and type(unitName)=='string' and unitName~='' and GetUnitName then
+  if (unitTag==nil or unitTag=='') and type(unitName)=='string' and unitName~='' then
     local myName=GetUnitName('player')
     return type(myName)=='string' and myName~='' and NormalizeTitle(myName)==NormalizeTitle(unitName)
   end
@@ -681,7 +718,7 @@ local function TargetKey(unitId,unitName,unitTag)
   local id=tonumber(unitId)
   if id and id>0 then return 'id:'..tostring(id) end
   if type(unitName)=='string' and unitName~='' then return 'name:'..NormalizeTitle(unitName) end
-  if unitTag=='reticleover' and GetUnitName then
+  if unitTag=='reticleover' then
     local name=GetUnitName('reticleover')
     if type(name)=='string' and name~='' then return 'name:'..NormalizeTitle(name) end
   end
@@ -906,7 +943,7 @@ local function MasteryAmount(entry,state,now)
 end
 local function UpdateWidgets()
   local now=Now()
-  for _,entry in ipairs(R.sv.entries) do
+  for _,entry in ipairs(R.entries) do
     local w,s=R.widgets[entry.uid],R.states[entry.uid]
     if w and s then
       -- One constant Nightblade passive uses the large label for a static
@@ -947,34 +984,6 @@ local function UpdateWidgets()
     end
   end
 end
--- Runtime discovery uses a bounded, replaceable LRU cache. Saved discoveries
--- remain in SavedVariables (up to the existing 500-per-kind limit).
-local function Learn(kind,id,name,icon,start,finish,now)
-  if not ValidId(id) then return end
-  local list=R.observed[kind]
-  local old=list[id]
-  now=now or Now()
-  if not old then
-    if R.cacheSize[kind]>=CACHE_LIMIT then
-      local oldestId,oldestSeen=nil,math.huge
-      for key,value in pairs(list) do
-        if (value.seen or 0)<oldestSeen then oldestId=key;oldestSeen=value.seen or 0 end
-      end
-      if oldestId then list[oldestId]=nil;R.cacheSize[kind]=R.cacheSize[kind]-1 end
-    end
-    list[id]={name=name or GetAbilityName(id) or ('ID '..id),icon=icon,seen=now}
-    R.cacheSize[kind]=R.cacheSize[kind]+1
-    R.ui.dirty=true
-    if R.sv and R.sv.learned and not R.sv.learned[kind][id] and R.learnedCount[kind]<500 then
-      R.sv.learned[kind][id]={name=name or GetAbilityName(id) or ('ID '..id),icon=icon}
-      R.learnedCount[kind]=R.learnedCount[kind]+1
-    end
-  else
-    old.seen=now
-    if type(icon)=='string' and icon~='' then old.icon=icon end
-    if type(name)=='string' and name~='' then old.name=name end
-  end
-end
 local ApplyMastery
 -- Reused only for player buff scans; no temporary table allocation per tick.
 local buffSeen={}
@@ -988,11 +997,11 @@ local function ScanUnit(kind)
     for uid in pairs(buffSeen) do buffSeen[uid]=nil end
     seen=buffSeen
   end
-  local unitName=(kind=='debuff' and GetUnitName and GetUnitName(unitTag)) or ''
+  local unitName=(kind=='debuff' and GetUnitName(unitTag)) or ''
   for i=1,count do
     local name,start,finish,_,stacks,icon,_,_,_,_,id=GetUnitBuffInfo(unitTag,i)
     if ValidId(id) then
-      Learn(kind,id,name,icon,start,finish,now)
+
       for _,entry in ipairs(MatchingEntries(id,name)) do
         if entry.kind=='mastery' then
           local meta=MASTERY.byKey[entry.masteryKey]
@@ -1018,7 +1027,7 @@ local function ScanUnit(kind)
     end
   end
   if kind=='buff' then
-    for _,entry in ipairs(R.sv.entries) do
+    for _,entry in ipairs(R.entries) do
       if entry.kind=='buff' and not seen[entry.uid] then
         local state=R.states[entry.uid]
         if state and state.untilTime>now then
@@ -1031,11 +1040,15 @@ local function ScanUnit(kind)
     end
   end
 end
+local SyncAutoMastery
 local function Tick()
   if not R.sv then return end
   -- Recheck as a safety net after load screens and scene transitions where
   -- the HUD scene callback order varies between ESO client versions.
   UpdateHudSceneVisibility()
+  if R.masteryDirty and R.hudSceneVisible and Now()>=(R.masteryRefreshAt or 0) then
+    SyncAutoMastery()
+  end
   -- All player buffs are sampled regardless of what the camera points at.
   ScanUnit('buff')
   -- Reticle is an optional extra source for debuffs. EVENT_EFFECT_CHANGED
@@ -1088,14 +1101,19 @@ local function OnEffectChanged(_,change,slot,effectName,unitTag,start,finish,sta
     if entry.kind=='mastery' then
       if ApplyMastery(entry,change,start,finish,stacks,unitTag,unitName,unitId,'effect-event',abilityId,effectType) then changed=true end
     else
-    local relevant=(entry.kind=='buff') and IsPlayerUnit(unitTag,unitName) or IsEnemyDebuff(unitTag,unitName,effectType)
+    local relevant
+    if entry.kind=='buff' then
+      relevant=IsPlayerUnit(unitTag,unitName)
+    else
+      relevant=IsEnemyDebuff(unitTag,unitName,effectType)
+    end
     if R.debug then
       DebugSay(string.format('EVENT %s kind=%s unit=%s change=%s until=%s relevant=%s',
         DisplayName(entry),entry.kind,tostring(unitTag),tostring(change),tostring(finish),tostring(relevant)))
     end
     if relevant then
       changed=true
-      Learn(entry.kind,abilityId,effectName,iconName,start,finish)
+
       if entry.kind=='buff' then
         local state=R.states[entry.uid]
         if state then
@@ -1117,12 +1135,31 @@ local function OnEffectChanged(_,change,slot,effectName,unitTag,start,finish,sta
   end
   if changed then UpdateWidgets() end
 end
+-- One broad subscription only if the old name-based fallback is required.
+-- Never combine it with ID subscriptions to the same handler.
+local syncEffectSet=MASTERY.NewEventSet()
+SyncEffectEvents=function()
+  local function Compatibility(Add)
+    Add(ADDON..'Effects',EVENT_EFFECT_CHANGED,OnEffectChanged)
+  end
+  if R.index.hasNames then
+    syncEffectSet(Compatibility)
+    return
+  end
+  local ok=syncEffectSet(function(Add)
+    for id in pairs(R.index.byId) do
+      Add(ADDON..'Effect_'..id,EVENT_EFFECT_CHANGED,OnEffectChanged,REGISTER_FILTER_ABILITY_ID,id)
+    end
+  end)
+  -- A rejected native filter must not silently drop an effect.
+  if not ok then syncEffectSet(Compatibility) end
+end
 -- Combat exit is delayed and cancellable. Retain still-valid debuffs and
 -- cooldowns: a tank can leave combat while the raid is still fighting.
 local function CombatCleanup()
   EM:UnregisterForUpdate(ADDON..'CombatCleanup')
   R.cleanupPending=false
-  if R.combat or (IsUnitInCombat and IsUnitInCombat('player')) then return end
+  if R.combat or (IsUnitInCombat('player')) then return end
   local now=Now()
   for _,state in pairs(R.states) do
     for key,target in pairs(state.targets) do
@@ -1135,10 +1172,6 @@ local function CombatCleanup()
     if state.testUntil<=now then state.testUntil=0 end
     if state.testCD<=now then state.testCD=0 end
   end
-  -- Free transient discovery cache, while learned IDs persist in SavedVars.
-  R.observed={buff={},debuff={}}
-  R.cacheSize={buff=0,debuff=0}
-  R.ui.dirty=true
   UpdateWidgets()
 end
 local function OnCombatStateChanged(_,inCombat)
@@ -1155,11 +1188,10 @@ local function OnTargetChange()
   ScanUnit('debuff')
   UpdateWidgets()
 end
--- Search catalogs are refreshed on demand; they contain group names in RU/EN
--- and individual effects previously seen by the game. UI never shows IDs.
+-- Search uses only the explicitly classified dictionary and verified presets.
+-- Saved and runtime discoveries are retained for compatibility, not search.
 local function BuildCatalog(kind)
-  local cat=SEARCH.Build(kind,GROUPS,RU,VERIFIED[kind],PRESETS[kind],
-    R.sv.learned[kind],R.observed[kind])
+  local cat=SEARCH.Build(kind,GROUPS,RU,VERIFIED[kind],PRESETS[kind])
   R.searchCatalog=R.searchCatalog or {}
   R.searchCatalog[kind]=cat
   return cat
@@ -1201,6 +1233,9 @@ local function ClearSearchSelection(kind)
 end
 local AddEffect -- forward declaration: result click immediately adds a tracked indicator
 local function SelectSearchResult(kind,entry)
+  if not entry or (kind~='buff' and kind~='debuff') then return end
+  local cat=R.searchCatalog and R.searchCatalog[kind] or BuildCatalog(kind)
+  entry=cat.byId[entry.id]
   if not entry then return end
   local sel=R.selected[kind]
   sel.id=entry.id;sel.name=entry.title;sel.groupKey=entry.groupKey
@@ -1232,17 +1267,6 @@ local function ShowResults(kind)
   if not typed or typed=='' then HideResults();return end
   local cat=R.searchCatalog and R.searchCatalog[kind] or BuildCatalog(kind)
   local matches=SEARCH.Match(cat,typed,#popup.rows)
-  if #matches==0 then
-    -- The player can search for an ability not yet observed by this addon.
-    -- Accept it only if the ESO client itself recognizes that ID.
-    local requested=ValidId(typed)
-    if requested and type(GetAbilityName)=='function' then
-      local apiName=GetAbilityName(requested)
-      if type(apiName)=='string' and apiName~='' and apiName~='Unknown' then
-        matches={{id=requested,ids={requested},title=apiName,en=apiName,ru=apiName}}
-      end
-    end
-  end
   if #matches==0 then HideResults();ui.status:SetText('Ничего не найдено');return end
   ui.status:SetText('Выбери эффект из найденных')
   popup.kind=kind
@@ -1322,19 +1346,24 @@ end
 local DeleteEffect
 -- A selection, not an individual ability ID, is the unit of configuration.
 AddEffect=function(kind)
+  if kind~='buff' and kind~='debuff' then return false end
   if #R.sv.entries>=MAX then Say('Максимум '..MAX..' индикаторов');return false end
   local sel=R.selected[kind]
   local id=sel and ValidId(sel.id)
   if not id then Say('Найди и выбери эффект.');return false end
-  local group=sel.groupKey or GROUPS.Find(kind,id)
+  local cat=R.searchCatalog and R.searchCatalog[kind] or BuildCatalog(kind)
+  local classified=cat.byId[id]
+  if not classified then Say('Эффект не входит в выбранную категорию.');return false end
+  id=classified.id
+  local group=classified.groupKey
   for _,e in ipairs(R.sv.entries) do
-    if e.kind==kind and ((group and ResolvedGroup(e)==group) or e.abilityId==id) then
+    if e.kind==kind and ((group and ResolvedGroup(e)==group) or cat.byId[e.abilityId]==classified or e.abilityId==id) then
       Say('Этот эффект уже добавлен.');return false
     end
   end
   local slot=#R.sv.entries
-  local entry={uid=R.sv.nextId,kind=kind,abilityId=id,name=sel.name,
-    groupKey=group,effectIds=CopyIds(sel.effectIds,id),autoIconId=sel.autoIconId,
+  local entry={uid=R.sv.nextId,kind=kind,abilityId=id,name=classified.title,
+    groupKey=group,effectIds=CopyIds(classified.ids,id),autoIconId=sel.autoIconId,
     cooldown=0,x=260+(slot%7)*83,y=220+math.floor(slot/7)*73}
   R.sv.nextId=R.sv.nextId+1
   R.sv.entries[#R.sv.entries+1]=entry
@@ -1371,11 +1400,11 @@ local function DeleteAllEffects()
   ClearSearchSelection('buff')
   ClearSearchSelection('debuff')
   RefreshList()
-  Say('Удалено индикаторов: '..count..'. Экран и сохранённый список очищены.')
+  Say('Удалено обычных индикаторов: '..count..'. Активные мастерства остаются.')
 end
 local function Test()
-  if #R.sv.entries==0 then Say('Сначала добавь эффект.');return end
-  for _,e in ipairs(R.sv.entries) do
+  if #R.entries==0 then Say('Сначала добавь эффект.');return end
+  for _,e in ipairs(R.entries) do
     local s=R.states[e.uid]
     if s then
       s.testUntil=Now()+5
@@ -1420,70 +1449,121 @@ local function BuildLine(win,kind,y)
   Refill(kind)
 end
 
--- Third row: Class Mastery, with independent class / passive / icon dropdowns.
-local function MasteryClassSelected(item)
-  R.selected.mastery.class=item.id
-  R.selected.mastery.key=nil
-  R.selected.mastery.iconId=0
-  local opts=MASTERY.byClass[item.id] or {}
-  if opts[1] then R.selected.mastery.key=opts[1].key end
-  local ui=R.ui.mastery
-  ui.passiveCombo:ClearItems()
-  for _,meta in ipairs(opts) do
-    local m=meta
-    ui.passiveCombo:AddItem(ui.passiveCombo:CreateItemEntry(meta.title,function()
-      R.selected.mastery.key=m.key
-    end))
+-- Auto Mastery is a runtime-only set; regular effect entries remain saved.
+-- Existing manual mastery entries are retired once, not silently re-added.
+local function RetireManualMasteries()
+  local regular={}
+  for _,entry in ipairs(R.sv.entries) do
+    if type(entry)=='table' and entry.kind~='mastery' then regular[#regular+1]=entry end
   end
-  if opts[1] then
-    ui.passiveCombo:SetSelectedItemText(opts[1].title)
-  end
+  R.sv.entries=regular
+  if type(R.sv.masteryPositions)~='table' then R.sv.masteryPositions={} end
 end
-local function AddMastery()
-  if #R.sv.entries>=MAX then Say('Максимум '..MAX..' индикаторов');return end
-  local sel=R.selected.mastery
-  local meta=sel and MASTERY.byKey[sel.key]
-  if not meta then Say('Выбери класс и мастерство.');return end
-  for _,e in ipairs(R.sv.entries) do
-    if e.kind=='mastery' and e.masteryKey==meta.key then Say('Эта пассивка уже добавлена');return end
+local function RefreshMasteryLabel()
+  if not R.ui.masterySummary then return end
+  local names={}
+  for _,meta in ipairs(MASTERY.all) do
+    if R.autoMastery[meta.key] then names[#names+1]=meta.title end
   end
-  local slot=#R.sv.entries
-  local entry={uid=R.sv.nextId,kind='mastery',masteryKey=meta.key,
-    abilityId=meta.passiveId,name=meta.title,
-    iconId=ValidId(sel.iconId),cooldown=0,
-    x=260+(slot%7)*83,y=220+math.floor(slot/7)*73}
-  R.sv.nextId=R.sv.nextId+1
-  R.sv.entries[#R.sv.entries+1]=entry
-  RebuildTrackingIndex();MakeWidget(entry);RefreshList();Tick()
-  Say('Мастерство: '..meta.en..'. Процент/стаки только из ESO. ID пассивки может отличаться от ID эффекта.')
+  local text=R.masteryKnown and (#names>0 and table.concat(names,'\n') or 'Нет активных пассивок / No active masteries')
+    or 'Ожидание данных навыков / Waiting for skills'
+  if R.masteryUnknown and #R.masteryUnknown>0 then
+    text=text..'\nНеизвестные ID / Unknown IDs: '..table.concat(R.masteryUnknown,', ')
+  end
+  R.ui.masterySummary:SetText(text)
+end
+local function MarkMasteryDirty()
+  R.masteryDirty=true
+  R.masteryRefreshAt=Now()+0.25 -- coalesce skill/armory events
+end
+local function DefaultMasteryPosition(slot,total)
+  local spacing=HUD_SIZE+8
+  local width,height=GuiRoot:GetWidth(),GuiRoot:GetHeight()
+  local x=(width-(total*HUD_SIZE+(total-1)*8))/2+(slot-1)*spacing
+  local y=(height-HUD_SIZE)/2
+  -- Do not move existing HUD controls; find a free nearby position instead.
+  local function Free(px,py)
+    if px<0 or py<0 or px+HUD_SIZE>width or py+HUD_SIZE>height then return false end
+    for _,entry in ipairs(R.sv.entries) do
+      if math.abs(px-entry.x)<HUD_SIZE and math.abs(py-entry.y)<HUD_SIZE then return false end
+    end
+    for _,entry in pairs(R.autoMastery) do
+      if math.abs(px-entry.x)<HUD_SIZE and math.abs(py-entry.y)<HUD_SIZE then return false end
+    end
+    return true
+  end
+  for row=0,4 do
+    for offset=0,4 do
+      if Free(x+offset*spacing,y+row*spacing) then return math.floor(x+offset*spacing+.5),math.floor(y+row*spacing+.5) end
+      if offset>0 and Free(x-offset*spacing,y+row*spacing) then return math.floor(x-offset*spacing+.5),math.floor(y+row*spacing+.5) end
+    end
+  end
+  return math.floor(x+.5),math.floor(y+.5)
+end
+SyncAutoMastery=function()
+  local selected,unknown=MASTERY.RefreshActiveMasteries()
+  if not selected then
+    R.masteryRefreshAt=Now()+0.5 -- wait for initialized data, not an empty build
+    return
+  end
+  R.masteryDirty=false
+  R.masteryKnown=true
+  R.masteryUnknown=unknown
+  local changed=false
+  for key,entry in pairs(R.autoMastery) do
+    if not selected[key] then
+      RemoveWidget(entry)
+      R.autoMastery[key]=nil
+      changed=true
+    end
+  end
+  local total=0
+  for _ in pairs(selected) do total=total+1 end
+  local slot=0
+  for _,meta in ipairs(MASTERY.all) do
+    if selected[meta.key] then
+      slot=slot+1
+      if not R.autoMastery[meta.key] then
+        local pos=R.sv.masteryPositions[meta.key]
+        local x,y
+        if type(pos)=='table' and type(pos.x)=='number' and type(pos.y)=='number' then
+          x,y=pos.x,pos.y
+        else
+          x,y=DefaultMasteryPosition(slot,total)
+        end
+        local entry={uid='mastery:'..meta.key,kind='mastery',masteryKey=meta.key,
+          abilityId=meta.passiveId,name=meta.title,cooldown=0,x=x,y=y}
+        R.autoMastery[meta.key]=entry
+        MakeWidget(entry)
+        changed=true
+      end
+    end
+  end
+  if changed then RebuildTrackingIndex() end
+  MASTERY.SyncActiveEvents()
+  RefreshMasteryLabel()
 end
 local function BuildMasteryLine(win)
-  R.selected.mastery={class='Necromancer',key='Necromancer:Nothing Wasted',iconId=0}
-  local ui={}
-  R.ui.mastery=ui
-  Label(win,'МАСТЕРСТВО КЛАССА / CLASS MASTERY',20,362,520,25,'ZoFontGameBold')
-  ui.classCombo=Combo('RamaladniMasteryClassV09',win,20,389,195)
-  ui.passiveCombo=Combo('RamaladniMasteryPassiveV09',win,220,389,290)
-  ui.iconCombo=Combo('RamaladniMasteryIconV09',win,516,389,183)
-  ui.classCombo:ClearItems()
-  ui.iconCombo:ClearItems()
-  for _,cl in ipairs(MASTERY.classes) do
-    local c=cl
-    ui.classCombo:AddItem(ui.classCombo:CreateItemEntry(c.name,function() MasteryClassSelected(c) end))
+  Label(win,'МАСТЕРСТВО КЛАССА / CLASS MASTERY — AUTO',20,362,720,25,'ZoFontGameBold')
+  R.ui.masterySummary=Label(win,'',20,391,720,60,'ZoFontGameSmall')
+  Label(win,'Активные пассивки добавляются автоматически. Иконки можно перемещать.',20,452,720,20,'ZoFontGameSmall')
+  RefreshMasteryLabel()
+end
+local function RegisterAutoMasteryEvents()
+  local manager=SKILLS_DATA_MANAGER
+  manager:RegisterCallback('FullSystemUpdated',MarkMasteryDirty)
+  local function OnClassLineChanged(line)
+    local skillType=line:GetIndices()
+    if skillType==SKILL_TYPE_CLASS then MarkMasteryDirty() end
   end
-  for _,ic in ipairs(ICON_CHOICES) do
-    local option=ic
-    ui.iconCombo:AddItem(ui.iconCombo:CreateItemEntry(option.name,function()
-      R.selected.mastery.iconId=option.iconId
-    end))
-  end
-  ui.iconCombo:SetSelectedItemText('Авто: иконка пассивки')
-  ui.classCombo:SetSelectedItemText('Некромант / Necromancer')
-  MasteryClassSelected({id='Necromancer'})
-  -- Mastery selection still supports automatic/manual icons internally.
-  -- The redundant ability preview is removed from this row.
-  Label(win,'%/стаки — ESO; ~12с — оценка Бережливости, если ESO не сообщает время.',20,429,505,39,'ZoFontGameSmall')
-  Button('RamaladniAddMasteryV09',win,'Добавить мастерство',537,428,205,29,AddMastery)
+  manager:RegisterCallback('SkillLineAdded',OnClassLineChanged)
+  manager:RegisterCallback('SkillLineRankUpdated',OnClassLineChanged)
+  manager:RegisterCallback('SkillProgressionUpdated',function(skill)
+    if skill:GetSkillLineData():IsClassMastery() then MarkMasteryDirty() end
+  end)
+  EM:RegisterForEvent(ADDON..'MasteryPoints',EVENT_SKILL_POINTS_CHANGED,MarkMasteryDirty)
+  EM:RegisterForEvent(ADDON..'MasteryArmory',EVENT_ARMORY_BUILD_RESTORE_RESPONSE,MarkMasteryDirty)
+  EM:RegisterForEvent(ADDON..'MasteryActivated',EVENT_PLAYER_ACTIVATED,MarkMasteryDirty)
 end
 
 -- v0.9.24: presentation-only layout, identical handlers and SavedVariables.
@@ -1516,7 +1596,7 @@ local function Config()
   local copyright=Label(win,'Copyright © 2026 Northknightwest (Ramaladni).',110,14,555,26,'$(MEDIUM_FONT)|16|soft-shadow-thin')
   copyright:SetColor(.83,.77,.59,1)
   copyright:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-  local heading=Label(win,'RAMALADNI BUFF & DEBUFF TRACKER v1.0.0',80,48,615,36,'$(BOLD_FONT)|25|soft-shadow-thick')
+  local heading=Label(win,'RAMALADNI BUFF & DEBUFF TRACKER v1.0.1',80,48,615,36,'$(BOLD_FONT)|25|soft-shadow-thick')
   heading:SetColor(1,1,1,1)
   heading:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
   Button('RamaladniCloseV3',win,'X',723,15,30,30,function()
@@ -1534,7 +1614,7 @@ local function Config()
   Button('RamaladniRefreshV3',win,'Обновить поиск',278,520,210,33,function()
     Refill('buff');Refill('debuff');HideResults();Say('Поисковая база обновлена.')
   end)
-  Button('RamaladniDeleteAllV4',win,'Удалить всё',503,520,239,33,DeleteAllEffects)
+  Button('RamaladniDeleteAllV4',win,'Удалить баффы/дебаффы',503,520,239,33,DeleteAllEffects)
   Label(win,'Добавленные индикаторы (ЛКМ — перемещение):',22,570,580,26,'ZoFontGameBold')
   R.ui.count=Label(win,'',22,594,500,20,'ZoFontGameSmall')
   R.ui.rows={}
@@ -1555,15 +1635,11 @@ local function Config()
 
   -- Footer: branding and outgoing links use ESO's opt-in browser confirmation.
   local function OpenExternal(url)
-    if type(RequestOpenUnsafeURL)=='function' then
-      RequestOpenUnsafeURL(url)
-    else
-      Say(url)
-    end
+    RequestOpenUnsafeURL(url)
   end
   -- Three-zone footer: effect base LEFT, clickable MD emblem CENTER,
   -- Discord RIGHT. No external URL text is rendered in the interface.
-  local effectBaseURL='https://md-eso.ru/topic/8229-%D0%B1%D0%B0%D1%84%D1%84%D1%8B-%D0%B4%D0%B5%D0%B1%D0%B0%D1%84%D1%84%D1%8B-%D0%B8-%D1%81%D1%82%D0%B0%D1%82%D1%83%D1%81-%D1%8D%D1%84%D1%84%D0%B5%D0%BA%D1%82%D1%8B/'
+  local effectBaseURL='https://md-eso.ru/topic/8229-active-buffs-and-debuffs/'
   Button('RamaladniBuffDebuffBaseLinkV104c',win,'Buff/Debuff Base',26,878,199,35,function()
     OpenExternal(effectBaseURL)
   end)
@@ -1619,12 +1695,13 @@ local function ToggleConfig()
 end
 -- Public handlers called by Bindings.xml.  These affect presentation only.
 -- The existing event pipeline, cooldowns, timers and SavedVariables are unchanged.
-RamaladniKeybinds = RamaladniKeybinds or {}
-function RamaladniKeybinds.ToggleSettings()
+MASTERY.Keybinds = MASTERY.Keybinds or {}
+local Keybinds = MASTERY.Keybinds
+function Keybinds.ToggleSettings()
   if not R.ui.window then return end
   ToggleConfig()
 end
-function RamaladniKeybinds.ToggleHud()
+function Keybinds.ToggleHud()
   if not R.sv then return end
   R.hudVisible=not R.hudVisible
   for _,widget in pairs(R.widgets) do
@@ -1669,7 +1746,7 @@ local function NormalizeEntries()
   local maxId=0
   for _,e in ipairs(R.sv.entries) do
     if type(e)=='table' and
-       (e.kind=='buff' or e.kind=='debuff' or (e.kind=='mastery' and MASTERY.byKey[e.masteryKey])) and
+       (e.kind=='buff' or e.kind=='debuff') and
        ValidId(e.abilityId) and #valid<MAX then
       -- One-time compatibility fix for the old default preset. Keep the
       -- existing entry UID/icon/position intact; confirmed builtins lose manual cooldown.
@@ -1708,35 +1785,22 @@ local function NormalizeEntries()
   R.sv.nextId=math.max(maxId+1,tonumber(R.sv.nextId) or 1)
 end
 -- Names shown in ESO Settings > Controls.  ESO adds the SI_BINDING_NAME_ prefix.
-if type(ZO_CreateStringId)=='function' then
-  local lang=(type(GetCVar)=='function' and GetCVar('language.2')) or 'en'
+do
+  local lang=GetCVar('language.2') or 'en'
   local russian=(type(lang)=='string' and lang:lower():sub(1,2)=='ru')
   ZO_CreateStringId('SI_BINDING_NAME_RAMALADNI_TOGGLE_SETTINGS',
     russian and 'Ramaladni: открыть / закрыть настройки' or 'Ramaladni: Toggle settings')
   ZO_CreateStringId('SI_BINDING_NAME_RAMALADNI_TOGGLE_HUD',
     russian and 'Ramaladni: показать / скрыть индикаторы' or 'Ramaladni: Show / hide HUD')
 end
-
 local function OnLoaded(_,name)
   if name~=ADDON then return end
   EM:UnregisterForEvent(ADDON..'Load',EVENT_ADD_ON_LOADED)
-  R.sv=MASTERY.SelectCharacterProfile(ZO_SavedVars:NewAccountWide('RamaladniTrackerSaved',1,nil,DEFAULTS),DEFAULTS)
+  R.sv=MASTERY.SelectCharacterProfile(MASTERY.LoadWorldAccount(DEFAULTS),DEFAULTS)
   if type(R.sv.entries)~='table' then R.sv.entries={} end
   if type(R.sv.window)~='table' then R.sv.window={x=240,y=120} end
+  RetireManualMasteries()
   NormalizeEntries()
-  if type(R.sv.learned)~='table' then R.sv.learned={buff={},debuff={}} end
-  if type(R.sv.learned.buff)~='table' then R.sv.learned.buff={} end
-  if type(R.sv.learned.debuff)~='table' then R.sv.learned.debuff={} end
-  for _,kind in ipairs({'buff','debuff'}) do
-    for id,info in pairs(R.sv.learned[kind]) do
-      if ValidId(id) and type(info)=='table' then
-        R.learnedCount[kind]=R.learnedCount[kind]+1
-      else
-        -- Bad SavedVariables data must not crash the settings combo boxes.
-        R.sv.learned[kind][id]=nil
-      end
-    end
-  end
   RebuildTrackingIndex()
   R.selected={buff={},debuff={}}
   SLASH_COMMANDS['/ramaladni']=function(argument)
@@ -1754,15 +1818,18 @@ local function OnLoaded(_,name)
     EM:UnregisterForEvent(ADDON..'Ready',EVENT_PLAYER_ACTIVATED)
     RegisterHudSceneCallbacks()
     for _,e in ipairs(R.sv.entries) do MakeWidget(e) end
+    RegisterAutoMasteryEvents()
+    SyncAutoMastery()
     Config()
-    EM:RegisterForEvent(ADDON..'Effects',EVENT_EFFECT_CHANGED,OnEffectChanged)
+    R.effectEventsReady=true
+    SyncEffectEvents()
     EM:RegisterForEvent(ADDON..'Target',EVENT_RETICLE_TARGET_CHANGED,OnTargetChange)
     EM:RegisterForEvent(ADDON..'Full',EVENT_EFFECTS_FULL_UPDATE,Tick)
     EM:RegisterForEvent(ADDON..'Combat',EVENT_PLAYER_COMBAT_STATE,OnCombatStateChanged)
-    R.combat=(IsUnitInCombat and IsUnitInCombat('player')) or false
+    R.combat=(IsUnitInCombat('player')) or false
     EM:RegisterForUpdate(ADDON..'Tick',200,Tick)
     Tick()
-    Say('Ramaladni Buff & Debuff Tracker v1.0.0 — STABLE')
+    -- Silent startup: user-facing messages are only shown for requested actions.
   end)
 end
 EM:RegisterForEvent(ADDON..'Load',EVENT_ADD_ON_LOADED,OnLoaded)

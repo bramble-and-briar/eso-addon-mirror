@@ -1,69 +1,69 @@
+local LeoAltholic = LeoAltholic
 local lastStarted = nil
 local lastUpdated = nil
 local lastPreDeliver = nil
 
-
-function LeoAltholicChecklistUI.normalizeSettings()
+function LeoAltholic.ChecklistUI.normalizeSettings()
     if not LeoAltholic.globalData.checklist then LeoAltholic.globalData.checklist = {} end
     if not LeoAltholic.globalData.settings.checklist then LeoAltholic.globalData.settings.checklist = {} end
     if not LeoAltholic.charData.settings.checklist then LeoAltholic.charData.settings.checklist = {} end
 end
 
-function LeoAltholicChecklistUI.SetPosition(left, top)
+function LeoAltholic.ChecklistUI.SetPosition(left, top)
     LeoAltholic.globalData.checklist.position = {
         left = left,
         top = top
     }
 end
-function LeoAltholicChecklistUI.GetPosition()
+function LeoAltholic.ChecklistUI.GetPosition()
     return LeoAltholic.globalData.checklist.position or { left = 950; top = 42; }    --TevaNOTE was: { left = 100; top = 200; }
 end
 
-function LeoAltholicChecklistUI.SetFontScale(value)
+function LeoAltholic.ChecklistUI.SetFontScale(value)
     LeoAltholic.globalData.settings.checklist.fontScale = value
-    LeoAltholicChecklistUI.update()
+    LeoAltholic.ChecklistUI.update()
 end
-function LeoAltholicChecklistUI.GetFontScale()
+function LeoAltholic.ChecklistUI.GetFontScale()
     return LeoAltholic.globalData.settings.checklist.fontScale or 100
 end
-function LeoAltholicChecklistUI.SetMinimized(value)
+function LeoAltholic.ChecklistUI.SetMinimized(value)
     LeoAltholic.globalData.settings.checklist.minimized = value
 end
-function LeoAltholicChecklistUI.IsMinimized()
+function LeoAltholic.ChecklistUI.IsMinimized()
     if LeoAltholic.globalData.settings.checklist.minimized == nil then LeoAltholic.globalData.settings.checklist.minimized = false end
     return LeoAltholic.globalData.settings.checklist.minimized
 end
-function LeoAltholicChecklistUI.SetDisplayName(value)
+function LeoAltholic.ChecklistUI.SetDisplayName(value)
     LeoAltholic.globalData.settings.checklist.displayName = value
-    LeoAltholicChecklistUI.update()
+    LeoAltholic.ChecklistUI.update()
 end
-function LeoAltholicChecklistUI.DisplayName()
+function LeoAltholic.ChecklistUI.DisplayName()
     if LeoAltholic.globalData.settings.checklist.displayName == nil then LeoAltholic.globalData.settings.checklist.displayName = false end    --TevaNOTE: was true
     return LeoAltholic.globalData.settings.checklist.displayName
 end
-function LeoAltholicChecklistUI.SetHideWhenToolbar(value)
+function LeoAltholic.ChecklistUI.SetHideWhenToolbar(value)
     LeoAltholic.globalData.settings.checklist.hideWhenToolbar = value
-    LeoAltholicChecklistUI.update()
+    LeoAltholic.ChecklistUI.update()
 end
-function LeoAltholicChecklistUI.IsHideWhenToolbar()
+function LeoAltholic.ChecklistUI.IsHideWhenToolbar()
     if LeoAltholic.globalData.settings.checklist.hideWhenToolbar == nil then LeoAltholic.globalData.settings.checklist.hideWhenToolbar = true end    --TevaNOTE: was false
     return LeoAltholic.globalData.settings.checklist.hideWhenToolbar
 end
 
-function LeoAltholicChecklistUI.SetUpwards(value)
+function LeoAltholic.ChecklistUI.SetUpwards(value)
     LeoAltholic.globalData.settings.checklist.upwards = value
-    LeoAltholicChecklistUI.update()
+    LeoAltholic.ChecklistUI.update()
 end
-function LeoAltholicChecklistUI.IsUpwards()
+function LeoAltholic.ChecklistUI.IsUpwards()
     return LeoAltholic.globalData.settings.checklist.upwards or false
 end
 
-function LeoAltholicChecklistUI.SetEnabled(value)
+function LeoAltholic.ChecklistUI.SetEnabled(value)
     LeoAltholic.charData.settings.checklist.enabled = value
-    LeoAltholicChecklistUI.RestorePosition()
+    LeoAltholic.ChecklistUI.RestorePosition()
 end
 
-function LeoAltholicChecklistUI.IsEnabled()
+function LeoAltholic.ChecklistUI.IsEnabled()
     if not LeoAltholic.charData
         or not LeoAltholic.charData.settings
         or not LeoAltholic.charData.settings.checklist then
@@ -72,20 +72,20 @@ function LeoAltholicChecklistUI.IsEnabled()
     return LeoAltholic.charData.settings.checklist.enabled
 end
 
-function LeoAltholicChecklistUI.SetCraft(craft, value)
+function LeoAltholic.ChecklistUI.SetCraft(craft, value)
     if not LeoAltholic.charData.settings.checklist.craft then LeoAltholic.charData.settings.checklist.craft = {} end
     LeoAltholic.charData.settings.checklist.craft[craft] = value
-    LeoAltholicChecklistUI.update()
+    LeoAltholic.ChecklistUI.update()
 end
-function LeoAltholicChecklistUI.GetCraft(craft)
+function LeoAltholic.ChecklistUI.GetCraft(craft)
     if not LeoAltholic.charData.settings.checklist.craft then LeoAltholic.charData.settings.checklist.craft = {} end
     return LeoAltholic.charData.settings.checklist.craft[craft]
 end
-function LeoAltholicChecklistUI.SetRiding(value)
+function LeoAltholic.ChecklistUI.SetRiding(value)
     LeoAltholic.charData.settings.checklist.riding = value
-    LeoAltholicChecklistUI.update()
+    LeoAltholic.ChecklistUI.update()
 end
-function LeoAltholicChecklistUI.GetRiding()
+function LeoAltholic.ChecklistUI.GetRiding()
     if LeoAltholic.charData.settings.checklist.riding == nil then LeoAltholic.charData.settings.checklist.riding = true end
     local char = LeoAltholic.GetMyself()
     return LeoAltholic.charData.settings.checklist.riding and
@@ -94,42 +94,42 @@ function LeoAltholicChecklistUI.GetRiding()
         char.attributes.riding.capacity < char.attributes.riding.capacityMax)
 end
 
-function LeoAltholicChecklistUI.OnWindowMoveStop()
-    LeoAltholicChecklistUI.SetPosition(LeoAltholicChecklist:GetLeft(), LeoAltholicChecklist:GetTop())
+function LeoAltholic.ChecklistUI.OnWindowMoveStop()
+    LeoAltholic.ChecklistUI.SetPosition(LeoAltholicChecklist:GetLeft(), LeoAltholicChecklist:GetTop())
 end
 
-function LeoAltholicChecklistUI.ToggleUI()
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.ToggleUI()
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     LeoAltholicChecklist:SetHidden(not LeoAltholicChecklist:IsHidden())
 end
 
-function LeoAltholicChecklistUI.ShowUI()
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.ShowUI()
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     LeoAltholicChecklist:SetHidden(false)
 end
 
-function LeoAltholicChecklistUI.CheckHide()
-    if not LeoAltholicChecklistUI.IsEnabled() or LeoAltholicChecklistUI.IsHideWhenToolbar() then
+function LeoAltholic.ChecklistUI.CheckHide()
+    if not LeoAltholic.ChecklistUI.IsEnabled() or LeoAltholic.ChecklistUI.IsHideWhenToolbar() then
         LeoAltholicChecklist:SetHidden(true)
         return
     end
 
-    if LeoAltholicChecklistUI.checkAllDone() then
+    if LeoAltholic.ChecklistUI.checkAllDone() then
         LeoAltholicChecklist:SetHidden(true)
         return
     end
 
     LeoAltholicChecklist:SetHidden(false)
-    LeoAltholicChecklistUI.MaximizeUI()
+    LeoAltholic.ChecklistUI.MaximizeUI()
 end
 
-function LeoAltholicChecklistUI.RestorePosition()
-    local position = LeoAltholicChecklistUI.GetPosition()
+function LeoAltholic.ChecklistUI.RestorePosition()
+    local position = LeoAltholic.ChecklistUI.GetPosition()
     local left = position.left
     local top = position.top
     LeoAltholicChecklist:ClearAnchors()
     LeoAltholicChecklist:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, left, top)
-    LeoAltholicChecklistUI:CheckHide()
+    LeoAltholic.ChecklistUI:CheckHide()
 end
 
 local SPACE = 34
@@ -140,8 +140,8 @@ local checklistHeight = 0
 local checklistSavedTop = 0
 local lastChecklist = GetTimeStamp()
 
-function LeoAltholicChecklistUI.MinimizeUI()
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.MinimizeUI()
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     checklistSavedTop = checklist:GetTop()
     local header = GetControl(checklist, "BGHeader")
     local headerHeight = header:GetHeight()
@@ -155,17 +155,17 @@ function LeoAltholicChecklistUI.MinimizeUI()
     checklist:SetHeight(headerHeight)
 --    checklist:ClearAnchors()
 
-    if LeoAltholicChecklistUI.IsUpwards() then
+    if LeoAltholic.ChecklistUI.IsUpwards() then
         checklist:SetAnchor(BOTTOMLEFT, GuiRoot, TOPLEFT, checklist:GetLeft(), headerBottom)
     else
         checklist:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, checklist:GetLeft(), headerTop)
     end
 
-    LeoAltholicChecklistUI.SetMinimized(true)
+    LeoAltholic.ChecklistUI.SetMinimized(true)
 end
 
-function LeoAltholicChecklistUI.MaximizeUI()
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.MaximizeUI()
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     panel:SetHidden(false)
     LeoAltholicChecklistMinButton:SetHidden(false)
     LeoAltholicChecklistMaxButton:SetHidden(true)
@@ -174,7 +174,7 @@ function LeoAltholicChecklistUI.MaximizeUI()
 --    checklist:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, checklist:GetLeft(), checklistSavedTop)
     checklist:SetHeight(checklistHeight)
 
-    LeoAltholicChecklistUI.SetMinimized(false)
+    LeoAltholic.ChecklistUI.SetMinimized(false)
 end
 
 local function createItem(label, labelText, texture, craftIcon, canShow)
@@ -186,9 +186,9 @@ local function createItem(label, labelText, texture, craftIcon, canShow)
 --Teva changed lines above
         texture:SetDimensions(32, 32)
         texture:SetAnchor(TOPLEFT, panel, TOPLEFT, 10, height)
-        local scaledSpace = SPACE * (LeoAltholicChecklistUI.GetFontScale() / 100)
+        local scaledSpace = SPACE * (LeoAltholic.ChecklistUI.GetFontScale() / 100)
         height = height + scaledSpace
-        if LeoAltholicChecklistUI.DisplayName() then
+        if LeoAltholic.ChecklistUI.DisplayName() then
             label:SetText(labelText)
             label:SetHidden(false)
             craftIcon:SetHidden(true)
@@ -204,9 +204,9 @@ local function createItem(label, labelText, texture, craftIcon, canShow)
     end
 end
 
-function LeoAltholicChecklistUI.checkReset()
+function LeoAltholic.ChecklistUI.checkReset()
     if LeoAltholic.IsBeforeReset(lastChecklist) then
-        LeoAltholicChecklistUI.update()
+        LeoAltholic.ChecklistUI.update()
         lastChecklist = GetTimeStamp()
     end
 end
@@ -253,11 +253,11 @@ local function stoppedItem(label, texture)    --Teva changed these settings
     texture.tooltip = "Quest Abandoned"
 end
 
-function LeoAltholicChecklistUI.checkAllDone()
+function LeoAltholic.ChecklistUI.checkAllDone()
     local char = LeoAltholic.GetMyself()
 
     for _, craft in pairs(LeoAltholic.allCrafts) do
-        if LeoAltholicChecklistUI.GetCraft(craft) then
+        if LeoAltholic.ChecklistUI.GetCraft(craft) then
             for _, writ in pairs(char.quests.writs) do
                 if craft == writ.craft then
 --                    if writ.lastDone == nil or not LeoAltholic.IsAfterReset(writ.lastDone) then return false end
@@ -276,74 +276,74 @@ function LeoAltholicChecklistUI.checkAllDone()
             end
         end
     end
-    if LeoAltholicChecklistUI.GetRiding() and char.attributes.riding.time - GetTimeStamp() < 0 then
+    if LeoAltholic.ChecklistUI.GetRiding() and char.attributes.riding.time - GetTimeStamp() < 0 then
         return false
     end
 
     return true
 end
 
-function LeoAltholicChecklistUI.doneWrit(craft)
+function LeoAltholic.ChecklistUI.doneWrit(craft)
     lastUpdated = nil
     lastPreDeliver = nil
 --TevaNOTE: above lines added by Teva
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     local label = GetControl(panel, "Craft"..craft)
     local texture = GetControl(panel, "Craft"..craft.."Status")
     writdoneItem(label, texture)        --TevaNOTE: was doneItem but was always saying that instead of between, so modified to at least warn it might be wrong
-    LeoAltholicChecklistUI.update()    --TevaNOTE: this line may be the key to solving the between/done issue in the checklist!
+    LeoAltholic.ChecklistUI.update()    --TevaNOTE: this line may be the key to solving the between/done issue in the checklist!
 end
 
-function LeoAltholicChecklistUI.betweenWrit(craft) --Teva added this function
+function LeoAltholic.ChecklistUI.betweenWrit(craft) --Teva added this function
     lastUpdated = nil
     lastPreDeliver = nil
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     local label = GetControl(panel, "Craft"..craft)
     local texture = GetControl(panel, "Craft"..craft.."Status")
     betweenItem(label, texture)
 end
 
-function LeoAltholicChecklistUI.startedWrit(craft)
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.startedWrit(craft)
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     local label = GetControl(panel, "Craft"..craft)
     local texture = GetControl(panel, "Craft"..craft.."Status")
     startItem(label, texture)
 end
 
-function LeoAltholicChecklistUI.updateWrit(craft)
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.updateWrit(craft)
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     local label = GetControl(panel, "Craft"..craft)
     local texture = GetControl(panel, "Craft"..craft.."Status")
     updateItem(label, texture)
 end
 
-function LeoAltholicChecklistUI.preDeliverWrit(craft)
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.preDeliverWrit(craft)
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     local label = GetControl(panel, "Craft"..craft)
     local texture = GetControl(panel, "Craft"..craft.."Status")
     preDeliverItem(label, texture)
 end
 
-function LeoAltholicChecklistUI.stoppedWrit(craft)
+function LeoAltholic.ChecklistUI.stoppedWrit(craft)
     lastStarted = nil
     lastUpdated = nil
     lastPreDeliver = nil
 --TevaNOTE: above lines added by Teva
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     local label = GetControl(panel, "Craft"..craft)
     local texture = GetControl(panel, "Craft"..craft.."Status")
     stoppedItem(label, texture)
 end
 
-function LeoAltholicChecklistUI.doneRiding()
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.doneRiding()
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     local label = GetControl(panel, "Riding")
     local texture = GetControl(panel, "RidingStatus")
     doneItem(label, texture)
-    LeoAltholicChecklistUI.update()
+    LeoAltholic.ChecklistUI.update()
 end
 
-function LeoAltholicChecklistUI.initializeQuests()
+function LeoAltholic.ChecklistUI.initializeQuests()
     for i,trackedQuest in pairs(LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs) do
         for questIndex = 1, MAX_JOURNAL_QUESTS do
             if IsValidQuestIndex(questIndex) and GetJournalQuestName(questIndex) == trackedQuest.name then
@@ -354,7 +354,7 @@ function LeoAltholicChecklistUI.initializeQuests()
                     LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastStarted = GetTimeStamp()    --TevaNOTE: had this commented out earlier, consider again if between becomes broken
 --TevaNOTE: nest these above lines in an if or move the line above that is commented out here to where it only happens at the start of the quest, this function is called in initialize() onAddonLoaded
                 end
-                LeoAltholicChecklistUI.startedWrit(trackedQuest.craft)
+                LeoAltholic.ChecklistUI.startedWrit(trackedQuest.craft)
 
                 local hasUpdated = false
                 local numConditions = GetJournalQuestNumConditions(questIndex, QUEST_MAIN_STEP_INDEX)
@@ -364,27 +364,27 @@ function LeoAltholicChecklistUI.initializeQuests()
                     local condText = GetJournalQuestConditionInfo(questIndex, QUEST_MAIN_STEP_INDEX, condition)
                     if string.find(condText, GetString(LEOALT_DELIVER)) then
                         LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastPreDeliver = GetTimeStamp()
-                        LeoAltholicChecklistUI.preDeliverWrit(trackedQuest.craft)
+                        LeoAltholic.ChecklistUI.preDeliverWrit(trackedQuest.craft)
                         break
                     end
                 end
                 if hasUpdated then
                     LeoAltholic.globalData.CharList[LeoAltholic.CharName].quests.writs[i].lastUpdated = GetTimeStamp()
-                    LeoAltholicChecklistUI.updateWrit(trackedQuest.craft)
+                    LeoAltholic.ChecklistUI.updateWrit(trackedQuest.craft)
                 end
                 break
             end
         end
-        -- if not isDone then LeoAltholicChecklistUI.MaximizeUI() end        --Teva added this function here
+        -- if not isDone then LeoAltholic.ChecklistUI.MaximizeUI() end        --Teva added this function here
     end
 end
 
-function LeoAltholicChecklistUI.update()
-    if not LeoAltholicChecklistUI.IsEnabled() then return end
+function LeoAltholic.ChecklistUI.update()
+    if not LeoAltholic.ChecklistUI.IsEnabled() then return end
     local char = LeoAltholic.GetMyself()
     local texture, label, craftIcon
     height = 0
-    local scale = LeoAltholicChecklistUI.GetFontScale() / 100
+    local scale = LeoAltholic.ChecklistUI.GetFontScale() / 100
     for _, craft in pairs(LeoAltholic.allCrafts) do
         label = GetControl(panel, "Craft"..craft)
         craftIcon = GetControl(panel, "Craft"..craft.."Icon")
@@ -422,7 +422,7 @@ function LeoAltholicChecklistUI.update()
                 end
             end
         end
-        local canShow = LeoAltholicChecklistUI.GetCraft(craft)
+        local canShow = LeoAltholic.ChecklistUI.GetCraft(craft)
         createItem(label, ZO_CachedStrFormat(SI_ABILITY_NAME, ZO_GetCraftingSkillName(craft)), texture, craftIcon, canShow)
         if canShow == true then
             if isDone then
@@ -447,19 +447,19 @@ function LeoAltholicChecklistUI.update()
     label:SetColor(1,1,1,1)
     texture = GetControl(panel, "RidingStatus")
     craftIcon = GetControl(panel, "RidingIcon")
-    createItem(label, GetString(SI_STAT_GAMEPAD_RIDING_HEADER_TRAINING), texture, craftIcon, LeoAltholicChecklistUI.GetRiding())
+    createItem(label, GetString(SI_STAT_GAMEPAD_RIDING_HEADER_TRAINING), texture, craftIcon, LeoAltholic.ChecklistUI.GetRiding())
     if char.attributes.riding.time > 0 and char.attributes.riding.time - GetTimeStamp() > 0 then
         doneItem(label, texture)
     else
         betweenItem(label, texture)
     end
-    checklistHeight = height + 2*(100 - LeoAltholicChecklistUI.GetFontScale())
+    checklistHeight = height + 2*(100 - LeoAltholic.ChecklistUI.GetFontScale())
     checklist:SetHeight(checklistHeight)
     panel:SetHeight(checklistHeight)
     panel:ClearAnchors()
     local header = GetControl(checklist, "BGHeader")
     header:ClearAnchors()
-    if LeoAltholicChecklistUI.IsUpwards() then
+    if LeoAltholic.ChecklistUI.IsUpwards() then
         header:SetAnchor(BOTTOMLEFT, checklist, BOTTOMLEFT, 0, 0)
         panel:SetAnchor(BOTTOMLEFT, header, TOPLEFT, 0, 2)
     else
@@ -468,7 +468,7 @@ function LeoAltholicChecklistUI.update()
     end
 
     local width = 200
-    if not LeoAltholicChecklistUI.DisplayName() then
+    if not LeoAltholic.ChecklistUI.DisplayName() then
         width = 120
     end
     checklist:SetWidth(width)
@@ -476,5 +476,5 @@ function LeoAltholicChecklistUI.update()
     header:SetWidth(width)
     checklist:SetScale(scale)
 
-    LeoAltholicChecklistUI:CheckHide()
+    LeoAltholic.ChecklistUI:CheckHide()
 end

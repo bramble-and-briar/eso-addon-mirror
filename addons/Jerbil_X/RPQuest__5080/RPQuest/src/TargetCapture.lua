@@ -1,6 +1,7 @@
 -- Ref: docs/adr/0002-modelo-de-dominio-captura-y-codec-de-comparticion.md
 -- Ref: docs/adr/0004-objetivos-multiples-inferidos-por-reticula.md
 -- Ref: docs/adr/0016-limites-texto-y-entidades-presupuesto-correo.md
+-- Ref: docs/adr/0017-objetivos-duelo-jugadores-y-event-duel-finished.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -50,7 +51,8 @@ function TargetCapture:ValidateReticleTarget()
         return false, Addon.Locale:Get("ALERT_NO_RETICLE_TARGET")
     end
 
-    if IsUnitPlayer("reticleover") then
+    local isPlayer = IsUnitPlayer("reticleover")
+    if isPlayer and AreUnitsEqual("reticleover", "player") then
         return false, Addon.Locale:Get("ALERT_INVALID_TARGET_PLAYER")
     end
 
@@ -58,14 +60,16 @@ function TargetCapture:ValidateReticleTarget()
         return false, Addon.Locale:Get("ALERT_INVALID_TARGET_DEAD")
     end
 
-    local reaction = GetUnitReaction("reticleover")
-    if reaction == UNIT_REACTION_PLAYER_ALLY
-        or reaction == UNIT_REACTION_COMPANION
-        or reaction == UNIT_REACTION_NPC_ALLY then
-        return false, Addon.Locale:Get("ALERT_INVALID_TARGET_FRIENDLY")
-    end
-    if not IsUnitAttackable("reticleover") and reaction ~= UNIT_REACTION_HOSTILE then
-        return false, Addon.Locale:Get("ALERT_INVALID_TARGET_FRIENDLY")
+    if not isPlayer then
+        local reaction = GetUnitReaction("reticleover")
+        if reaction == UNIT_REACTION_PLAYER_ALLY
+            or reaction == UNIT_REACTION_COMPANION
+            or reaction == UNIT_REACTION_NPC_ALLY then
+            return false, Addon.Locale:Get("ALERT_INVALID_TARGET_FRIENDLY")
+        end
+        if not IsUnitAttackable("reticleover") and reaction ~= UNIT_REACTION_HOSTILE then
+            return false, Addon.Locale:Get("ALERT_INVALID_TARGET_FRIENDLY")
+        end
     end
 
     local rawName = GetUnitName("reticleover") or ""
@@ -74,11 +78,11 @@ function TargetCapture:ValidateReticleTarget()
         return false, Addon.Locale:Get("ALERT_NO_RETICLE_TARGET")
     end
 
-    return true, cleanName
+    return true, cleanName, isPlayer
 end
 
 function TargetCapture:CaptureFromReticle()
-    local isValid, nameOrErr = self:ValidateReticleTarget()
+    local isValid, nameOrErr, isPlayer = self:ValidateReticleTarget()
     if not isValid then
         Addon.Announcements:ShowAlert(nameOrErr, true)
         return nil, nameOrErr
@@ -87,6 +91,7 @@ function TargetCapture:CaptureFromReticle()
     local ctx = self:GetPlayerMapContext(true)
     local draft, err = Addon.QuestRepository:SetDraftCapturedTarget({
         targetName = nameOrErr,
+        isPlayer = (isPlayer == true),
         mapId = ctx.mapId,
         mapType = ctx.mapType,
         zoneId = ctx.zoneId,

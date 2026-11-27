@@ -1,17 +1,17 @@
-
-LeoAltholic_Settings = ZO_Object:Subclass()
+local LeoAltholic = LeoAltholic
+LeoAltholic.Settings = ZO_Object:Subclass()
 local LAM = LibAddonMenu2
 
-function LeoAltholic_Settings:New(...)
+function LeoAltholic.Settings:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
     return object
 end
 
-function LeoAltholic_Settings:Initialize()
+function LeoAltholic.Settings:Initialize()
 end
 
-function LeoAltholic_Settings:CreatePanel()
+function LeoAltholic.Settings:CreatePanel()
     local OptionsName = "LeoAltholicOptions"
     local panelData = {
         type = "panel",
@@ -85,20 +85,20 @@ function LeoAltholic_Settings:CreatePanel()
             type = "checkbox",
             name = GetString(SI_ADDON_MANAGER_ENABLED),
             default = true,
-            getFunc = LeoAltholicChecklistUI.IsEnabled,
-            setFunc = LeoAltholicChecklistUI.SetEnabled,
+            getFunc = LeoAltholic.ChecklistUI.IsEnabled,
+            setFunc = LeoAltholic.ChecklistUI.SetEnabled,
         },
         {
             type = "button",
             name = GetString(SI_OUTFIT_STYLES_BOOK_PREVIEW_KEYBIND),
-            func = function() LeoAltholicChecklistUI.ShowUI() end,
+            func = function() LeoAltholic.ChecklistUI.ShowUI() end,
             width = "full",
         },
         {
             type = "slider",
             name = GetString(SI_VIDEO_OPTIONS_UI_USE_CUSTOM_SCALE),
-            getFunc = LeoAltholicChecklistUI.GetFontScale,
-            setFunc = LeoAltholicChecklistUI.SetFontScale,
+            getFunc = LeoAltholic.ChecklistUI.GetFontScale,
+            setFunc = LeoAltholic.ChecklistUI.SetFontScale,
             min = 80,
             max = 120,
             default = 100,
@@ -107,22 +107,22 @@ function LeoAltholic_Settings:CreatePanel()
             type = "checkbox",
             name = GetString(LEOALT_CHECKLIST_UPWARDS),
             default = false,
-            getFunc = LeoAltholicChecklistUI.IsUpwards,
-            setFunc = LeoAltholicChecklistUI.SetUpwards,
+            getFunc = LeoAltholic.ChecklistUI.IsUpwards,
+            setFunc = LeoAltholic.ChecklistUI.SetUpwards,
         },
         {
             type = "checkbox",
             name = GetString(SI_GAMEPAD_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME),
             default = false,
-            getFunc = LeoAltholicChecklistUI.DisplayName,
-            setFunc = LeoAltholicChecklistUI.SetDisplayName
+            getFunc = LeoAltholic.ChecklistUI.DisplayName,
+            setFunc = LeoAltholic.ChecklistUI.SetDisplayName
         },
         {
             type = "checkbox",
             name = GetString(LEOALT_CHECKLIST_HIDE_WHEN_TOOLBAR),
             default = false,
-            getFunc = LeoAltholicChecklistUI.IsHideWhenToolbar,
-            setFunc = LeoAltholicChecklistUI.SetHideWhenToolbar
+            getFunc = LeoAltholic.ChecklistUI.IsHideWhenToolbar,
+            setFunc = LeoAltholic.ChecklistUI.SetHideWhenToolbar
         },
         {
             type = "submenu",
@@ -135,80 +135,80 @@ function LeoAltholic_Settings:CreatePanel()
                     type = "checkbox",
                     name = GetString(SI_ITEMFILTERTYPE16),
                     default = true,
-                    disabled = function() return not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicChecklistUI.GetCraft(CRAFTING_TYPE_ALCHEMY) end,
+                    getFunc = function() return LeoAltholic.ChecklistUI.GetCraft(CRAFTING_TYPE_ALCHEMY) end,
                     setFunc = function(value)
-                        LeoAltholicChecklistUI.SetCraft(CRAFTING_TYPE_ALCHEMY, value)
+                        LeoAltholic.ChecklistUI.SetCraft(CRAFTING_TYPE_ALCHEMY, value)
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_ITEMFILTERTYPE13),
                     default = true,
-                    disabled = function() return not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicChecklistUI.GetCraft(CRAFTING_TYPE_BLACKSMITHING) end,
+                    getFunc = function() return LeoAltholic.ChecklistUI.GetCraft(CRAFTING_TYPE_BLACKSMITHING) end,
                     setFunc = function(value)
-                        LeoAltholicChecklistUI.SetCraft(CRAFTING_TYPE_BLACKSMITHING, value)
+                        LeoAltholic.ChecklistUI.SetCraft(CRAFTING_TYPE_BLACKSMITHING, value)
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_ITEMFILTERTYPE14),
                     default = true,
-                    disabled = function() return not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicChecklistUI.GetCraft(CRAFTING_TYPE_CLOTHIER) end,
+                    getFunc = function() return LeoAltholic.ChecklistUI.GetCraft(CRAFTING_TYPE_CLOTHIER) end,
                     setFunc = function(value)
-                        LeoAltholicChecklistUI.SetCraft(CRAFTING_TYPE_CLOTHIER, value)
+                        LeoAltholic.ChecklistUI.SetCraft(CRAFTING_TYPE_CLOTHIER, value)
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_ITEMFILTERTYPE17),
                     default = true,
-                    disabled = function() return not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicChecklistUI.GetCraft(CRAFTING_TYPE_ENCHANTING) end,
+                    getFunc = function() return LeoAltholic.ChecklistUI.GetCraft(CRAFTING_TYPE_ENCHANTING) end,
                     setFunc = function(value)
-                        LeoAltholicChecklistUI.SetCraft(CRAFTING_TYPE_ENCHANTING, value)
+                        LeoAltholic.ChecklistUI.SetCraft(CRAFTING_TYPE_ENCHANTING, value)
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_ITEMFILTERTYPE25),
                     default = true,
-                    disabled = function() return not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicChecklistUI.GetCraft(CRAFTING_TYPE_JEWELRYCRAFTING) end,
+                    getFunc = function() return LeoAltholic.ChecklistUI.GetCraft(CRAFTING_TYPE_JEWELRYCRAFTING) end,
                     setFunc = function(value)
-                        LeoAltholicChecklistUI.SetCraft(CRAFTING_TYPE_JEWELRYCRAFTING, value)
+                        LeoAltholic.ChecklistUI.SetCraft(CRAFTING_TYPE_JEWELRYCRAFTING, value)
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_ITEMFILTERTYPE18),
                     default = true,
-                    disabled = function() return not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicChecklistUI.GetCraft(CRAFTING_TYPE_PROVISIONING) end,
+                    getFunc = function() return LeoAltholic.ChecklistUI.GetCraft(CRAFTING_TYPE_PROVISIONING) end,
                     setFunc = function(value)
-                        LeoAltholicChecklistUI.SetCraft(CRAFTING_TYPE_PROVISIONING, value)
+                        LeoAltholic.ChecklistUI.SetCraft(CRAFTING_TYPE_PROVISIONING, value)
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_ITEMFILTERTYPE15),
                     default = true,
-                    disabled = function() return not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicChecklistUI.GetCraft(CRAFTING_TYPE_WOODWORKING) end,
+                    getFunc = function() return LeoAltholic.ChecklistUI.GetCraft(CRAFTING_TYPE_WOODWORKING) end,
                     setFunc = function(value)
-                        LeoAltholicChecklistUI.SetCraft(CRAFTING_TYPE_WOODWORKING, value)
+                        LeoAltholic.ChecklistUI.SetCraft(CRAFTING_TYPE_WOODWORKING, value)
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_STAT_GAMEPAD_RIDING_HEADER_TRAINING),
                     default = false,
-                    disabled = function() return not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = LeoAltholicChecklistUI.GetRiding,
-                    setFunc = LeoAltholicChecklistUI.SetRiding,
+                    getFunc = LeoAltholic.ChecklistUI.GetRiding,
+                    setFunc = LeoAltholic.ChecklistUI.SetRiding,
                 }
             }
         },
@@ -224,24 +224,24 @@ function LeoAltholic_Settings:CreatePanel()
             type = "checkbox",
             name = GetString(SI_ADDON_MANAGER_ENABLED),
             default = true,
-            getFunc = LeoAltholicToolbarUI.IsEnabled,
-            setFunc = LeoAltholicToolbarUI.SetEnabled,
+            getFunc = LeoAltholic.ToolbarUI.IsEnabled,
+            setFunc = LeoAltholic.ToolbarUI.SetEnabled,
         },
         {
             type = "checkbox",
             name = GetString(LEOALT_BUMP_COMPASS),
             default = false,
-            disabled = function() return not LeoAltholicToolbarUI.IsEnabled() end,
-            getFunc = LeoAltholicToolbarUI.GetBumpCompass,
-            setFunc = LeoAltholicToolbarUI.SetBumpCompass,
+            disabled = function() return not LeoAltholic.ToolbarUI.IsEnabled() end,
+            getFunc = LeoAltholic.ToolbarUI.GetBumpCompass,
+            setFunc = LeoAltholic.ToolbarUI.SetBumpCompass,
         },
         {
             type = "checkbox",
             name = GetString(LEOALT_HIDE_DONE_WRIT),
             default = false,
-            disabled = function() return not LeoAltholicToolbarUI.IsEnabled() end,
-            getFunc = LeoAltholicToolbarUI.GetHideDoneWrit,
-            setFunc = LeoAltholicToolbarUI.SetHideDoneWrit,
+            disabled = function() return not LeoAltholic.ToolbarUI.IsEnabled() end,
+            getFunc = LeoAltholic.ToolbarUI.GetHideDoneWrit,
+            setFunc = LeoAltholic.ToolbarUI.SetHideDoneWrit,
         },
         {
             type = "submenu",
@@ -251,61 +251,61 @@ function LeoAltholic_Settings:CreatePanel()
                     type = "checkbox",
                     name = GetString(SI_GAMEPAD_PLAYER_INVENTORY_CAPACITY_FOOTER_LABEL),
                     default = true,
-                    disabled = function() return not LeoAltholicToolbarUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ToolbarUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.INVENTORY) end,
+                    getFunc = function() return LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.INVENTORY) end,
                     setFunc = function(value)
-                        LeoAltholicToolbarUI.SetItem(LeoAltholicToolbarUI.items.INVENTORY, value)
-                        LeoAltholicToolbarUI.RestorePosition()
-                        LeoAltholicToolbarUI.update()
+                        LeoAltholic.ToolbarUI.SetItem(LeoAltholic.ToolbarUI.items.INVENTORY, value)
+                        LeoAltholic.ToolbarUI.RestorePosition()
+                        LeoAltholic.ToolbarUI.update()
                     end,
                 },{    --Teva added this section
                     type = "checkbox",
                     name = GetString(SI_INTERACT_OPTION_BANK),
                     default = true,
-                    disabled = function() return not LeoAltholicToolbarUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ToolbarUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.BANKSIZE) end,
+                    getFunc = function() return LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.BANKSIZE) end,
                     setFunc = function(value)
-                        LeoAltholicToolbarUI.SetItem(LeoAltholicToolbarUI.items.BANKSIZE, value)
-                        LeoAltholicToolbarUI.RestorePosition()
-                        LeoAltholicToolbarUI.update()
+                        LeoAltholic.ToolbarUI.SetItem(LeoAltholic.ToolbarUI.items.BANKSIZE, value)
+                        LeoAltholic.ToolbarUI.RestorePosition()
+                        LeoAltholic.ToolbarUI.update()
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_STAT_GAMEPAD_RIDING_HEADER_TRAINING),
                     default = true,
-                    disabled = function() return not LeoAltholicToolbarUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ToolbarUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.RIDING) end,
+                    getFunc = function() return LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.RIDING) end,
                     setFunc = function(value)
-                        LeoAltholicToolbarUI.SetItem(LeoAltholicToolbarUI.items.RIDING, value)
-                        LeoAltholicToolbarUI.RestorePosition()
-                        LeoAltholicToolbarUI.update()
+                        LeoAltholic.ToolbarUI.SetItem(LeoAltholic.ToolbarUI.items.RIDING, value)
+                        LeoAltholic.ToolbarUI.RestorePosition()
+                        LeoAltholic.ToolbarUI.update()
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(SI_GAMEPAD_SMITHING_CURRENT_RESEARCH_HEADER),
                     default = true,
-                    disabled = function() return not LeoAltholicToolbarUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ToolbarUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.RESEARCH) end,
+                    getFunc = function() return LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.RESEARCH) end,
                     setFunc = function(value)
-                        LeoAltholicToolbarUI.SetItem(LeoAltholicToolbarUI.items.RESEARCH, value)
-                        LeoAltholicToolbarUI.RestorePosition()
-                        LeoAltholicToolbarUI.update()
+                        LeoAltholic.ToolbarUI.SetItem(LeoAltholic.ToolbarUI.items.RESEARCH, value)
+                        LeoAltholic.ToolbarUI.RestorePosition()
+                        LeoAltholic.ToolbarUI.update()
                     end,
                 },{
                     type = "checkbox",
                     name = GetString(LEOALT_WRIT),
                     default = true,
-                    disabled = function() return not LeoAltholicToolbarUI.IsEnabled() or not LeoAltholicChecklistUI.IsEnabled() end,
+                    disabled = function() return not LeoAltholic.ToolbarUI.IsEnabled() or not LeoAltholic.ChecklistUI.IsEnabled() end,
                     width = "half",
-                    getFunc = function() return LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.WRITSTATUS) end,
+                    getFunc = function() return LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.WRITSTATUS) end,
                     setFunc = function(value)
-                        LeoAltholicToolbarUI.SetItem(LeoAltholicToolbarUI.items.WRITSTATUS, value)
-                        LeoAltholicToolbarUI.RestorePosition()
-                        LeoAltholicToolbarUI.update()
+                        LeoAltholic.ToolbarUI.SetItem(LeoAltholic.ToolbarUI.items.WRITSTATUS, value)
+                        LeoAltholic.ToolbarUI.RestorePosition()
+                        LeoAltholic.ToolbarUI.update()
                     end,
                 }
             }
@@ -368,7 +368,7 @@ function LeoAltholic_Settings:CreatePanel()
     LAM:RegisterOptionControls(OptionsName, optionsData)
 end
 
-function LeoAltholic_Settings_OnMouseEnter(control, tooltip)
+function LeoAltholic.Settings_OnMouseEnter(control, tooltip)
     InitializeTooltip(InformationTooltip, control, BOTTOMLEFT, 0, -2, TOPLEFT)
     SetTooltipText(InformationTooltip, tooltip)
 end

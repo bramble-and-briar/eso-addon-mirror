@@ -16,7 +16,7 @@ local function OnPlayerActivated()
     DT.Procs.OnActivated()
     DT.Marker.OnActivated()
     DT.Profiles.ApplyAutoSwitch()
-    DT.Engine.RequestUpdate()
+    DT.Engine.StandingChanged()      -- zone, gear: what listens may change
     DT.perf.activatedMs = GetGameTimeMilliseconds() - t0
     -- Cooldowns running next to us: point at the one-click import (once)
     local sv = DT.Profiles.SV()
@@ -70,6 +70,10 @@ local function HelpText()
     d("  /dt exoy  -  " .. L("import your setup from ExoY's ProcSet Timer"))
     d("  /dt meterskull  -  " .. L("import your setup from Meterskull"))
     d("  /dt miat  -  " .. L("import your setup from Miat's Ticks Tracker"))
+    d("  /dt altgroupframes  -  " .. L("import your setup from Alternative Group Frames"))
+    d("  /dt weavedelays  -  " .. L("import your setup from WeaveDelays"))
+    d("  /dt credits  -  " .. L("the add-ons and authors DebuffTracker is built on"))
+    d("  /dt weave  -  " .. L("hide / show the weaving trackers; /dt weave reset clears them"))
     d("  /dt gcd  -  " .. L("import your setup from Combat Metronome / GCD Bar / Global Cooldown Monitor"))
     d("  /dt debug  -  " .. L("toggle debug messages (also logged)"))
     d("  /dt tabtest  -  " .. L("30 s check of tab targeting and enemy positions (for bug reports)"))
@@ -129,6 +133,25 @@ local function SlashCommand(args)
         local added, summary = DT.Migration.ImportGcd()
         if not added then U.Print(summary)
         else U.Print(L("Imported from <<1>>: <<2>> \"Global cooldown\" tracker(s) where yours were (replaced <<3>> from an earlier import). You can disable it now; /dt to adjust.", summary.from, #added, summary.replaced)) end
+    elseif cmd == "credits" then
+        U.Print(L("DebuffTracker is built on what these add-ons' authors worked out -- thank you:"))
+        for _, line in ipairs(DT.Const.CreditLines()) do d("  " .. line) end
+    elseif cmd == "weavedelays" or cmd == "wd" then
+        local added, summary = DT.Migration.ImportWeaveDelays()
+        if not added then U.Print(summary)
+        else U.Print(L("Imported from WeaveDelays: a \"Weave strip\" where yours was (replaced <<1>> from an earlier import). You can disable WeaveDelays now; /dt to adjust.", summary.replaced)) end
+    elseif cmd == "weave" then
+        if (rest or ""):lower():find("reset", 1, true) then
+            DT.Weave.Reset()
+            U.Print(L("Weaving: cleared."))
+        else
+            local hidden = DT.Weave.Toggle()
+            U.Print(hidden and L("Weaving trackers hidden (/dt weave to show them again).") or L("Weaving trackers shown."))
+        end
+    elseif cmd == "altgroupframes" or cmd == "agf" or cmd == "groupframes" then
+        local added, summary = DT.Migration.ImportAltGF()
+        if not added then U.Print(summary)
+        else U.Print(L("Imported from Alternative Group Frames: \"Group frames\" where yours were, plus <<1>> \"On group frames\" tracker(s) (replaced <<2>> from an earlier import). You can disable Alternative Group Frames now; /dt to adjust.", summary.extra, summary.replaced)) end
     elseif cmd == "miat" or cmd == "ticks" then
         local added, summary = DT.Migration.ImportMiat()
         if not added then U.Print(summary)
@@ -237,7 +260,10 @@ local function OnAddOnLoaded(_, addonName)
     EVENT_MANAGER:RegisterForEvent(DT.name .. "_Activated", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
     if EVENT_GROUP_MEMBER_ROLE_CHANGED then
         EVENT_MANAGER:RegisterForEvent(DT.name .. "_Role", EVENT_GROUP_MEMBER_ROLE_CHANGED, function(_, unitTag)
-            if unitTag == "player" or AreUnitsEqual and AreUnitsEqual(unitTag, "player") then DT.Profiles.ApplyAutoSwitch() end
+            if unitTag == "player" or AreUnitsEqual and AreUnitsEqual(unitTag, "player") then
+                DT.Profiles.ApplyAutoSwitch()
+                DT.Engine.StandingChanged()      -- "Role" load conditions
+            end
         end)
     end
 
@@ -247,6 +273,7 @@ local function OnAddOnLoaded(_, addonName)
     ZO_CreateStringId("SI_BINDING_NAME_DEBUFFTRACKER5_EDITOR", L("Open / close the editor"))
     ZO_CreateStringId("SI_BINDING_NAME_DEBUFFTRACKER5_MOVE", L("Move windows (toggle)"))
     ZO_CreateStringId("SI_BINDING_NAME_DEBUFFTRACKER5_TEST", L("Sample data on all trackers (toggle)"))
+    ZO_CreateStringId("SI_BINDING_NAME_DEBUFFTRACKER5_WEAVE", L("Weaving trackers: hide / show"))
 
     RegisterLibAddonMenu()
     U.SafeCall("skill tooltip ids", HookSkillTooltips)
@@ -256,6 +283,11 @@ end
 -- Keybind entry points (bindings.xml)
 function DebuffTracker_ToggleEditor() DT.UI.Toggle() end
 function DebuffTracker_ToggleMove() DT.Unlock.Toggle() end
+-- (WeaveDelays' "Toggle WeaveDelays window" key)
+function DebuffTracker_ToggleWeave()
+    if DebuffTracker.Weave then DebuffTracker.Weave.Toggle() end
+end
+
 function DebuffTracker_ToggleTest()
     DT.testMode = not DT.testMode
     DT.Engine.RequestUpdate()

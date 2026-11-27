@@ -689,6 +689,22 @@ function Crutch.CreateConsoleContentSettingsMenu()
             end,
             disable = function() return not Crutch.savedOptions.lucentcitadel.showTempestIcons end,
         },
+        DIVIDER,
+        {
+            type = LibHarvensAddonSettings.ST_LABEL,
+            label = "Info Panel",
+        },
+        {
+            type = LibHarvensAddonSettings.ST_CHECKBOX,
+            label = "Show Fate Sealer timer",
+            tooltip = "Shows a timer in the info panel for when Fate Sealer may next occur",
+            default = false,
+            getFunction = function() return Crutch.savedOptions.lucentcitadel.infoPanel.showFateSealer end,
+            setFunction = function(value)
+                Crutch.savedOptions.lucentcitadel.infoPanel.showFateSealer = value
+                Crutch.OnPlayerActivated()
+            end,
+        },
     })))
 
     settings:AddSettings(Crutch.GetProminentSettingsConsole(725, Crutch.GetEffectSettingsConsole(725, {
@@ -878,6 +894,17 @@ function Crutch.CreateConsoleContentSettingsMenu()
                 Crutch.UnlockUI(true)
             end,
             disable = function() return not Crutch.savedOptions.osseincage.showCarrion end,
+        },
+        {
+            type = LibHarvensAddonSettings.ST_CHECKBOX,
+            label = "Show Immolating Sphere circle",
+            tooltip = "Draws circles on the ground following players who are targeted by Immolating Sphere",
+            default = true,
+            getFunction = function() return Crutch.savedOptions.osseincage.showImmolating end,
+            setFunction = function(value)
+                Crutch.savedOptions.osseincage.showImmolating = value
+                Crutch.OnPlayerActivated()
+            end,
         },
         {
             type = LibHarvensAddonSettings.ST_CHECKBOX,

@@ -138,3 +138,41 @@ function KelaParametricSelectBackButtons(name)
 		},
 	}
 end
+
+-- A yes/no question: `onConfirm` runs when the player confirms, nothing happens
+-- on Cancel. The text is asked of the caller, so it can be a formatted string.
+-- It can be asked from another dialog's button: the core queues it and shows
+-- it once that dialog has closed.
+local CONFIRM_DIALOG = "KELA_CONFIRM_DIALOG"
+local confirmRegistered = false
+
+function KelaShowConfirmDialog(text, onConfirm)
+	if not confirmRegistered then
+		confirmRegistered = true
+		KelaRegisterGamepadDialog(CONFIRM_DIALOG,
+		{
+			canQueue = true,
+			gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
+			title = { text = KELA_CONFIRM_TITLE },
+			mainText =
+			{
+				text = function(dialog)
+					return dialog.data and dialog.data.text or ""
+				end,
+			},
+			buttons =
+			{
+				{
+					text = SI_DIALOG_CONFIRM,
+					callback = function(dialog)
+						if dialog.data and dialog.data.onConfirm then
+							dialog.data.onConfirm()
+						end
+					end,
+				},
+				{ text = SI_DIALOG_CANCEL },
+			},
+		})
+	end
+	ZO_Dialogs_ShowGamepadDialog(CONFIRM_DIALOG, { text = text, onConfirm = onConfirm })
+end

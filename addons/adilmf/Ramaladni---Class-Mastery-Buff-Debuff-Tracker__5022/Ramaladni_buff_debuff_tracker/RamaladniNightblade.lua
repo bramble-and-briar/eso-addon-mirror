@@ -1,6 +1,59 @@
 -- Ramaladni Tracker v0.9.23 — Nightblade isolated runtime.
 -- Mechanics copied from the v0.9.22 reference; other classes are not modified.
 local M=RamaladniMastery
+local TEXT_ALIGN_BOTTOM = TEXT_ALIGN_BOTTOM
+local TEXT_ALIGN_LEFT = TEXT_ALIGN_LEFT
+local d = d
+local math = math
+local pairs = pairs
+local string = string
+local tonumber = tonumber
+local tostring = tostring
+local type = type
+local ACTION_RESULT_BLOCKED_DAMAGE = ACTION_RESULT_BLOCKED_DAMAGE
+local ACTION_RESULT_CRITICAL_DAMAGE = ACTION_RESULT_CRITICAL_DAMAGE
+local ACTION_RESULT_DAMAGE = ACTION_RESULT_DAMAGE
+local ACTION_RESULT_DOT_TICK = ACTION_RESULT_DOT_TICK
+local ACTION_RESULT_DOT_TICK_CRITICAL = ACTION_RESULT_DOT_TICK_CRITICAL
+local ACTION_RESULT_POWER_ENERGIZE = ACTION_RESULT_POWER_ENERGIZE
+local BOTTOMLEFT = BOTTOMLEFT
+local COMBAT_MECHANIC_FLAGS_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE
+local COMBAT_UNIT_TYPE_NONE = COMBAT_UNIT_TYPE_NONE
+local COMBAT_UNIT_TYPE_PLAYER = COMBAT_UNIT_TYPE_PLAYER
+local CT_LABEL = CT_LABEL
+local DoesUnitExist = DoesUnitExist
+local EFFECT_RESULT_FADED = EFFECT_RESULT_FADED
+local EVENT_ACTION_SLOT_ABILITY_USED = EVENT_ACTION_SLOT_ABILITY_USED
+local EVENT_COMBAT_EVENT = EVENT_COMBAT_EVENT
+local EVENT_EFFECT_CHANGED = EVENT_EFFECT_CHANGED
+local EVENT_MANAGER = EVENT_MANAGER
+local EVENT_POWER_UPDATE = EVENT_POWER_UPDATE
+local GetAbilityName = GetAbilityName
+local GetCriticalStrikeChance = GetCriticalStrikeChance
+local GetNumSkillAbilities = GetNumSkillAbilities
+local GetNumSkillLines = GetNumSkillLines
+local GetPlayerStat = GetPlayerStat
+local GetSkillAbilityId = GetSkillAbilityId
+local GetSkillAbilityInfo = GetSkillAbilityInfo
+local GetSlotBoundId = GetSlotBoundId
+local GetSpecificSkillAbilityKeysByAbilityId = GetSpecificSkillAbilityKeysByAbilityId
+local GetUnitClassId = GetUnitClassId
+local GetUnitName = GetUnitName
+local GetUnitPower = GetUnitPower
+local IsSkillAbilityPurchased = IsSkillAbilityPurchased
+local IsUnitInCombat = IsUnitInCombat
+local IsUnitPlayer = IsUnitPlayer
+local COMBAT_MECHANIC_FLAGS_HEALTH = COMBAT_MECHANIC_FLAGS_HEALTH
+local REGISTER_FILTER_ABILITY_ID = REGISTER_FILTER_ABILITY_ID
+local REGISTER_FILTER_COMBAT_RESULT = REGISTER_FILTER_COMBAT_RESULT
+local REGISTER_FILTER_POWER_TYPE = REGISTER_FILTER_POWER_TYPE
+local REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE = REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE
+local REGISTER_FILTER_UNIT_TAG = REGISTER_FILTER_UNIT_TAG
+local SKILL_TYPE_CLASS = SKILL_TYPE_CLASS
+local SLASH_COMMANDS = SLASH_COMMANDS
+local STAT_BONUS_OPTION_APPLY_BONUS = STAT_BONUS_OPTION_APPLY_BONUS
+local STAT_CRITICAL_STRIKE = STAT_CRITICAL_STRIKE
+local WINDOW_MANAGER = WINDOW_MANAGER
 local shared=M.shared
 local SkillState,LeadNow,HideState=shared.SkillState,shared.LeadNow,shared.HideState
 local lead=shared.lead
@@ -8,33 +61,33 @@ local runtime={}
 M.modules["Nightblade"]=runtime
 do
 local e={key="Nightblade:Nocturnal Inspiration",class="Nightblade",en="Nocturnal Inspiration",title="Вдохновение Ноктюрнал / Nocturnal Inspiration",passiveId=263603,candidateIDs={263613},model="observed_stacks",value=0,cap=0,target=false,kind="chance+proc_counter",mechanic="Chance equals Weapon Critical chance to generate 2 Ultimate",durationRule="Proc rate limited to once every 0.3 sec; no duration"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Nightblade:An Eye for Exploitation",class="Nightblade",en="An Eye for Exploitation",title="Взгляд на слабости / An Eye for Exploitation",passiveId=263604,candidateIDs={263640},model="target_missing_health",value=2000,cap=0,target=true,kind="target_conditional_numeric",mechanic="Up to +2000 Weapon/Spell Damage versus missing target HP; mitigation up to 20% based on attacker missing HP",durationRule="No duration; dynamic on target and attacker health"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Nightblade:Above and Beyond",class="Nightblade",en="Above and Beyond",title="Выше всяких похвал / Above and Beyond",passiveId=263605,candidateIDs={267248},model="passive_percent",value=25,cap=30,target=false,kind="crit_cap_constant",mechanic="+25% Critical Damage/Healing (5% versus Battle Spirit), raises the critical damage/healing cap by 30 percentage points: 125% -> 155%",durationRule="Always on while purchased and Class Mastery is available; no timer"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Nightblade:Cutthroat's Focus",class="Nightblade",en="Cutthroat's Focus",title="Насмешка головореза / Cutthroat's Focus",passiveId=263606,candidateIDs={263685,268260,268259},model="timed_percent",value=5,cap=0,target=true,kind="target_debuff_timer+fixed_percent",mechanic="Attacker takes +5% damage after you dodge; 0.3 sec dodge from bracing activation",durationRule="5 sec on players, 20 sec on monsters; honor refresh"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 do
 local e={key="Nightblade:Share the Spoils",class="Nightblade",en="Share the Spoils",title="Раздел добычи / Share the Spoils",passiveId=263607,candidateIDs={263688,263689,263690},model="observed_stacks",value=0,cap=0,target=false,kind="instant_proc_counter",mechanic="Group gains 250 Magicka/Stamina, 2 Ultimate; own Transfer ultimate gain doubled",durationRule="Instant proc, no independent timer"}
-RamaladniMastery.byKey[e.key]=e
-RamaladniMastery.all[#RamaladniMastery.all+1]=e
-RamaladniMastery.byClass[e.class][#RamaladniMastery.byClass[e.class]+1]=e
+M.byKey[e.key]=e
+M.all[#M.all+1]=e
+M.byClass[e.class][#M.byClass[e.class]+1]=e
 end
 
 -- A learned Class Mastery passive permanently raises the character's
@@ -57,9 +110,9 @@ local function NBPassiveName(value)
       :gsub('^%s+',''):gsub('%s+$','')
 end
 local function NBAboveOwned(force)
-  local classId=GetUnitClassId and GetUnitClassId('player')
+  local classId=GetUnitClassId('player')
   if classId~=3 then return false end
-  local meta=RamaladniMastery.byKey[NB_ABOVE_AND_BEYOND]
+  local meta=M.byKey[NB_ABOVE_AND_BEYOND]
   local learned=SkillState(meta,force)
   if learned~=nil then
     nbAboveScan.skillId=meta.passiveId
@@ -72,19 +125,18 @@ local function NBAboveOwned(force)
   nbAboveScan.owned=nil
   nbAboveScan.skillId=nil
   nbAboveScan.method='not exposed in SKILL_TYPE_CLASS'
-  if not (SKILL_TYPE_CLASS and GetNumSkillLines and GetNumSkillAbilities and
-          GetSkillAbilityInfo) then return nil end
+
   -- Fallback for a client whose localization / ability rank uses a
   -- different ID for the passive. Accept only the passive's OWN name;
   -- do not guess mastery ownership from arbitrary buffs or class alone.
-  local localized=GetAbilityName and NBPassiveName(GetAbilityName(meta.passiveId)) or ''
+  local localized=NBPassiveName(GetAbilityName(meta.passiveId))
   if localized~='' then NB_ABOVE_NAMES[localized]=true end
   for line=1,(GetNumSkillLines(SKILL_TYPE_CLASS) or 0) do
     for i=1,(GetNumSkillAbilities(SKILL_TYPE_CLASS,line) or 0) do
       local name,_,_,_,_,purchased=GetSkillAbilityInfo(SKILL_TYPE_CLASS,line,i)
       if NB_ABOVE_NAMES[NBPassiveName(name)] then
-        local id=GetSkillAbilityId and GetSkillAbilityId(SKILL_TYPE_CLASS,line,i,false)
-        if IsSkillAbilityPurchased then
+        local id=GetSkillAbilityId(SKILL_TYPE_CLASS,line,i,false)
+        do
           purchased=IsSkillAbilityPurchased(SKILL_TYPE_CLASS,line,i)
         end
         nbAboveScan.skillId=id
@@ -99,7 +151,6 @@ local function NBAboveOwned(force)
   return nil -- Unknown is NOT the same as learned.
 end
 local function NBAboveDebug()
-  if not d then return end
   local owned=NBAboveOwned(true)
   local cap=(owned==true) and NB_BASE_CRIT_CAP+NB_ABOVE_CRIT_CAP_BONUS or NB_BASE_CRIT_CAP
   d(string.format('|c6FD6FFRamaladni NB|r Above and Beyond learned=%s; cap=%s; skillId=%s; fallback=%s',
@@ -132,7 +183,7 @@ local nb={initialized=false,debug=false,lastUltimate=nil,lastGain=nil,
           share={castAt=-100,castId=0,source='none',testAt=-100,
                  lastGainAt=-100,lastGainValue=0,lastSiphoning='none'}}
 local function NBPrint(message)
-  if d then d('|cAA89FBRamaladni NB|r '..tostring(message)) end
+  d('|cAA89FBRamaladni NB|r '..tostring(message))
 end
 -- Nightblade Nocturnal only: some ESO builds have different ability IDs
 -- for a class-mastery skill. Match its OWN purchased name when the expected
@@ -144,7 +195,7 @@ local NB_NOCTURNAL_NAMES={
   ['Ночное вдохновение']=true,['ночное вдохновение']=true,
 }
 local function NBNocturnalOwned(force)
-  local meta=RamaladniMastery.byKey[NB_NOCTURNAL]
+  local meta=M.byKey[NB_NOCTURNAL]
   local owned=SkillState(meta,force)
   if owned~=nil then
     nbNocturnalSkill.method='passive ID '..tostring(meta.passiveId)
@@ -155,13 +206,12 @@ local function NBNocturnalOwned(force)
   nbNocturnalSkill.at=now
   nbNocturnalSkill.owned=nil
   nbNocturnalSkill.method='unresolved'
-  if not (GetUnitClassId and GetUnitClassId('player')==3 and SKILL_TYPE_CLASS and
-      GetNumSkillLines and GetNumSkillAbilities and GetSkillAbilityInfo) then return nil end
+  if not (GetUnitClassId('player')==3) then return nil end
   for line=1,(GetNumSkillLines(SKILL_TYPE_CLASS) or 0) do
     for i=1,(GetNumSkillAbilities(SKILL_TYPE_CLASS,line) or 0) do
       local name,_,_,_,_,purchased=GetSkillAbilityInfo(SKILL_TYPE_CLASS,line,i)
       if NB_NOCTURNAL_NAMES[name] then
-        if IsSkillAbilityPurchased then
+        do
           local valid=IsSkillAbilityPurchased(SKILL_TYPE_CLASS,line,i)
           if type(valid)=='boolean' then purchased=valid end
         end
@@ -177,7 +227,7 @@ local function NBOwns(key)
   -- Do not infer ownership from simply being a Nightblade; the Class Mastery
   -- skill line only supports two equipped masteries at a time.
   if key==NB_NOCTURNAL then return NBNocturnalOwned()==true end
-  return SkillState(RamaladniMastery.byKey[key])==true
+  return SkillState(M.byKey[key])==true
 end
 -- v0.9.18 SHARE THE SPOILS ONLY. ESO can give the class mastery passive a
 -- different rank-specific ID. Resolve its OWN purchased name as a fallback;
@@ -189,7 +239,7 @@ local NB_SHARE_NAMES={
   ['Раздел добычи']=true,['раздел добычи']=true,
 }
 local function NBShareOwned(force)
-  local meta=RamaladniMastery.byKey[NB_SHARE]
+  local meta=M.byKey[NB_SHARE]
   local direct=SkillState(meta,force)
   if direct~=nil then
     nbShareSkillCache.method='passive ID '..tostring(meta.passiveId)
@@ -200,13 +250,12 @@ local function NBShareOwned(force)
   nbShareSkillCache.at=now
   nbShareSkillCache.owned=nil
   nbShareSkillCache.method='not found'
-  if not (GetUnitClassId and GetUnitClassId('player')==3 and SKILL_TYPE_CLASS and
-      GetNumSkillLines and GetNumSkillAbilities and GetSkillAbilityInfo) then return nil end
+  if not (GetUnitClassId('player')==3) then return nil end
   for line=1,(GetNumSkillLines(SKILL_TYPE_CLASS) or 0) do
     for i=1,(GetNumSkillAbilities(SKILL_TYPE_CLASS,line) or 0) do
       local name,_,_,_,_,purchased=GetSkillAbilityInfo(SKILL_TYPE_CLASS,line,i)
       if NB_SHARE_NAMES[name] then
-        if IsSkillAbilityPurchased then
+        do
           purchased=IsSkillAbilityPurchased(SKILL_TYPE_CLASS,line,i)
         end
         nbShareSkillCache.method='localized passive name'
@@ -222,17 +271,17 @@ end
 -- morph IDs. Nightblade Siphoning is the third class skill line.
 local function NBIsSiphoningAbility(id)
   if type(id)~='number' or id<=0 then return false end
-  if GetSpecificSkillAbilityKeysByAbilityId then
+  do
     local skillType,line=GetSpecificSkillAbilityKeysByAbilityId(id)
     if skillType==SKILL_TYPE_CLASS and line==3 then return true end
     if skillType~=nil then return false end
   end
-  if not (GetNumSkillAbilities and GetSkillAbilityId and SKILL_TYPE_CLASS) then return false end
-  local actualName=GetAbilityName and GetAbilityName(id)
+
+  local actualName=GetAbilityName(id)
   for i=1,(GetNumSkillAbilities(SKILL_TYPE_CLASS,3) or 0) do
     local skillId=GetSkillAbilityId(SKILL_TYPE_CLASS,3,i,false)
     if skillId==id then return true end
-    if type(actualName)=='string' and actualName~='' and GetSkillAbilityInfo then
+    if type(actualName)=='string' and actualName~='' then
       local name=GetSkillAbilityInfo(SKILL_TYPE_CLASS,3,i)
       if name==actualName then return true end
     end
@@ -251,20 +300,15 @@ local function NBWeaponCritChance(force)
   nbWeaponCrit.at=now
   nbWeaponCrit.percent=nil
   nbWeaponCrit.rating=nil
-  nbWeaponCrit.method='GetPlayerStat / GetCriticalStrikeChance not available'
-  if not (GetPlayerStat and STAT_CRITICAL_STRIKE and GetCriticalStrikeChance) then return nil end
-  local ok,rating=pcall(GetPlayerStat,STAT_CRITICAL_STRIKE,
-                         STAT_BONUS_OPTION_APPLY_BONUS,STAT_SOFT_CAP_OPTION_APPLY_SOFT_CAP)
-  if not ok or type(rating)~='number' then
-    ok,rating=pcall(GetPlayerStat,STAT_CRITICAL_STRIKE)
-  end
-  if not ok or type(rating)~='number' or rating<0 then
+  -- API 101051/101052: request the bonus-inclusive critical rating.
+  local rating=GetPlayerStat(STAT_CRITICAL_STRIKE,STAT_BONUS_OPTION_APPLY_BONUS)
+  if type(rating)~='number' or rating<0 then
     nbWeaponCrit.method='critical rating not available'
     return nil
   end
   nbWeaponCrit.rating=rating
-  local converted,chance=pcall(GetCriticalStrikeChance,rating,true)
-  if not converted or type(chance)~='number' or chance~=chance or chance<0 or chance>100 then
+  local chance=GetCriticalStrikeChance(rating)
+  if type(chance)~='number' or chance~=chance or chance<0 or chance>100 then
     nbWeaponCrit.method='GetCriticalStrikeChance rejected rating'
     return nil
   end
@@ -273,34 +317,27 @@ local function NBWeaponCritChance(force)
   return chance
 end
 local function NBTargetHealth()
-  if not (GetUnitPower and POWERTYPE_HEALTH and DoesUnitExist and
-          DoesUnitExist('reticleover')) then return nil end
-  local hp,maxHP=GetUnitPower('reticleover',POWERTYPE_HEALTH)
+  if not DoesUnitExist('reticleover') then return nil end
+  local hp,maxHP=GetUnitPower('reticleover',COMBAT_MECHANIC_FLAGS_HEALTH)
   if type(hp)~='number' or type(maxHP)~='number' or maxHP<=0 then return nil end
   local missing=math.max(0,math.min(1,1-hp/maxHP))
-  local pvp=(IsUnitPlayer and IsUnitPlayer('reticleover'))==true
+  local pvp=(IsUnitPlayer('reticleover'))==true
   return missing,pvp
 end
 local function NBCompareTargetAndAttacker(now)
-  -- Damage reduction depends on the actual attacker, not on whoever happens
-  -- to be under the cursor. Same name alone is ambiguous if several enemies
-  -- share a name; require matching positive IDs if the client exposes them.
+  -- Combat IDs cannot be obtained from a unit tag using documented API.
+  -- This existing name match is approximate for same-name enemies.
   if now-nb.attacker.at>5 then return false end
-  local targetId=GetUnitId and GetUnitId('reticleover')
-  if nb.attacker.id and nb.attacker.id>0 and type(targetId)=='number' and targetId>0 then
-    return nb.attacker.id==targetId
-  end
-  local name=GetUnitName and GetUnitName('reticleover')
+  local name=GetUnitName('reticleover')
   return type(name)=='string' and name~='' and nb.attacker.name~='' and name==nb.attacker.name
 end
 local function NBClassSource(name,sourceType)
-  if COMBAT_UNIT_TYPE_PLAYER and sourceType==COMBAT_UNIT_TYPE_PLAYER then
-    return type(name)=='string' and GetUnitName and name==GetUnitName('player')
+  if sourceType==COMBAT_UNIT_TYPE_PLAYER then
+    return type(name)=='string' and name==GetUnitName('player')
   end
   -- Combat log events with no unit type need an exact player name match.
-  return (sourceType==nil or (COMBAT_UNIT_TYPE_NONE and sourceType==COMBAT_UNIT_TYPE_NONE))
-         and type(name)=='string' and name~='' and GetUnitName and
-         name==GetUnitName('player')
+  return (sourceType==nil or (sourceType==COMBAT_UNIT_TYPE_NONE))
+         and type(name)=='string' and name~='' and name==GetUnitName('player')
 end
 local function NBConfirmed(key,id,now)
   if key==NB_SHARE then
@@ -355,9 +392,9 @@ local function NBShareMatchCast(now)
   end
 end
 local function NBShareAbilityUsed(_,slot)
-  if not GetSlotBoundId or type(slot)~='number' then return end
+  if type(slot)~='number' then return end
   if NBShareOwned()~=true then return end
-  if IsUnitInCombat and not IsUnitInCombat('player') then return end
+  if not IsUnitInCombat('player') then return end
   local id=GetSlotBoundId(slot)
   if not NBIsSiphoningAbility(id) then return end
   nb.share.castAt=LeadNow()
@@ -367,7 +404,7 @@ local function NBShareAbilityUsed(_,slot)
   NBShareMatchCast(nb.share.castAt)
 end
 local function NBPowerChanged(_,unitTag,_,powerType,value)
-  if unitTag~='player' or powerType~=POWERTYPE_ULTIMATE or
+  if unitTag~='player' or powerType~=COMBAT_MECHANIC_FLAGS_ULTIMATE or
      type(value)~='number' then return end
   local previous=nb.lastUltimate
   nb.lastUltimate=value
@@ -387,7 +424,7 @@ local function NBPowerChanged(_,unitTag,_,powerType,value)
   -- count isolated +2 Ultimate increments with the mastery purchased and
   -- the character in combat, and render them with a visible '~' marker.
   if delta==2 and not nb.lastGain.used and NBNocturnalOwned()==true and
-     (not IsUnitInCombat or IsUnitInCombat('player')) and
+     IsUnitInCombat('player') and
      now-nb.nocturnal.lastVerifiedAt>0.24 and
      now-nb.nocturnal.lastEstimateAt>=0.29 then
     nb.nocturnal.estimated=nb.nocturnal.estimated+1
@@ -415,14 +452,14 @@ local function NBNocturnalEnergize(_,result,isError,abilityName,_,_,sourceName,s
                                   targetName,targetType,hitValue,powerType,_,_,_,targetId,abilityId)
   if result~=ACTION_RESULT_POWER_ENERGIZE or isError or
      powerType~=COMBAT_MECHANIC_FLAGS_ULTIMATE or hitValue~=2 then return end
-  if GetUnitClassId and GetUnitClassId('player')~=3 then return end
-  -- Do not count someone else's ultimate gain. Unit IDs are preferred;
-  -- name is a fallback since some combat results expose zero unit IDs.
-  local myId=GetUnitId and GetUnitId('player')
-  local myName=GetUnitName and GetUnitName('player')
-  local targetIsPlayer=(type(myId)=='number' and myId>0 and targetId==myId)
-     or (type(myName)=='string' and myName~='' and targetName==myName)
-  if not targetIsPlayer then return end
+  if GetUnitClassId('player')~=3 then return end
+  -- Combat event targetType identifies the local player without a unit-tag ID.
+  -- Keep the existing exact-name fallback only for unclassified targets.
+  if targetType~=COMBAT_UNIT_TYPE_PLAYER then
+    if targetType~=nil and targetType~=COMBAT_UNIT_TYPE_NONE then return end
+    local myName=GetUnitName('player')
+    if type(myName)~='string' or myName=='' or targetName~=myName then return end
+  end
   local now=LeadNow()
   local track=nb.nocturnal
   track.energyEvents=track.energyEvents+1
@@ -464,8 +501,7 @@ local function NBProcEffect(_,change,_,name,unitTag,_,_,_,_,_,_,_,_,unitName,_,a
           (key~=NB_SHARE and NBOwns(key))) then return end
   -- A received group effect is not sufficient to prove the passive activated;
   -- it also needs the player's separately observed Ultimate gain.
-  if not (unitTag=='player' or (COMBAT_UNIT_TYPE_PLAYER and
-       sourceType==COMBAT_UNIT_TYPE_PLAYER)) then return end
+  if not (unitTag=='player' or sourceType==COMBAT_UNIT_TYPE_PLAYER) then return end
   local now=LeadNow()
   nb.lastEventId=abilityId
   nb.pending[key]={at=now,id=abilityId}
@@ -476,14 +512,14 @@ local function NBIncomingDamage(_,result,isError,_,_,_,sourceName,sourceType,
                                 targetName,targetType,hitValue,_,_,_,sourceId)
   if isError or type(hitValue)~='number' or hitValue<=0 or
      not NBOwns(NB_EYE) then return end
-  if not GetUnitName or targetName~=GetUnitName('player') then return end
+  if targetName~=GetUnitName('player') then return end
   -- Incoming damage only; don't identify another player's support/heals as
   -- an attacker merely because the event target happens to be the player.
-  local damage=(ACTION_RESULT_DAMAGE and result==ACTION_RESULT_DAMAGE) or
-    (ACTION_RESULT_CRITICAL_DAMAGE and result==ACTION_RESULT_CRITICAL_DAMAGE) or
-    (ACTION_RESULT_DOT_TICK and result==ACTION_RESULT_DOT_TICK) or
-    (ACTION_RESULT_DOT_TICK_CRITICAL and result==ACTION_RESULT_DOT_TICK_CRITICAL) or
-    (ACTION_RESULT_BLOCKED_DAMAGE and result==ACTION_RESULT_BLOCKED_DAMAGE)
+  local damage=(result==ACTION_RESULT_DAMAGE) or
+    (result==ACTION_RESULT_CRITICAL_DAMAGE) or
+    (result==ACTION_RESULT_DOT_TICK) or
+    (result==ACTION_RESULT_DOT_TICK_CRITICAL) or
+    (result==ACTION_RESULT_BLOCKED_DAMAGE)
   if not damage then return end
   nb.attacker={name=sourceName or '',id=tonumber(sourceId),at=LeadNow()}
 end
@@ -522,46 +558,57 @@ local function NBDebug(input)
     nb.share.lastSiphoning,nb.share.source,
     math.max(0,nb.procs[NB_SHARE].at+4-LeadNow())))
 end
+local syncEvents=M.NewEventSet()
+local previousSelection={}
+runtime.SyncEvents=function(selected)
+  local power=selected[NB_NOCTURNAL] or selected[NB_SHARE]
+  local previousPower=previousSelection[NB_NOCTURNAL] or previousSelection[NB_SHARE]
+  if power and not previousPower then nb.lastUltimate=GetUnitPower('player',COMBAT_MECHANIC_FLAGS_ULTIMATE) end
+  if not selected[NB_SHARE] then
+    nb.pending[NB_SHARE]=nil;nb.share.castAt=-100;nb.share.testAt=-100
+    nb.procs[NB_SHARE].at=-100
+  end
+  if not selected[NB_NOCTURNAL] then
+    nb.pending[NB_NOCTURNAL]=nil;nb.nocturnal.lastEstimateAt=-100
+    nb.nocturnal.lastVerifiedAt=-100;nb.nocturnalTestAt=-100;nb.procs[NB_NOCTURNAL].at=-100
+  end
+  if (not selected[NB_SHARE])~=(not previousSelection[NB_SHARE]) or
+     (not selected[NB_NOCTURNAL])~=(not previousSelection[NB_NOCTURNAL]) then nb.lastGain=nil end
+  if not selected[NB_EYE] then nb.attacker={name='',id=nil,at=-100} end
+  syncEvents(function(Add)
+    if selected[NB_SHARE] then Add('RamaladniNB_ShareCast',EVENT_ACTION_SLOT_ABILITY_USED,NBShareAbilityUsed) end
+    if power then
+      Add('RamaladniNB_Power',EVENT_POWER_UPDATE,NBPowerChanged,
+        REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_POWER_TYPE,COMBAT_MECHANIC_FLAGS_ULTIMATE)
+    end
+    if selected[NB_NOCTURNAL] then
+      Add('RamaladniNB_NocturnalEnergy',EVENT_COMBAT_EVENT,NBNocturnalEnergize,
+        REGISTER_FILTER_COMBAT_RESULT,ACTION_RESULT_POWER_ENERGIZE)
+    end
+    for id,key in pairs(NB_PROC_IDS) do
+      if selected[key] then
+        Add('RamaladniNB_Proc_'..id,EVENT_COMBAT_EVENT,NBProcCombat,REGISTER_FILTER_ABILITY_ID,id)
+        Add('RamaladniNB_Effect_'..id,EVENT_EFFECT_CHANGED,NBProcEffect,REGISTER_FILTER_ABILITY_ID,id)
+      end
+    end
+    if selected[NB_EYE] then
+      local results={ [ACTION_RESULT_DAMAGE]=true,[ACTION_RESULT_CRITICAL_DAMAGE]=true,
+        [ACTION_RESULT_DOT_TICK]=true,[ACTION_RESULT_DOT_TICK_CRITICAL]=true,[ACTION_RESULT_BLOCKED_DAMAGE]=true }
+      for result in pairs(results) do
+        Add('RamaladniNB_Attackers_'..result,EVENT_COMBAT_EVENT,NBIncomingDamage,
+          REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER,REGISTER_FILTER_COMBAT_RESULT,result)
+      end
+    end
+  end)
+  previousSelection=selected
+end
 local function InitNightblade()
   if nb.initialized then return end
   nb.initialized=true
   SLASH_COMMANDS['/rmnb']=NBDebug
-  EVENT_MANAGER:RegisterForEvent('RamaladniNB_ShareCast',
-      EVENT_ACTION_SLOT_ABILITY_USED,NBShareAbilityUsed)
-  nb.lastUltimate=(GetUnitPower and POWERTYPE_ULTIMATE and GetUnitPower('player',POWERTYPE_ULTIMATE)) or nil
-  EVENT_MANAGER:RegisterForEvent('RamaladniNB_Power',EVENT_POWER_UPDATE,NBPowerChanged)
-  EVENT_MANAGER:AddFilterForEvent('RamaladniNB_Power',EVENT_POWER_UPDATE,
-    REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_POWER_TYPE,POWERTYPE_ULTIMATE)
-  if EVENT_COMBAT_EVENT and ACTION_RESULT_POWER_ENERGIZE and
-     COMBAT_MECHANIC_FLAGS_ULTIMATE then
-    local name='RamaladniNB_NocturnalEnergy'
-    EVENT_MANAGER:RegisterForEvent(name,EVENT_COMBAT_EVENT,NBNocturnalEnergize)
-    -- Native event filtering prevents a Lua callback on every damage tick.
-    if REGISTER_FILTER_COMBAT_RESULT then
-      EVENT_MANAGER:AddFilterForEvent(name,EVENT_COMBAT_EVENT,
-        REGISTER_FILTER_COMBAT_RESULT,ACTION_RESULT_POWER_ENERGIZE)
-    end
-  end
-  for id in pairs(NB_PROC_IDS) do
-    if EVENT_COMBAT_EVENT then
-      local name='RamaladniNB_Proc_'..id
-      EVENT_MANAGER:RegisterForEvent(name,EVENT_COMBAT_EVENT,NBProcCombat)
-      EVENT_MANAGER:AddFilterForEvent(name,EVENT_COMBAT_EVENT,REGISTER_FILTER_ABILITY_ID,id)
-    end
-    local name='RamaladniNB_Effect_'..id
-    EVENT_MANAGER:RegisterForEvent(name,EVENT_EFFECT_CHANGED,NBProcEffect)
-    EVENT_MANAGER:AddFilterForEvent(name,EVENT_EFFECT_CHANGED,REGISTER_FILTER_ABILITY_ID,id)
-  end
-  if EVENT_COMBAT_EVENT then
-    EVENT_MANAGER:RegisterForEvent('RamaladniNB_Attackers',EVENT_COMBAT_EVENT,NBIncomingDamage)
-    if REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE and COMBAT_UNIT_TYPE_PLAYER then
-      EVENT_MANAGER:AddFilterForEvent('RamaladniNB_Attackers',EVENT_COMBAT_EVENT,
-        REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE,COMBAT_UNIT_TYPE_PLAYER)
-    end
-  end
 end
 local function NBDisplay(key,state,now)
-  local meta=RamaladniMastery.byKey[key]
+  local meta=M.byKey[key]
   local learned=(key==NB_SHARE) and NBShareOwned()
       or (key==NB_NOCTURNAL and NBNocturnalOwned()) or SkillState(meta)
   -- v0.9.20 NOCTURNAL ONLY: its critical chance is calculated from a RATING,
@@ -687,12 +734,12 @@ runtime.UpdateWidgetExtras=function(entry,widget,now)
           -- Keep the 4..1 internal cooldown visible even during the green flash.
           display=tostring(math.max(1,math.ceil(last+4-now)))
         else
-          display='x'..tostring(proc.count)
+          display=''
         end
       end
     end
     if key==NB_SHARE then
-      if not widget.nbShareGroup and WINDOW_MANAGER then
+      if not widget.nbShareGroup then
         local label=WINDOW_MANAGER:CreateControl(nil,widget.win,CT_LABEL)
         label:SetAnchor(BOTTOMLEFT,widget.win,BOTTOMLEFT,2,-2)
         label:SetDimensions(30,19)

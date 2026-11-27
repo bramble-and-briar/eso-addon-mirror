@@ -143,7 +143,7 @@ They come as a separate free download, **Fury's Character Tracker Windows Tools*
 **Get the Windows Tools** in the settings or type `/fct tools` (the game asks before it opens your
 browser), or use the link on the addon's ESOUI page. Unzip it into any folder you like, for example
 Documents\Elder Scrolls Online. Its own README says what each file does. The addon works fully in
-game without them. Use Windows Tools 1.5.0 or newer with this version; 1.8.4 has the Weekly tab.
+game without them. Use Windows Tools 1.5.0 or newer with this version; 1.8.5 has the Weekly tab.
 
 **Offline viewer.** The same board in your browser with the game closed, for every account and
 megaserver on this PC: every tab, Start here, research timers, the brag card, details

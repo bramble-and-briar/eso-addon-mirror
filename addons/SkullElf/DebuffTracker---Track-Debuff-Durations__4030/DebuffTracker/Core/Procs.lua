@@ -490,6 +490,8 @@ end
 function P.OnLoadoutChanged()
     version = version + 1
     englishCache = {}
+    -- sets worn / champion skills changed: which trackers listen may change ("set worn" loads, a proc's own tracker)
+    if DT.Engine.StandingChanged then DT.Engine.StandingChanged() end
     if DT.Engine.RefreshCombat then DT.Engine.RefreshCombat() end
 end
 

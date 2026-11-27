@@ -10,6 +10,9 @@
             <Action name="DEBUFFTRACKER5_TEST">
                 <Down>DebuffTracker_ToggleTest()</Down>
             </Action>
+            <Action name="DEBUFFTRACKER5_WEAVE">
+                <Down>DebuffTracker_ToggleWeave()</Down>
+            </Action>
         </Category>
     </Layer>
 </Bindings>

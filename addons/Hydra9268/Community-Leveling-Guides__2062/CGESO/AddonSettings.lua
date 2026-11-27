@@ -477,10 +477,316 @@ local function RegisterWithLAM()
         {
           type = "checkbox",
           name = Opt("opt_skipauxsteps", "Skip auxiliary travel steps"),
-          tooltip = Opt("opt_skipauxsteps_desc", "Automatically skip travel/goto-only steps when the next real objective is already done."),
-          getFunc = function() return GetNamedOption("skipauxsteps", true) end,
+          tooltip = Opt("opt_skipauxsteps_desc", "Skip tip/text fluff when the next real objective is already done. Never skips blue beacon / marker (goto) travel."),
+          getFunc = function() return GetNamedOption("skipauxsteps", false) end,
           setFunc = function(v) SetNamedOption("skipauxsteps", v) end,
+          default = false,
+          width = "full",
+        },
+        {
+          type = "header",
+          name = Opt("opt_qol", "Quality of Life"),
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_stuckstep", "Stuck-step detector"),
+          tooltip = Opt("opt_stuckstep_desc", "After staying on the same step for a while, offer to mark it done / skip."),
+          getFunc = function() return GetNamedOption("stuckstep", true) end,
+          setFunc = function(v) SetNamedOption("stuckstep", v) end,
           default = true,
+          width = "full",
+        },
+        {
+          type = "slider",
+          name = Opt("opt_stuckstep_minutes", "Stuck-step wait (minutes)"),
+          tooltip = Opt("opt_stuckstep_minutes_desc", "How long on one step before the stuck-step popup appears."),
+          min = 1, max = 60, step = 1,
+          getFunc = function() return GetNamedOption("stuckstep_minutes", 10) end,
+          setFunc = function(v) SetNamedOption("stuckstep_minutes", v) end,
+          default = 10,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_bookmarks", "Enable bookmarks"),
+          tooltip = Opt("opt_bookmarks_desc", "Allow bookmark / resume markers for the current guide."),
+          getFunc = function() return GetNamedOption("bookmarks", true) end,
+          setFunc = function(v)
+            SetNamedOption("bookmarks", v)
+            if CGV.Viewer and CGV.Viewer.Frame and CGV.Viewer.Frame.TitleBar and CGV.Viewer.Frame.TitleBar.bookmark then
+              CGV.Viewer.Frame.TitleBar.bookmark:SetHidden(not v)
+            end
+          end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "button",
+          name = Opt("opt_bookmark_set", "Bookmark this step"),
+          tooltip = Opt("opt_bookmark_set_desc", "Save a resume marker for the current guide and step."),
+          func = function()
+            if CGV.Features then CGV.Features:SetBookmark() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_bookmark_resume", "Resume bookmark"),
+          tooltip = Opt("opt_bookmark_resume_desc", "Jump to the bookmarked step for the current guide."),
+          func = function()
+            if CGV.Features then CGV.Features:ResumeBookmark() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_guidenote", "Edit guide note"),
+          tooltip = Opt("opt_guidenote_desc", "Open a copyable note for the current guide (included in bug dumps)."),
+          func = function()
+            if CGV.Features then CGV.Features:PromptGuideNote() end
+          end,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_questlink", "Quest link to journal"),
+          tooltip = Opt("opt_questlink_desc", "Ctrl+click a step goal that names a quest to open it in the journal."),
+          getFunc = function() return GetNamedOption("questlink", true) end,
+          setFunc = function(v) SetNamedOption("questlink", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_zone_nudge", "Zone-change soft nudge"),
+          tooltip = Opt("opt_zone_nudge_desc", "When you enter a zone with a different guide and you are not mid-chapter, softly suggest loading it."),
+          getFunc = function() return GetNamedOption("zone_nudge", true) end,
+          setFunc = function(v) SetNamedOption("zone_nudge", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_hidecompletedgoals", "Hide completed goals"),
+          tooltip = Opt("opt_hidecompletedgoals_desc", "Hide goals already marked complete in the Guide Viewer."),
+          getFunc = function() return GetNamedOption("hidecompletedgoals", false) end,
+          setFunc = function(v)
+            SetNamedOption("hidecompletedgoals", v)
+            if CGV.Viewer and CGV.Viewer.Update then CGV.Viewer:Update(true) end
+          end,
+          default = false,
+          width = "full",
+        },
+        {
+          type = "slider",
+          name = Opt("opt_suggest_snooze_minutes", "Suggestion snooze (minutes)"),
+          tooltip = Opt("opt_suggest_snooze_minutes_desc", "How long Not now hides a guide suggestion."),
+          min = 5, max = 120, step = 5,
+          getFunc = function() return GetNamedOption("suggest_snooze_minutes", 30) end,
+          setFunc = function(v) SetNamedOption("suggest_snooze_minutes", v) end,
+          default = 30,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_wayshrine_nearby", "Nearby wayshrine assist"),
+          tooltip = Opt("opt_wayshrine_nearby_desc", "Complete wayshrine steps when standing on the matching shrine."),
+          getFunc = function() return GetNamedOption("wayshrine_nearby", true) end,
+          setFunc = function(v) SetNamedOption("wayshrine_nearby", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_endguide_toast", "End-of-guide toast"),
+          tooltip = Opt("opt_endguide_toast_desc", "Chat line when |next auto-loads the next guide."),
+          getFunc = function() return GetNamedOption("endguide_toast", true) end,
+          setFunc = function(v) SetNamedOption("endguide_toast", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_door_nearby", "Nearby door / portal assist"),
+          tooltip = Opt("opt_door_nearby_desc", "Complete Open/Enter goals when standing at a matching door/portal POI."),
+          getFunc = function() return GetNamedOption("door_nearby", true) end,
+          setFunc = function(v) SetNamedOption("door_nearby", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_suggest_ready_ping", "Suggestion-ready chat ping"),
+          tooltip = Opt("opt_suggest_ready_ping_desc", "Chat ping when a suggestion is ready but viewer is hidden / in combat."),
+          getFunc = function() return GetNamedOption("suggest_ready_ping", true) end,
+          setFunc = function(v) SetNamedOption("suggest_ready_ping", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_home_progress", "Show progress % on Home rows"),
+          tooltip = Opt("opt_home_progress_desc", "Append completion % on Favorites/Suggested/search rows."),
+          getFunc = function() return GetNamedOption("home_progress", true) end,
+          setFunc = function(v) SetNamedOption("home_progress", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_quiet_mode", "Quiet mode"),
+          tooltip = Opt("opt_quiet_mode_desc", "Suppress suggestion ping, zone nudge, extras tip, and end toast."),
+          getFunc = function() return GetNamedOption("quiet_mode", false) end,
+          setFunc = function(v) SetNamedOption("quiet_mode", v) end,
+          default = false,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_remember_home_folder", "Remember Home folder"),
+          tooltip = Opt("opt_remember_home_folder_desc", "Reopen last Favorites/Suggested/folder on Home."),
+          getFunc = function() return GetNamedOption("remember_home_folder", true) end,
+          setFunc = function(v) SetNamedOption("remember_home_folder", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_extras_nudge", "In-zone extras tip"),
+          tooltip = Opt("opt_extras_nudge_desc", "Soft chat tip for unfinished Skyshards/Lorebooks in this zone."),
+          getFunc = function() return GetNamedOption("extras_nudge", true) end,
+          setFunc = function(v) SetNamedOption("extras_nudge", v) end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "checkbox",
+          name = Opt("opt_note_badge_only_when_set", "Note badge only when set"),
+          tooltip = Opt("opt_note_badge_only_when_set_desc", "Hide viewer note button unless a note exists."),
+          getFunc = function() return GetNamedOption("note_badge_only_when_set", true) end,
+          setFunc = function(v)
+            SetNamedOption("note_badge_only_when_set", v)
+            if CGV.Features and CGV.Features.UpdateNoteBadge then CGV.Features:UpdateNoteBadge() end
+          end,
+          default = true,
+          width = "full",
+        },
+        {
+          type = "button",
+          name = Opt("opt_undo_skip", "Undo last skip"),
+          tooltip = Opt("opt_undo_skip_desc", "Restore the step before the last skip. Also /cgv undo."),
+          func = function()
+            if CGV.Features then CGV.Features:UndoLastSkip() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_jump_zone", "Load this zone’s guide"),
+          tooltip = Opt("opt_jump_zone_desc", "Preferred Full/MQO for current zone. Also /cgv zone."),
+          func = function()
+            if CGV.Features then CGV.Features:JumpToZoneGuide() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_catchup", "Catch up completed steps"),
+          tooltip = Opt("opt_catchup_desc", "Advance past already-complete steps. Also /cgv catchup."),
+          func = function()
+            if CGV.Features then CGV.Features:CatchUpSkip() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_step_back", "Step history back"),
+          tooltip = Opt("opt_step_back_desc", "Previous step in history ring. Also /cgv back."),
+          func = function()
+            if CGV.Features then CGV.Features:StepHistoryBack() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_switch_style", "Switch Full ↔ MQO"),
+          tooltip = Opt("opt_switch_style_desc", "Jump to the other style for this zone. Also /cgv style."),
+          func = function()
+            if CGV.Features then CGV.Features:SwitchGuideStyle() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_copy_step", "Copy current step"),
+          tooltip = Opt("opt_copy_step_desc", "Dump the current step for authoring (Print to Chat)."),
+          func = function()
+            if CGV.Features then CGV.Features:CopyCurrentStep() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_list_ignored", "List ignored guides"),
+          tooltip = Opt("opt_list_ignored_desc", "Show forever-ignored guides. Also /cgv ignored."),
+          func = function()
+            if CGV.Features then CGV.Features:ListIgnoredGuides() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_clear_ignored", "Clear ignored guides"),
+          tooltip = Opt("opt_clear_ignored_desc", "Clear forever-ignored suggestions. Also /cgv clearignored."),
+          func = function()
+            if CGV.Features then CGV.Features:ClearIgnoredGuides() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_viewer_find", "Find in guide (viewer)"),
+          tooltip = Opt("opt_viewer_find_desc", "Open the viewer find box. Also /cgv findui."),
+          func = function()
+            if CGV.Features then CGV.Features:ToggleViewerFind() end
+          end,
+          width = "full",
+        },
+        {
+          type = "button",
+          name = Opt("opt_gallery_checklist", "ESOUI gallery checklist"),
+          tooltip = Opt("opt_gallery_checklist_desc", "799×498 stretch-fill PNG rules. Also /cgv gallery."),
+          func = function()
+            if CGV.Features then CGV.Features:ShowGalleryChecklist() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_upload_checklist", "Upload-day checklist"),
+          tooltip = Opt("opt_upload_checklist_desc", "Version/gallery/README reminders. Also /cgv upload."),
+          func = function()
+            if CGV.Features then CGV.Features:ShowUploadChecklist() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_mapdata_scaffold", "MapData scaffold"),
+          tooltip = Opt("opt_mapdata_scaffold_desc", "Next MapData id + stubs. Also /cgv mapdata."),
+          func = function()
+            if CGV.Features then CGV.Features:ShowMapDataScaffold() end
+          end,
+          width = "full",
+        },
+        {
+          type = "button",
+          name = Opt("opt_compact_preset", "Apply compact viewer"),
+          tooltip = Opt("opt_compact_preset_desc", "Steps shown = 1, smaller primary/secondary text."),
+          func = function()
+            if CGV.Features then CGV.Features:ApplyCompactPreset() end
+          end,
           width = "full",
         },
         {
@@ -691,6 +997,56 @@ local function RegisterWithLAM()
           setFunc = function(v) SetNamedOption("unloadunusedguides", v) end,
           default = true,
           width = "full",
+        },
+        {
+          type = "header",
+          name = Opt("opt_authoring", "Authoring"),
+          width = "full",
+        },
+        {
+          type = "button",
+          name = Opt("opt_find_step", "Find in current guide"),
+          tooltip = Opt("opt_find_step_desc", "Use /cgv find <text>, then /cgv step N."),
+          func = function()
+            d("|cfd5b02CGESO:|r type |cffffff/cgv find <text>|r then |cffffff/cgv step N|r to jump.")
+          end,
+          width = "full",
+        },
+        {
+          type = "button",
+          name = Opt("opt_cgpos_template", "Copy step template"),
+          tooltip = Opt("opt_cgpos_template_desc", "Build a step/goto template at your position (also /cgpos template)."),
+          func = function()
+            if CGV.Features then CGV.Features:CopyStepTemplate() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_cgpos_pack", "Copy MapData pack"),
+          tooltip = Opt("opt_cgpos_pack_desc", "goto + offsets + step template in one dump (also /cgpos pack)."),
+          func = function()
+            if CGV.Features then CGV.Features:CopyMapDataPack() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_cgpos_history", "Show /cgpos history"),
+          tooltip = Opt("opt_cgpos_history_desc", "Print recent /cgpos dumps (also /cgpos history)."),
+          func = function()
+            if CGV.Features then CGV.Features:PrintCgposHistory() end
+          end,
+          width = "half",
+        },
+        {
+          type = "button",
+          name = Opt("opt_poi_list", "List zone wayshrines / doors"),
+          tooltip = Opt("opt_poi_list_desc", "Live POI list for this zone (works when wayshrine Name fails, e.g. Solstice). Also /cgpos poi."),
+          func = function()
+            if CGV.Features then CGV.Features:ListZoneWayshrinesAndDoors() end
+          end,
+          width = "half",
         },
       },
     },

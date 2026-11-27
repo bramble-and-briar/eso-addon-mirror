@@ -1,4 +1,130 @@
-Ramaladni Buff & Debuff Tracker — Changelog
+Ramaladni — Changelog
+
+v1.0.1-Stable — 2026-11-27
+
+Class Mastery & HUD
+- Automatically detect purchased Class Mastery passives on eligible builds; support all 35 passives across the seven classes.
+- Update mastery indicators automatically when the committed build changes; remove inactive mastery indicators without affecting ordinary effects.
+- New mastery icons appear near the screen center; remember dragged positions by passive key. Masteries no longer consume the 12 regular-effect slots.
+- Share the Spoils: remove the idle xN proc counter from the HUD while retaining personal/group ultimate values, the green activation flash and cooldown display.
+
+Buff/Debuff Search
+- Strictly separate BUFF (41) and DEBUFF (33) results, including numeric ID searches.
+- Use the classified MD-ESO catalog and grouped effect IDs; exclude unclassified IDs and runtime discoveries from new selections.
+- Preserve existing saved indicators. Update the Buff/Debuff Base link.
+
+Saved Settings & Fixes
+- Separate EU, NA and PTS SavedVariables, with one-time migration of legacy shared settings and protection of existing world profiles.
+- Preserve ordinary effect positions and character profiles; retain legacy data for recovery where applicable.
+- Fix player-buff/enemy-debuff routing when IDs or names match.
+- Correct Nightblade critical-stat API calls and Arcanist combat callback argument positions (Rigor ability ID and Ink overflow).
+
+Technical Cleanup & Performance
+- Consolidate addon modules under one global namespace, localize API references and register runtime events/commands through addon initialization.
+- Replace legacy power-type aliases, remove undocumented GetUnitId calls, redundant API existence checks and unreachable fallbacks; remove unused Combo helper and obsolete discovery-cache accumulation.
+- Use native ability-ID event filters with dynamic registration and removal; retain a single compatibility subscription when name-dependent matching is required or an ID filter is rejected.
+- Enable class event groups only when needed by the current masteries; retain shared dependencies and preserve state for masteries that remain active.
+- Filter applicable incoming-damage results and Sorcerer shield target tags while preserving existing effect matching behavior.
+- Retain the 200 ms HUD scan cadence, the existing effect catalog and the dependency-free design.
+- Update AI disclosure, credits and release documentation in response to ESOUI feedback.
+
+Validation: automated regression and registration/dispatch stress tests in a simulated ESO API environment. Full final in-game regression, PTS runtime validation and actual engine CPU/memory profiling remain outstanding. Group Stats is not included in this release.
+
+INTERNAL DEVELOPMENT HISTORY (pre-release builds)
+
+v1.0.1g4 EVENT OPTIMIZATION TEST — 2026-11-27
+- Reconcile native effect-ID subscriptions with the current tracking index; reuse unchanged registrations and remove unused ones. Use a single compatibility subscription for name-dependent effects or rejected ID filters.
+- Enable class event groups only for purchased masteries in the committed build; retain shared dependencies, baseline power and Crux on activation, and clear removed mastery transient state. Restore known, currently observed Rigor armor expiry.
+- Add exact incoming damage result filters for Nightblade and Warden; restrict eligible Sorcerer shield events to player and group-prefix tags without restricting shield ability IDs. Keep existing class filters and validation where appropriate.
+- Preserve catalog, saved-variable schema, HUD, 200 ms scan cadence, strict search and f5 callback fixes. No Group Stats.
+- Autonomous regression and registration/dispatch stress tests only. Full in-client regression and actual ESO engine CPU/memory profiling still required.
+
+v1.0.1f6 DEAD CODE CLEANUP TEST — 2026-11-27
+- Remove unused Combo helper and its ZO_ComboBox_ObjectFromContainer alias.
+- No changes to event filters, gameplay, UI, saved settings or mastery catalog.
+- Retain f5 fixes; in-client regression still required.
+
+v1.0.1f5 EVENT SIGNATURE TEST — 2026-11-27
+- Correct Arcanist combat callback offsets for abilityId (Rigor) and overflow (Ink).
+- No change to proc thresholds, durations, saved settings, HUD or event registrations.
+- Targeted verification against API 101051/101052; not a fully verified release.
+
+v1.0.1f4 API GUARD CLEANUP TEST — 2026-11-27
+- Remove redundant combat constant/event guards and unreachable fallback registrations. Existing filters unchanged when documented APIs are present.
+- Use the native scene visibility method directly; keep missing-scene checks.
+- Remove existence guards for the verified debug output function and mandatory internal module exports.
+- Preserve runtime validation, saved settings, mastery records and strict effect search.
+- Targeted API cleanup; remaining internal contracts and complete in-client regression still required.
+
+v1.0.1f3 API LOCALIZATION TEST — 2026-11-27
+- Cache remaining runtime ESO API, UI constants and standard Lua library references in each module.
+- Group existing core API aliases at the top; keep the saved-variable root lookup dynamic.
+- No gameplay, event registration, HUD or saved-variable schema changes.
+- Static localization audit only; full API signature verification and in-client regression still required.
+
+v1.0.1f2 API VERIFICATION TEST — 2026-11-27
+- Replace four legacy power-type aliases with documented combat mechanic flags.
+- Remove undocumented unit-ID calls; use combat target type for local ultimate gains and retain the approximate attacker name match.
+- Use documented cast/description arguments and cast-duration return; use the established playerpet unit-tag prefix.
+- Remove selected redundant constant/event guards. No event-filter redesign or saved-data changes.
+- Targeted API verification only; remaining API and in-game regression required.
+
+v1.0.1f API & CODE CLEANUP TEST — 2026-11-27
+- Use local addon namespace references in all modules; cache frequently used existing API references and event constants.
+- Remove existence checks for selected functions verified in API 101051 and 101052.
+- Correct Nightblade critical-rating and conversion call signatures to match both API documents.
+- Stop writing the unused runtime discovery/learned cache; retain legacy saved data for compatibility.
+- Preserve 35 mastery records, strict search, HUD positions and existing event registrations.
+- Partial compliance test: remaining API/constant verification, event filters and in-client regression required.
+
+v1.0.1e STRICT EFFECT SEARCH TEST — 2026-11-27
+- Separate BUFF (41) and DEBUFF (33) search results using the classified MD-ESO catalog.
+- Reject unclassified numeric IDs and runtime/legacy discoveries in search.
+- Validate the category again when selecting and adding a result.
+- Existing indicators, coordinates, Auto Mastery and combat mechanics preserved.
+- TEST ONLY: in-game regression required.
+
+v1.0.1d AUTO MASTERY TEST — 2026-11-27
+- Detect purchased class masteries from ESO's native skill data, only on eligible builds.
+- Refresh on skill and armory events and on return to gameplay; no continuous skill scan.
+- Separate runtime mastery widgets from the 12 saved regular-effect entries.
+- Retire old manual mastery entries without moving saved buff/debuff indicators.
+- New mastery icons start near center; moved mastery positions persist by passive key.
+- Keep cooldown and green flash for Share the Spoils; remove idle xN counter from HUD.
+- Update Buff/Debuff Base link. TEST ONLY: in-game regression required.
+
+v1.0.1c PHASE 3 TEST — 2026-11-27
+- Fixed legacy SavedVariables migration by inspecting the raw account before
+  initializing world-specific settings. Never open the legacy parent through
+  a nil-namespace SavedVars interface during migration.
+- Preserve existing world profiles; legacy import is one-time and only when
+  no world already owns settings. Ambiguous legacy data stays as a backup.
+- Fixed buff event routing: enemy debuffs can no longer activate or fade a
+  matching player-buff indicator via the Lua and/or fall-through.
+- No changes to Mastery modules, effect IDs, HUD layout, timers or filters.
+- TEST ONLY: in-game verification required. Back up SavedVariables first.
+
+v1.0.1b PHASE 2 TEST — 2026-11-06
+- Suppressed automatic login/loading chat announcement.
+- Added per-Ability-ID + player-unit filters for Arcanist Erudite's Rigor
+  armor/proc effect callbacks.
+- Added per-result filters to Arcanist Erudite's Rigor incoming-damage and
+  Templar combat callbacks, preserving each handler's accepted result set.
+- Removed unnecessary guards around ESO's core GetAbilityName API in five
+  class modules; all related mastery IDs and duration calculations unchanged.
+- Core EVENT_EFFECT_CHANGED and 200 ms unit scans intentionally left intact:
+  changing them would risk losing enemy debuffs and short buffs.
+- Removed Nightblade critical-stat pcall wrappers, using the documented
+  GetPlayerStat/GetCriticalStrikeChance signatures with value validation.
+  This is still pending in-game confirmation of the critical chance display.
+- All changes require in-game regression verification before public release.
+
+v1.0.1 TECHNICAL TEST — 2026-11-06
+- Removed extra globals for search, effect groups, keybindings and Sorcerer probe.
+- Preserved in-game hotkeys through updated Bindings.xml namespace.
+- Added EU/NA/PTS-separated SavedVariables with one-time legacy migration.
+- No changes to tracked effect IDs, mastery formulas, cooldowns or HUD update interval.
+- TEST ONLY: requires in-game regression testing before publishing.
 
 v1.0.0 STABLE — 2026-11-04
 - First public stable release, based on the user-tested v1.0.4g RC5.

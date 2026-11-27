@@ -1,5 +1,5 @@
-
-LeoAltholicToolbarUI.items = {
+local LeoAltholic = LeoAltholic
+LeoAltholic.ToolbarUI.items = {
     INVENTORY = 1,
     BANKSIZE = 2,
     WRITSTATUS = 3,
@@ -7,76 +7,84 @@ LeoAltholicToolbarUI.items = {
     RIDING = 5
 }
 
-function LeoAltholicToolbarUI.normalizeSettings()
+local targetUnitFrame
+
+function LeoAltholic.ToolbarUI.normalizeSettings()
     if not LeoAltholic.globalData.toolbar then LeoAltholic.globalData.toolbar = {} end
     if not LeoAltholic.globalData.settings.toolbar then LeoAltholic.globalData.settings.toolbar = {} end
 end
 
-function LeoAltholicToolbarUI.SetPosition(left, top)
+function LeoAltholic.ToolbarUI.SetPosition(left, top)
     LeoAltholic.globalData.toolbar.position = {
         left = left,
         top = top
     }
 end
-function LeoAltholicToolbarUI.GetPosition()
+function LeoAltholic.ToolbarUI.GetPosition()
 --    return LeoAltholic.globalData.toolbar.position or    { left = 100; top = 200; }        --original code
     return LeoAltholic.globalData.toolbar.position or    { left = 1200; top = 1580; }    --Teva's mod to personalize position for all accounts
 end
 
-function LeoAltholicToolbarUI.SetEnabled(value)
+function LeoAltholic.ToolbarUI.SetEnabled(value)
     LeoAltholic.globalData.settings.toolbar.enabled = value
-    LeoAltholicToolbarUI.RestorePosition()
+    LeoAltholic.ToolbarUI.RestorePosition()
 end
-function LeoAltholicToolbarUI.IsEnabled()
+function LeoAltholic.ToolbarUI.IsEnabled()
     if LeoAltholic.globalData.settings.toolbar.enabled == nil then LeoAltholic.globalData.settings.toolbar.enabled = false end
     return LeoAltholic.globalData.settings.toolbar.enabled
 end
 
-function LeoAltholicToolbarUI.SetHideDoneWrit(value)
+function LeoAltholic.ToolbarUI.SetHideDoneWrit(value)
     LeoAltholic.globalData.settings.toolbar.hideDoneWrit = value
 end
-function LeoAltholicToolbarUI.GetHideDoneWrit()
+function LeoAltholic.ToolbarUI.GetHideDoneWrit()
     if LeoAltholic.globalData.settings.toolbar.hideDoneWrit == nil then LeoAltholic.globalData.settings.toolbar.hideDoneWrit = false end
     return LeoAltholic.globalData.settings.toolbar.hideDoneWrit
 end
 
-function LeoAltholicToolbarUI.SetBumpCompass(value)
+function LeoAltholic.ToolbarUI.SetBumpCompass(value)
     LeoAltholic.globalData.settings.toolbar.bumpCompass = value
-    LeoAltholicToolbarUI.BumpCompass()
+    LeoAltholic.ToolbarUI.BumpCompass()
 end
-function LeoAltholicToolbarUI.GetBumpCompass()
+function LeoAltholic.ToolbarUI.GetBumpCompass()
     if LeoAltholic.globalData.settings.toolbar.bumpCompass == nil then LeoAltholic.globalData.settings.toolbar.bumpCompass = false end
     return LeoAltholic.globalData.settings.toolbar.bumpCompass
 end
-function LeoAltholicToolbarUI.BumpCompass(enabled)
+function LeoAltholic.ToolbarUI.BumpCompass(enabled)
     if enabled == nil then enabled = true end
 
     local hasWykkydsToolbar = false
     if WYK_Toolbar and wykkydsToolbar then hasWykkydsToolbar = true end
 
-    if not hasWykkydsToolbar and LeoAltholicToolbarUI.IsEnabled() and LeoAltholicToolbarUI.GetBumpCompass() then
+    if not hasWykkydsToolbar and LeoAltholic.ToolbarUI.IsEnabled() and LeoAltholic.ToolbarUI.GetBumpCompass() then
+        targetUnitFrame = targetUnitFrame or WINDOW_MANAGER:GetControlByName("ZO_TargetUnitFramereticleover")
+
         if LeoAltholicToolbar:GetTop() <= 60 and enabled then
             if math.floor(ZO_CompassFrame:GetTop()) ~= math.floor(LeoAltholicToolbar:GetTop()) + 60 then
                 ZO_CompassFrame:ClearAnchors()
-                ZO_CompassFrame:SetAnchor( TOP, GuiRoot, TOP, 0, LeoAltholicToolbar:GetTop() + 60)
-                ZO_TargetUnitFramereticleover:ClearAnchors()
-                ZO_TargetUnitFramereticleover:SetAnchor( TOP, GuiRoot, TOP, 0, LeoAltholicToolbar:GetTop() + 110)
+                ZO_CompassFrame:SetAnchor(TOP, GuiRoot, TOP, 0, LeoAltholicToolbar:GetTop() + 60)
+                if targetUnitFrame then
+                    targetUnitFrame:ClearAnchors()
+                    targetUnitFrame:SetAnchor(TOP, GuiRoot, TOP, 0, LeoAltholicToolbar:GetTop() + 110)
+                end
             end
         elseif ZO_CompassFrame:GetTop() ~= 40 or not enabled then
             ZO_CompassFrame:ClearAnchors()
-            ZO_CompassFrame:SetAnchor( TOP, GuiRoot, TOP, 0, 40 )
-            ZO_TargetUnitFramereticleover:ClearAnchors()
-            ZO_TargetUnitFramereticleover:SetAnchor( TOP, GuiRoot, TOP, 0, 88 )
+            ZO_CompassFrame:SetAnchor(TOP, GuiRoot, TOP, 0, 40)
+            if targetUnitFrame then
+                targetUnitFrame:ClearAnchors()
+                targetUnitFrame:SetAnchor(TOP, GuiRoot, TOP, 0, 88)
+            end
         end
     end
 end
 
-function LeoAltholicToolbarUI.SetItem(item, value)
+function LeoAltholic.ToolbarUI.SetItem(item, value)
     if not LeoAltholic.globalData.settings.toolbar.items then LeoAltholic.globalData.settings.toolbar.items = {} end
     LeoAltholic.globalData.settings.toolbar.items[item] = value
-    LeoAltholicToolbarUI.update()
+    LeoAltholic.ToolbarUI.update()
 end
-function LeoAltholicToolbarUI.GetItem(item)
+function LeoAltholic.ToolbarUI.GetItem(item)
     if not LeoAltholic.globalData.settings.toolbar.items then LeoAltholic.globalData.settings.toolbar.items = {} end
     if LeoAltholic.globalData.settings.toolbar.items[item] == nil then LeoAltholic.globalData.settings.toolbar.items[item] = true end
     return LeoAltholic.globalData.settings.toolbar.items[item]
@@ -90,24 +98,24 @@ local function checkCenter()
             x = LeoAltholicToolbar:GetLeft() + (guiRootX - x)
             LeoAltholicToolbar:ClearAnchors()
             LeoAltholicToolbar:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, LeoAltholicToolbar:GetTop())
-            LeoAltholicToolbarUI.SetPosition(x, LeoAltholicToolbar:GetTop())
+            LeoAltholic.ToolbarUI.SetPosition(x, LeoAltholicToolbar:GetTop())
         end
     end
 end
 
-function LeoAltholicToolbarUI.OnWindowMoveStop()
+function LeoAltholic.ToolbarUI:OnWindowMoveStop()
     checkCenter()
-    LeoAltholicToolbarUI.SetPosition(LeoAltholicToolbar:GetLeft(), LeoAltholicToolbar:GetTop())
+    LeoAltholic.ToolbarUI.SetPosition(LeoAltholicToolbar:GetLeft(), LeoAltholicToolbar:GetTop())
 end
 
-function LeoAltholicToolbarUI.RestorePosition()
-    local position = LeoAltholicToolbarUI.GetPosition()
+function LeoAltholic.ToolbarUI.RestorePosition()
+    local position = LeoAltholic.ToolbarUI.GetPosition()
     local left = position.left
     local top = position.top
 
     LeoAltholicToolbar:ClearAnchors()
     LeoAltholicToolbar:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, left, top)
-    if LeoAltholicToolbarUI.IsEnabled() then
+    if LeoAltholic.ToolbarUI.IsEnabled() then
         LeoAltholicToolbar:SetHidden(false)
     else
         LeoAltholicToolbar:SetHidden(true)
@@ -129,10 +137,8 @@ local function hasExpiredQueue()
     return false
 end
 
-function LeoAltholicUI.TooltipWarning(control, visible)
-
+function LeoAltholic.UI.TooltipWarning(control, visible)
     if visible and hasExpiredQueue() then
-        if not parent then parent = control end
         InitializeTooltip(InformationTooltip, control, TOPLEFT, -100, 40, TOPLEFT)
         for x,data in pairs(LeoAltholic.timerQueue) do
             if GetDiffBetweenTimeStamps(data.time, GetTimeStamp()) <= 0 then
@@ -147,9 +153,9 @@ function LeoAltholicUI.TooltipWarning(control, visible)
     end
 end
 
-function LeoAltholicToolbarUI.update()
-    if not LeoAltholicToolbarUI.IsEnabled() then return end
-    LeoAltholicToolbarUI.BumpCompass()
+function LeoAltholic.ToolbarUI.update()
+    if not LeoAltholic.ToolbarUI.IsEnabled() then return end
+    LeoAltholic.ToolbarUI.BumpCompass()
     local char = LeoAltholic.GetMyself()
     local toolbar = WINDOW_MANAGER:GetControlByName("LeoAltholicToolbar")
 --Teva moved these definitions up so can adjust offsetX and prevent warning from visually stacking atop an icon
@@ -165,7 +171,7 @@ function LeoAltholicToolbarUI.update()
     local texture = GetControl(toolbar, "InventoryTexture")
     label:SetHidden(true)
     texture:SetHidden(true)
-    if LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.INVENTORY) then
+    if LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.INVENTORY) then
         local color = '|c' .. LeoAltholic.color.hex.green
         if char.inventory.free <= 25 then color = '|c'..LeoAltholic.color.hex.yellow end
         if char.inventory.free <= 10 then color = '|c'..LeoAltholic.color.hex.red end
@@ -188,7 +194,7 @@ function LeoAltholicToolbarUI.update()
     texture = GetControl(toolbar, "BankSizeTexture")
     label:SetHidden(true)
     texture:SetHidden(true)
-    if LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.BANKSIZE) then
+    if LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.BANKSIZE) then
         local bankcolor = '|c' .. LeoAltholic.color.hex.green
         if bankfree <= 25 then bankcolor = '|c'..LeoAltholic.color.hex.yellow end
         if bankfree <= 10 then bankcolor = '|c'..LeoAltholic.color.hex.red end
@@ -207,7 +213,7 @@ function LeoAltholicToolbarUI.update()
     if hasExpiredQueue() then
         totalWidth = totalWidth + 25    --added by Teva to stop the warning icon stacking
         warning:SetHidden(false)
-        local line = GetControl(toolbar, "WarningLine")
+        line = GetControl(toolbar, "WarningLine")
         line:SetHidden(false)
         line:SetAnchor(TOPLEFT, warning, TOPLEFT, 2, 0)
         line:SetAnchor(BOTTOMRIGHT, warning, BOTTOMLEFT, 2, 0)
@@ -218,13 +224,13 @@ function LeoAltholicToolbarUI.update()
 -- STATUS aka WRITSTATUS: SECTIONS FOR WRIT STATUS & RIDING --
     local checklist = GetControl(toolbar, "Checklist")
     local shownChecklist = false
-    if LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.WRITSTATUS) then
+    if LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.WRITSTATUS) then
         checklist:SetAnchor(TOPLEFT, toolbar, TOPLEFT, offsetX, 0)
         checklist:SetHidden(false)
         local icon
         for _, craft in pairs(LeoAltholic.allCrafts) do
             icon = GetControl(checklist, "Craft"..craft.."Icon")
-            if LeoAltholicChecklistUI.GetCraft(craft) then
+            if LeoAltholic.ChecklistUI.GetCraft(craft) then
                 local isDone = false    --Teva commented this out, don't recall why... double-check if it tests right with it back in now that all else works
                 for _, writ in pairs(char.quests.writs) do
                     if craft == writ.craft then
@@ -256,7 +262,7 @@ function LeoAltholicToolbarUI.update()
                             icon:SetColor(1,0,0,1)        --red
                         end
                         --Teva adjusted colors and conditions above
-                        if not isDone or not LeoAltholicToolbarUI.GetHideDoneWrit() then
+                        if not isDone or not LeoAltholic.ToolbarUI.GetHideDoneWrit() then
                             shownChecklist = true
                             icon:SetHidden(false)
                             icon:SetAnchor(TOPLEFT, checklist, TOPLEFT, checklistOffsetX, -2)
@@ -278,7 +284,7 @@ function LeoAltholicToolbarUI.update()
         icon = GetControl(checklist, "RidingIcon")
         icon:SetHidden(true)
 --Teva added 2nd condition on next line: and riding training not complete
-        if char.attributes.riding.time - GetTimeStamp() < 0 and LeoAltholicChecklistUI.GetRiding() then
+        if char.attributes.riding.time - GetTimeStamp() < 0 and LeoAltholic.ChecklistUI.GetRiding() then
             shownChecklist = true
             icon:SetHidden(false)
             icon:SetColor(1,0,0,1)
@@ -309,7 +315,7 @@ function LeoAltholicToolbarUI.update()
         label:SetHidden(true)
         texture:SetHidden(true)
     end
-    if LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.RESEARCH) then
+    if LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.RESEARCH) then
         local firstTexture
         for _,craft in pairs(LeoAltholic.craftResearch) do
             if LeoAltholic.HasStillResearchFor(craft) then
@@ -348,7 +354,7 @@ function LeoAltholicToolbarUI.update()
     line:SetHidden(true)
     label:SetHidden(true)
     texture:SetHidden(true)
-    if LeoAltholicToolbarUI.GetItem(LeoAltholicToolbarUI.items.RIDING) and
+    if LeoAltholic.ToolbarUI.GetItem(LeoAltholic.ToolbarUI.items.RIDING) and
             (char.attributes.riding.speed < char.attributes.riding.speedMax or
             char.attributes.riding.stamina < char.attributes.riding.staminaMax or
             char.attributes.riding.capacity < char.attributes.riding.capacityMax) then

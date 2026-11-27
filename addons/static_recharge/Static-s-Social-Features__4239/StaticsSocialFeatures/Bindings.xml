@@ -2,7 +2,7 @@
 	<Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
 		<Category name="Static's Social Features">
 			<Action name="SSF_MOUNT_PLAYER">
-				<Down>StaticsSocialFeatures.Mounts:MountPlayer()</Down> 
+				<Down>StaticsSocialFeatures.Mounts.MountPlayer()</Down> 
 			</Action>
     </Category>
 	</Layer>

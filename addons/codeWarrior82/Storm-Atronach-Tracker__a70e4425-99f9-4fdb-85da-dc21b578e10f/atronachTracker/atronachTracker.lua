@@ -1,4 +1,9 @@
 local appName = "atronachTracker"
+local appVersion = 0 -- bump this on each update
+local name = "apps screen name"
+local info = "What's New:\nreason for update."
+local alreadyChecked = false
+local notFoundAlreadyChecked = false
 local atronachAbilityID = 25312
 local atroBaseID = 80459
 local atroGreaterID = 80463
@@ -25,7 +30,8 @@ atronachTracker.defaults = {
     autoTrack = true,
 	notifyStart = true,
     yAxisText = 930,
-    xAxisText = 1300
+    xAxisText = 1300,
+	lastSeenVersion = 0
 }
 
 --print message to chat box
@@ -230,7 +236,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
-            min = 0, max = 1700, step = 10,
+            min = 0, max = 2200, step = 10,
             getFunc = function()
                 return atronachTracker.savedVariables.xAxisText
             end,
@@ -244,7 +250,7 @@ local function createOptions()
             type = "slider",
             name = "Icon and Text y Position",
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
-            min = 0, max = 1000, step = 10,
+            min = 0, max = 1200, step = 10,
             getFunc = function()
                 return atronachTracker.savedVariables.yAxisText
             end,
@@ -281,7 +287,11 @@ end
 local function stopTrackingAuto()
 
     if atronachTracker.savedVariables.trackAtro and atronachTracker.savedVariables.autoTrack then
-        printMessage("Atronach Ultimate not found")
+		if not notFoundAlreadyChecked then
+            printMessage("Atronach Ultimate not found")
+        end
+		notFoundAlreadyChecked = true
+        alreadyChecked = false
         unRegisterAlerts()
         satrack:SetHidden(true)
     end
@@ -289,8 +299,12 @@ end
 
 --start tracking if set is not equipped
 local function startTrackingAuto()
-    if atronachTracker.savedVariables.trackAtro and atronachTracker.savedVariables.autoTrack then
-        printMessage("Found Atronach Ultimate")
+    if atronachTracker.savedVariables.trackAtro and atronachTracker.savedVariables.autoTrack then   
+		if not alreadyChecked then
+			printMessage("Found Atronach Ultimate")
+		end
+		alreadyChecked = true
+		notFoundAlreadyChecked = false
         registerAlerts()
     end
 end
@@ -323,6 +337,14 @@ local function checkSkills()
     end
 end
 
+--notify about update when player activates
+local function activated()
+    if atronachTracker.savedVariables.lastSeenVersion ~= appVersion then
+        zo_callLater(function() LibNotify.postUpdateNotification(appName, info, name) end, 500)
+        atronachTracker.savedVariables.lastSeenVersion = appVersion
+    end
+end	
+
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -352,10 +374,10 @@ local function onAddOnLoaded(event, name)
     --check if set is equipped
     if not checkSkills() and atronachTracker.savedVariables.autoTrack and atronachTracker.savedVariables.trackAtro then
         --notify set not found
-        zo_callLater(function() printMessage("Atronach Ultimate not found") end, 600)
+        zo_callLater(function() printMessage("Atronach Ultimate not found") notFoundAlreadyChecked = true end, 600)
     elseif checkSkills() and atronachTracker.savedVariables.autoTrack and atronachTracker.savedVariables.trackAtro then
         --notify set found
-        zo_callLater(function() printMessage("Found Atronach Ultimate") end, 600)
+        zo_callLater(function() printMessage("Found Atronach Ultimate") alreadyChecked = true end, 600)
     end
 
     --setup text field areas
@@ -386,6 +408,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
+	
+	--register for activation notifications, leaving this always active
+	EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --register for a callback when a skill is change, removed or updated, then check for relevent ulti
     ACTION_BAR_ASSIGNMENT_MANAGER:RegisterCallback("SlotUpdated", function(actionSlotIndex, hotbarCategory, isChangedByPlayer)

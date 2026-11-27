@@ -1,18 +1,27 @@
 ## Title: ESO Hardcore
 ## Author: Trash Man Enterprises
-## Version: 0.8.9
-## AddOnVersion: 20
+## Version: 0.9.49
+## AddOnVersion: 67
 ## APIVersion: 101051 101052 2.5.3.0
-## OptionalDependsOn: LibRadialMenu
+## OptionalDependsOn: LibRadialMenu LibAddonMenu-2.0 LibGamepad LibVotans LibHarvensAddonSettings
 ## SavedVariables: ESOHardcoreSaved
 Core.lua
 Skills.lua
 SkillWindow.lua
 Expansion.lua
 Progression.lua
+Rewards.lua
+Mastery.lua
+ImportedHarvest.lua
+ResourceSense.lua
+ResourceSense.xml
+Harvesting.lua
+AdvancedRewards.lua
 Developer.lua
 Economy.lua
 BagGrid.lua
+CombatCamera.lua
+Settings.lua
 Hardcore.lua
 NativeInventory.lua
 NativeBank.lua

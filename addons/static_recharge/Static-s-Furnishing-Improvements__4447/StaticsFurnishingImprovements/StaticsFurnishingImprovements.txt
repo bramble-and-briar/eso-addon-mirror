@@ -1,0 +1,22 @@
+## Title: |c0086B3Static's Furnishing Improvements|r
+## Author: |cFF0000Static_Recharge|r
+## Version: 1.1.1
+## AddOnVersion: 111
+## APIVersion: 101051
+## SavedVariables: StaticsFurnishingImprovementsWideVars
+## DependsOn: LibStatic>=300 LibAddonMenu-2.0>=43 LibCustomMenu>=730
+## Description: Adds functionality to the in game furnishing menus and placement UI
+## IsLibrary: false
+
+# This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 
+# The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. 
+# All rights reserved
+
+# You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+StaticsFurnishingImprovements.lua
+Settings.lua
+Queue.lua
+VaultStats.lua
+StaticsFurnishingImprovements.xml
+Bindings.xml

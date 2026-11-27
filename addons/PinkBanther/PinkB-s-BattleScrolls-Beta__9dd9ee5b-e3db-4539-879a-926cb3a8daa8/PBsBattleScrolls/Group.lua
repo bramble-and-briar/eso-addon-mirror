@@ -214,6 +214,9 @@ function group:Receive(unitTag, data)
         name = account
     end
     self.heard = self.heard + 1
+    if ADDON.names then
+        ADDON.names:Note(unitTag)
+    end
     local now = Now()
     local live = data.state == STATE_LIVE
     local member = self.members[key]

@@ -2,6 +2,7 @@ if ZO_CreateStringId then ZO_CreateStringId('SI_ESOHC_NATIVE_GRID_LAYER','Hardco
 -- Independent backpack grid; supported keybind callbacks only.
 local N=ESOHardcore; local s=N.safe
 local I={rows={},cells={},page=1,selected=1,category=1,sort=1,dirty=true};N.inventory=I
+local PAGE_SIZE=30
 local categories={'All','Weapons','Armor','Consumables','Materials','Other','Equipped','HC Materials'}
 local sorts={'Category','Name','Quality','Quantity','Market value'}
 local function matches(v,...)
@@ -72,12 +73,12 @@ local function coloredName(e)
  return string.format('|c%02x%02x%02x%s|r',math.floor(c[1]*255+.5),math.floor(c[2]*255+.5),math.floor(c[3]*255+.5),name)
 end
 local function detail(e)
- if e and e.virtual then I.detailTitle:SetText(e.name);I.detail:SetText("HC eligible: "..e.qty.."\nPhysical Craft Bag: "..e.physical.."\nShared across Hardcore characters");return end
+ if e and e.virtual then I.detailTitle:SetText(e.name);I.detail:SetText("HC eligible: "..e.qty.."\nPhysical available: "..e.physical.."\nPersonal + shared Craft Bag");return end
  if not e then I.detailTitle:SetColor(.94,.87,.72,1);I.detailTitle:SetText('No items in this category');I.detail:SetText('');return end
  local c=qualityColor(e.quality);I.detailTitle:SetColor(c[1],c[2],c[3],1);I.detailTitle:SetText(coloredName(e)..'  ×'..fmt(e.qty))
  local lines={rarity[e.quality+1] or ('Quality '..fmt(e.quality))}
  local function add(v) if type(v)=='string' and v~='' then lines[#lines+1]=v end end
- add('HC eligible: '..math.min(e.qty,N.hcEligible(e.link,false))..' / '..e.qty)
+ add('HC eligible: '..(e.eligible or math.min(e.qty,N.hcEligible(e.link,false)))..' / '..e.qty)
  local function stat(n,v) if type(v)=='number' and v>0 then add(n..': '..fmt(v)) end end
  local link=e.link
  local typ=s(GetItemLinkItemType,link);if typ and GetString then add(s(GetString,'SI_ITEMTYPE',typ)) end
@@ -111,12 +112,12 @@ local function renderDoll()
 end
 local function render()
  if I.dirty then scan() end
- local total=math.max(1,math.ceil(#I.rows/60));I.page=math.max(1,math.min(total,I.page));local count=math.min(60,#I.rows-(I.page-1)*60);I.selected=math.max(1,math.min(math.max(1,count),I.selected))
+ local total=math.max(1,math.ceil(#I.rows/PAGE_SIZE));I.page=math.max(1,math.min(total,I.page));local count=math.min(PAGE_SIZE,#I.rows-(I.page-1)*PAGE_SIZE);I.selected=math.max(1,math.min(math.max(1,count),I.selected))
  I.header:SetText('HARDCORE INVENTORY     •     '..I.used..' / '..I.cap..' slots')
  I.filter:SetText('Category: '..categories[I.category]..'     |     Sort: '..sorts[I.sort]..'     |     Page '..I.page..' / '..total)
- for j,c in ipairs(I.cells) do local e=I.rows[(I.page-1)*60+j];c.icon:SetHidden(not e);c.qty:SetText(e and e.qty>1 and fmt(e.qty) or '');local col=e and qualityColor(e.quality) or {.25,.21,.15};if e and e.icon then c.icon:SetTexture(e.icon) else c.icon:SetHidden(true) end;c.bg:SetEdgeColor(col[1],col[2],col[3],1);local active=not I.dollFocus and j==I.selected and e~=nil;c.sel:SetHidden(not active);c.icon:SetColor(active and 1 or .78,active and 1 or .78,active and 1 or .78,1) end
+ for j,c in ipairs(I.cells) do local e=I.rows[(I.page-1)*PAGE_SIZE+j];c.icon:SetHidden(not e);c.qty:SetText(e and e.qty>1 and fmt(e.qty) or '');local col=e and qualityColor(e.quality) or {.25,.21,.15};if e and e.icon then c.icon:SetTexture(e.icon) else c.icon:SetHidden(true) end;c.bg:SetEdgeColor(col[1],col[2],col[3],1);local active=not I.dollFocus and j==I.selected and e~=nil;c.sel:SetHidden(not active);c.icon:SetColor(active and 1 or .78,active and 1 or .78,active and 1 or .78,1) end
  renderDoll()
- local e=I.rows[(I.page-1)*60+I.selected]
+ local e=I.rows[(I.page-1)*PAGE_SIZE+I.selected]
  if I.dollFocus then
   e=wornEntry(I.dollSelected);detail(e)
   if not e then I.detailTitle:SetColor(.94,.87,.72,1);I.detailTitle:SetText(dollSlots[I.dollSelected][2]);I.detail:SetText('Empty equipment slot') end
@@ -132,23 +133,6 @@ local function build()
  I.dollTitle=label(doll,8,6,238,26,20);I.dollTitle:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
  I.dollCells={};I.dollSelected=1
  -- Native control artwork: no external texture dependency.
- local function plate(x,y,w,h,r,g,b)
-  local p=frame(doll,x,y,w,h);p:SetCenterColor(r,g,b,1);p:SetEdgeColor(.66,.51,.29,1);return p
- end
- plate(108,76,38,40,.19,.18,.16)
- plate(103,91,48,13,.30,.25,.15)
- plate(113,93,28,6,.035,.035,.035)
- plate(111,116,32,12,.25,.21,.14)
- plate(91,130,24,27,.29,.25,.18);plate(139,130,24,27,.29,.25,.18)
- plate(108,128,38,75,.22,.21,.18)
- plate(117,141,20,28,.37,.29,.15)
- plate(123,147,8,16,.73,.55,.22)
- plate(96,157,15,48,.19,.18,.16);plate(143,157,15,48,.19,.18,.16)
- plate(93,204,18,19,.30,.25,.15);plate(143,204,18,19,.30,.25,.15)
- plate(106,200,42,15,.40,.30,.15)
- plate(108,215,17,75,.21,.20,.17);plate(129,215,17,75,.21,.20,.17)
- plate(106,253,20,15,.30,.25,.15);plate(128,253,20,15,.30,.25,.15)
- plate(103,290,23,16,.24,.21,.16);plate(128,290,23,16,.24,.21,.16)
  for j,v in ipairs(dollSlots) do
   local x=(j%2==1) and 17 or 181;local y=36+math.floor((j-1)/2)*67
   local bg=frame(doll,x,y,56,48);bg:SetCenterColor(.025,.025,.023,1)
@@ -161,15 +145,12 @@ local function build()
  local headerRule=frame(p,24,88,1102,1);headerRule:SetEdgeColor(.40,.32,.19,1)
  I.header=label(p,24,16,1100,36,30);I.filter=label(p,24,56,1100,28,20)
  local panel=frame(p,825,100,301,515);panel:SetCenterColor(.045,.043,.038,.98);panel:SetEdgeColor(.40,.32,.19,1)
- for j=1,60 do
+ for j=1,PAGE_SIZE do
   local x=25+((j-1)%10)*80;local y=105+math.floor((j-1)/10)*75
   local bg=frame(p,x,y,68,68);bg:SetCenterColor(.025,.025,.023,1)
   local icon=WINDOW_MANAGER:CreateControl(nil,bg,CT_TEXTURE);icon:SetAnchor(CENTER,bg,CENTER,0,0);icon:SetDimensions(56,56)
   local qty=label(bg,3,44,61,22,18);qty:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
   local sel=frame(bg,-4,-4,76,76);sel:SetCenterColor(0,0,0,0);sel:SetEdgeTexture('',4,4,4);sel:SetEdgeColor(1,.88,.35,1);sel:SetDrawLayer(DL_OVERLAY);sel:SetDrawLevel(10)
-  for _,pos in ipairs({{0,0},{62,0},{0,62},{62,62}}) do
-   local corner=frame(sel,pos[1],pos[2],14,14);corner:SetCenterColor(1,.88,.35,1);corner:SetEdgeColor(1,.96,.75,1);corner:SetDrawLayer(DL_OVERLAY);corner:SetDrawLevel(11)
-  end
   sel:SetHidden(true)
   I.cells[j]={bg=bg,icon=icon,qty=qty,sel=sel}
  end
@@ -178,10 +159,10 @@ local function build()
  I.money=label(p,24,641,1102,30,22)
 end
 
-local function current() if I.dollFocus then return wornEntry(I.dollSelected) end;return I.rows[(I.page-1)*60+I.selected] end
+local function current() if I.dollFocus then return wornEntry(I.dollSelected) end;return I.rows[(I.page-1)*PAGE_SIZE+I.selected] end
 local function move(delta)
  local n=#I.rows;if n==0 then return end
- local old=(I.page-1)*60+I.selected; if delta==-1 and (old-1)%10==0 then return end; if delta==1 and old%10==0 then return end; local index=old+delta; if index<1 or index>n then return end; I.page=math.floor((index-1)/60)+1;I.selected=(index-1)%60+1;render()
+ local old=(I.page-1)*PAGE_SIZE+I.selected; if delta==-1 and (old-1)%10==0 then return end; if delta==1 and old%10==0 then return end; local index=old+delta; if index<1 or index>n then return end; I.page=math.floor((index-1)/PAGE_SIZE)+1;I.selected=(index-1)%PAGE_SIZE+1;render()
 end
 local function filter(delta) I.category=(I.category-1+delta)%#categories+1;I.page=1;I.selected=1;I.dirty=true;render() end
 local function sort() I.sort=I.sort%#sorts+1;I.page=1;I.selected=1;I.dirty=true;render() end
@@ -217,9 +198,17 @@ end
 local function back() release();SCENE_MANAGER:HideCurrentScene() end
 local function handoff() native() end
 local function secureAction(name,...)
- if type(IsProtectedFunction)=='function' and s(IsProtectedFunction,name)==false and type(_G[name])=='function' then return pcall(_G[name],...) end
- if type(CallSecureProtected)=='function' then return pcall(CallSecureProtected,name,...) end
- return false,'Secure API unavailable'
+ -- Never read a protected native function from _G: even type() can taint it.
+ -- For known protected actions use only the supported string-based dispatcher.
+ if name=='RequestMoveItem' or name=='UseItem' or s(IsProtectedFunction,name)==true then
+  if type(CallSecureProtected)=='function' then return pcall(CallSecureProtected,name,...) end
+  return false,'Secure API unavailable; use native UI'
+ end
+ -- Only explicitly documented public actions may use the direct path.
+ if name=='RequestEquipItem' or name=='DestroyItem' or name=='TransferCurrency' then
+  return pcall(function(...) local f=_G[name];if type(f)~='function' then return false end;return f(...) end,...)
+ end
+ return false,'Unsupported action; use native UI'
 end
 local function destination(e)
  local typ=s(GetItemEquipType,e.bag,e.slot)
@@ -237,7 +226,6 @@ local function isContainer(e)
 end
 local function primary(e,chosen,destChoice)
  if not e or not N.hcActive() then return end
- if chosen~="Unequip" and N.hcEligible(e.link,false)<e.qty then notice("Stack is not fully HC eligible; split or use native inventory for non-HC actions.");return end
  if s(IsUnitInCombat,'player')~=false then notice('Direct actions require being out of combat.');return end
  if I.pending then notice('Waiting for previous action.');return end
  local name,args,kind
@@ -257,9 +245,9 @@ local function primary(e,chosen,destChoice)
  else
   local usable,quick=s(IsItemUsable,e.bag,e.slot)
   if usable~=true or quick==true then notice('Item cannot be used directly. R2 opens native inventory.');return end
-  -- Avoid using equipment which failed the equip eligibility check.
+  -- Equipment uses the dedicated native equip action.
   local typ=s(GetItemLinkItemType,e.link)
-  if typ==ITEMTYPE_ARMOR or typ==ITEMTYPE_WEAPON then notice('Equipment is not currently eligible.');return end
+  if typ==ITEMTYPE_ARMOR or typ==ITEMTYPE_WEAPON then notice('Use Equip or the native inventory for equipment.');return end
   name='UseItem';args={e.bag,e.slot};kind=isContainer(e) and 'Open container' or 'Use'
  end
  local function execute()
@@ -268,9 +256,7 @@ local function primary(e,chosen,destChoice)
   if kind=='Destroy' and (s(IsItemPlayerLocked,e.bag,e.slot)~=false or before~=e.qty) then notice('Lock or stack changed; destruction cancelled.');return end
   if kind=='Unequip' and s(GetItemLink,BAG_BACKPACK,args[4],LINK_STYLE_DEFAULT)~='' then notice('Backpack destination changed; retry.');return end
   if kind=='Equip' or kind=='Unequip' then
-   if type(_G[name])~='function' then notice(name..' unavailable. R2 opens native inventory.');return end
    if kind=='Equip' and (s(FindFirstEmptySlotInBag,BAG_BACKPACK) or -1)<0 then notice('Keep one backpack slot free before swapping equipment.');return end
-   notice(name..' protected='..tostring(s(IsProtectedFunction,name))..' destination='..tostring(args[4]))
   end
   local oldDestination=(kind=='Equip' or kind=='Unequip') and s(GetItemLink,args[3],args[4],LINK_STYLE_DEFAULT) or nil
   -- Yield the custom scene before opening a container so native loot can own focus.
@@ -278,7 +264,7 @@ local function primary(e,chosen,destChoice)
   if kind=='Open container' and (s(GetItemLink,e.bag,e.slot,LINK_STYLE_DEFAULT)~=e.link or s(IsUnitInCombat,'player')~=false) then I.pending=false;notice('Container or combat state changed.');return end
   local ok,result=secureAction(name,(unpack or table.unpack)(args))
   if not ok then I.pending=false;notice(kind..' API error: '..tostring(result)..'. R2 opens native inventory.');return end
-  if result==false and kind~='Use' then notice(kind..' returned false; checking actual inventory state.') elseif result==false then notice(kind..' rejected: false. R2 opens native inventory.');return end
+  if result==false then I.pending=false;notice(kind..' rejected. R2 opens native inventory.');return end
   I.pending=true;notice(kind..' requested via '..name..' (return '..tostring(result)..'); checking inventory.')
   zo_callLater(function()
    I.pending=false;I.dirty=true
@@ -344,7 +330,7 @@ local function executeSplit()
  if not zo_callLater then notice('Split verification unavailable.');return end
  closeSplit()
  local ok,result=secureAction('RequestMoveItem',e.bag,e.slot,e.bag,slot,amount)
- if not ok then notice('Split error: '..tostring(result));return end
+ if not ok or result==false then notice('Split unavailable. R2 opens native inventory.');return end
  I.pending=true;zo_callLater(function()
  I.pending=false;I.dirty=true
  if s(GetSlotStackSize,e.bag,e.slot)==e.qty-amount and s(GetItemLink,e.bag,slot,LINK_STYLE_DEFAULT)==e.link and s(GetSlotStackSize,e.bag,slot)==amount then notice('Split confirmed: '..amount..' / '..(e.qty-amount)) else notice('Split not confirmed (return '..tostring(result)..').') end
@@ -442,8 +428,9 @@ local function setup()
  key('UI_SHORTCUT_NEGATIVE','Back','back')
  I.scene:RegisterCallback('StateChange',function(_,state)
   if state==SCENE_SHOWING then
-   I.dirty=true;render();I.root:SetHidden(false)
+   I.dirty=true;local ok,err=pcall(render);if not ok then I.dirty=true;I.renderFailed=true;notice("Opening render: "..tostring(err));I.root:SetHidden(true);zo_callLater(function() if sceneNameNow()==sceneName then native() end end,100);return end;I.renderFailed=false;I.root:SetHidden(false)
   elseif state==SCENE_SHOWN then
+   if I.disabled or I.renderFailed then return end
    local ok,err=pcall(function() KEYBIND_STRIP:AddKeybindButtonGroup(I.keys) end)
    if ok then I.focus=true
     local ready=true
@@ -468,13 +455,16 @@ function I.close() if I.focus then back() end end
 local function tick()
  local name=sceneNameNow()
  if name==sceneName and not N.hcActive() then back();return end
- if name==sceneName then if I.focus then I.dirty=true;render() end;return end
+ if name==sceneName then if I.focus then if I.dirty then render() else local held,banked=N.hcGold();local text='HC Gold: '..fmt(held)..'   |   HC Bank: '..fmt(banked);if I.money:GetText()~=text then I.money:SetText(text) end end end;return end
  if I.focus then release() end
  if name==nativeName then
-  if N.hcActive() and not I.disabled and not I.bypass and not (ZO_Dialogs_IsShowingDialog and s(ZO_Dialogs_IsShowingDialog)) then
+  if N.hcActive() and not I.disabled and not I.bypass and not I.autoAttempt and not (ZO_Dialogs_IsShowingDialog and s(ZO_Dialogs_IsShowingDialog)) then
+   local current=SCENE_MANAGER:GetCurrentScene()
+   if not current or not current.GetState or current:GetState()~=SCENE_SHOWN then return end
+   I.autoAttempt=true
    if setup() then SCENE_MANAGER:Show(sceneName) end
   end
- else I.bypass=false end
+ else I.bypass=false;I.autoAttempt=false end
 end
 function I.options() local opts={{type='checkbox',name='HCNative unified inventory (experimental)',getFunc=function() return not I.disabled end,setFunc=function(v) I.disabled=not v;if not v and I.focus then native() end end},{type='description',text='D-pad grid. Follow the native keybind strip for item actions, sorting and native inventory fallback.'}};if N.bank then for _,v in ipairs(N.bank.options()) do opts[#opts+1]=v end end;return opts end
 function I.open() if not N.hcActive() then return end;I.bypass=false;if setup() then SCENE_MANAGER:Show(sceneName) end end
@@ -483,5 +473,5 @@ EVENT_MANAGER:RegisterForEvent('HCNativeInventoryInit',EVENT_ADD_ON_LOADED,funct
  EVENT_MANAGER:UnregisterForEvent('HCNativeInventoryInit',EVENT_ADD_ON_LOADED)
  if EVENT_INVENTORY_SINGLE_SLOT_UPDATE then EVENT_MANAGER:RegisterForEvent('HCNativeInventoryDirty',EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function() I.dirty=true end) end
  if EVENT_INVENTORY_FULL_UPDATE then EVENT_MANAGER:RegisterForEvent('HCNativeInventoryFull',EVENT_INVENTORY_FULL_UPDATE,function() I.dirty=true end) end
- EVENT_MANAGER:RegisterForUpdate('HCNativeInventoryRefresh',250,function() local ok,err=pcall(tick);if not ok then release();I.disabled=true;notice(tostring(err));if sceneNameNow()==sceneName then s(SCENE_MANAGER.Show,SCENE_MANAGER,nativeName) end end end)
+ EVENT_MANAGER:RegisterForUpdate('HCNativeInventoryRefresh',250,function() local ok,err=pcall(tick);if not ok then release();I.dirty=true;I.bypass=true;I.autoAttempt=true;notice(tostring(err));if sceneNameNow()==sceneName then s(SCENE_MANAGER.Show,SCENE_MANAGER,nativeName) end end end)
 end)

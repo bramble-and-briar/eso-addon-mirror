@@ -21,6 +21,7 @@ kpuiConst.Colors = {
 	COLOR_GREEN 			= ZO_ColorDef:New(0/255, 136/255, 103/255),
 	COLOR_BLUE 				= ZO_ColorDef:New(0/255, 80/255, 159/255),
 	COLOR_GREY 				= ZO_ColorDef:New("5c5c5c"),
+	COLOR_LIGHT_GREY 		= ZO_ColorDef:New("b4b4b4"),
 	COLOR_POISON 			= ZO_ColorDef:New(162/255, 192/255, 78/255),
 	COLOR_SOON 				= ZO_ColorDef:New(16/255, 154/255, 184/255),
 	COLOR_NOTSOON 			= ZO_ColorDef:New(238/255, 202/255, 42/255),
@@ -44,6 +45,7 @@ kpuiConst.Colors = {
 	COLOR_PINK    			= ZO_ColorDef:New("FF99CC"),
 	COLOR_ATT    			= ZO_ColorDef:New("c5e010"),
 	COLOR_TTC    			= ZO_ColorDef:New("f23d8e"),
+	COLOR_MM     			= ZO_ColorDef:New("7171d1"),
 
 
 	COLOR_DEALGREAT 		= ZO_ColorDef:New(82/255, 167/255, 49/255),

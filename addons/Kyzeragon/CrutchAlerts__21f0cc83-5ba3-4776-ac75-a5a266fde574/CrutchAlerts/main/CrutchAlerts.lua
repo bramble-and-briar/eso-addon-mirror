@@ -11,7 +11,7 @@ CrutchAlerts = {
     InfoPanel = {},
 
     name = "CrutchAlerts",
-    version = "2.28.2",
+    version = "2.29.0",
 
     unlock = false,
 }
@@ -67,9 +67,9 @@ local defaultOptions = {
     prominentV2FirstTime = true,
     general = {
         alertScale = 36,
-        showBegin = true,
+        showBegin = false, -- off by default starting 2.29.0
             beginHideSelf = false,
-        showGained = true,
+        showGained = false, -- off by default starting 2.29.0
         showOthers = true,
         showOthersTrueShot = true,
         showProminent = true, -- deprecated
@@ -91,6 +91,8 @@ local defaultOptions = {
         showGeneralAlerts = true, -- extra manual toggle for people who don't like to see general alerts in overland etc
 
         showSpeshul = true,
+        showSpeshulEffects = true,
+        showEffectsOutOfSeason = false,
 
         -- Custom IDs
         blacklist = {}, -- {[1234] = true,}
@@ -258,6 +260,9 @@ local defaultOptions = {
         tempestIconsSize = 150,
         showArcaneConveyance = true,
         showArcaneConveyanceTether = true,
+        infoPanel = {
+            showFateSealer = false,
+        },
     },
     opulentordeal = {
         showAffinityIcons = true,
@@ -267,6 +272,7 @@ local defaultOptions = {
         showBombs = true,
     },
     osseincage = {
+        showImmolating = true,
         showStricken = "TANK", -- "NEVER", "TANK", "ALWAYS"
         showChains = true,
         showCarrion = true,
@@ -628,6 +634,7 @@ local function Initialize()
         Crutch.savedOptions.prominentV2FirstTime = false
     end
 
+    -- migrate console used to be a single toggle
     if (ZO_IsConsoleOrGameCoreUI() and not Crutch.savedOptions.prominentsMigrated) then
         Crutch.MigrateConsoleProminents()
         Crutch.savedOptions.prominentsMigrated = true
@@ -700,6 +707,10 @@ local function Initialize()
     PrintTime("info panel done")
     Crutch.Drawing.Model.InitializeGrave()
     PrintTime("grave done")
+    Crutch.Drawing.Model.InitializePresent()
+    PrintTime("present done")
+    Crutch.Drawing.Trail.Initialize()
+    PrintTime("trail done")
 
     -- Boss health bar
     Crutch.BossHealthBar.Initialize()

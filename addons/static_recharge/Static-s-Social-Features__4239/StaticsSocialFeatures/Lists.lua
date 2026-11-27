@@ -13,6 +13,7 @@ local LCM = LibCustomMenu
 local FL = FRIENDS_LIST
 local FLM = FRIENDS_LIST_MANAGER
 local ILM = IGNORE_LIST_MANAGER
+local SSF = StaticsSocialFeatures
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -31,79 +32,76 @@ local Lists = {}
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:Initialize(Parent)
-Inputs:				Parent 					- The parent object containing other required information.  
+Lists.Initialize()
+Inputs:				None  
 Outputs:			None
 Description:	Initializes all of the variables and tables.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:Initialize(Parent)
-  self.Parent = Parent
-  self.eventSpace = "SSFLists"
+function Lists.Initialize()
+  Lists.eventSpace = "SSFLists"
 
   -- Update Icon from settings
-	self:UpdateFavIcon()
+	Lists.UpdateFavIcon()
 
   -- ZO Hooks
-	self:FriendListHook()
-	self:FriendEntryHook()
-	self:FriendListSortHook()
-	self:FriendKeybindStripHook()
-	self:FriendListTooltipHook()
-	self:GroupListTooltipHook()
-  self:IgnoreMasterListHook()
+	Lists.FriendListHook()
+	Lists.FriendEntryHook()
+	Lists.FriendListSortHook()
+	Lists.FriendKeybindStripHook()
+	Lists.FriendListTooltipHook()
+	Lists.GroupListTooltipHook()
+  Lists.IgnoreMasterListHook()
 
   -- Register Context Menu
-	self:FriendListContextMenu()
+	Lists.FriendListContextMenu()
 
   -- Event Regristrations
-  EM:RegisterForEvent(self.eventSpace, EVENT_IGNORE_ADDED, function(...) self:OnIgnoreAdded(...) end)
+  EM:RegisterForEvent(Lists.eventSpace, EVENT_IGNORE_ADDED, Lists.OnIgnoreAdded)
 
-	self.initialized = true
+	Lists.initialized = true
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:IsInitialized()
+Lists.IsInitialized()
 Inputs:				None
 Outputs:			initialized                         - bool for object initialized state
 Description:	Returns true if the object has been successfully initialized.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:IsInitialized()
-  return self.initialized
+function Lists.IsInitialized()
+  return Lists.initialized
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:UpdateFavIcon()
+Lists.UpdateFavIcon()
 Inputs:			  None
 Outputs:			None
 Description:	Updates the display of the fav icon.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:UpdateFavIcon()
-  local Parent = self:GetParent()
-	if Parent.SV.favIconInheritColor then
-		Parent.favIcon = zo_strformat("|t<<1>>%:<<2>>%:<<3>>:inheritcolor|t", Parent.SV.favIconSize, Parent.SV.favIconSize, Parent.SV.favIconTexture)
+function Lists.UpdateFavIcon()
+	if SSF.SV.favIconInheritColor then
+		SSF.favIcon = zo_strformat("|t<<1>>%:<<2>>%:<<3>>:inheritcolor|t", SSF.SV.favIconSize, SSF.SV.favIconSize, SSF.SV.favIconTexture)
 	else
-		Parent.favIcon = zo_strformat("|t<<1>>%:<<2>>%:<<3>>|t", Parent.SV.favIconSize, Parent.SV.favIconSize, Parent.SV.favIconTexture)
+		SSF.favIcon = zo_strformat("|t<<1>>%:<<2>>%:<<3>>|t", SSF.SV.favIconSize, SSF.SV.favIconSize, SSF.SV.favIconTexture)
 	end
 	FLM:BuildMasterList()
 	FL:RefreshFilters()
-	Parent.Chat:Debug("Fav icon updated.")
+	SSF.Chat:Debug("Fav icon updated.")
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:FriendListHook()
+Lists.FriendListHook()
 Inputs:			  None
 Outputs:			None
 Description:	Hooks into the friends list manager to add Fav tag to all entries as required.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:FriendListHook()
-  local Parent = self:GetParent()
+function Lists.FriendListHook()
 	ZO_PostHook(FLM, 'BuildMasterList', function(self_)
-		Parent.Chat:Debug("Friend List prehook started.")
+		SSF.Chat:Debug("Friend List prehook started.")
 		for i, friendData in ipairs(self_.masterList) do
-			if Parent.SV.Favs[friendData.displayName] then
+			if SSF.SV.Favs[friendData.displayName] then
 				friendData.favs = false -- ZO sort function sorts false entries before true ones
 			else
 				friendData.favs = true
@@ -114,19 +112,18 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:FriendEntryHook()
+Lists.FriendEntryHook()
 Inputs:			  None
 Outputs:			None
 Description:	Hooks into the friends list manager to add the icon for Fav friends.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:FriendEntryHook()
-  local Parent = self:GetParent()
+function Lists.FriendEntryHook()
 	ZO_PostHook(FLM, 'SetupEntry', function(self_, control, data, selected)
-		--Parent.Chat:Debug("Friend Listy Entry prehook started.")
+		--SSF.Chat:Debug("Friend Listy Entry prehook started.")
 		local displayNameLabel = control:GetNamedChild("DisplayName")
 		if displayNameLabel then
-			if Parent.SV.Favs[data.displayName] then
-				displayNameLabel:SetText(zo_strformat("<<1>> <<2>>", Parent.favIcon, ZO_FormatUserFacingDisplayName(data.displayName)))
+			if SSF.SV.Favs[data.displayName] then
+				displayNameLabel:SetText(zo_strformat("<<1>> <<2>>", SSF.favIcon, ZO_FormatUserFacingDisplayName(data.displayName)))
 			end
 		end
 	end)
@@ -134,18 +131,17 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:FriendListSortHook()
+Lists.FriendListSortHook()
 Inputs:			  None
 Outputs:			None
 Description:	Hooks into the friends list to sort Fav friends to the top.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:FriendListSortHook()
-  local Parent = self:GetParent()
+function Lists.FriendListSortHook()
 	ZO_PreHook(FL, 'SortScrollList', function(self_)
-		Parent.Chat:Debug("Friend List Sort prehook started.")
+		SSF.Chat:Debug("Friend List Sort prehook started.")
 		if self_.currentSortOrder == ZO_SORT_ORDER_UP then
 			for i, friendData in ipairs(FLM.masterList) do
-				if Parent.SV.Favs[friendData.displayName] then
+				if SSF.SV.Favs[friendData.displayName] then
 					friendData.favs = false -- ZO sort function sorts false entries before true ones
 				else
 					friendData.favs = true
@@ -153,7 +149,7 @@ function Lists:FriendListSortHook()
 			end
 		else
 			for i, friendData in ipairs(FLM.masterList) do
-				if Parent.SV.Favs[friendData.displayName] then
+				if SSF.SV.Favs[friendData.displayName] then
 					friendData.favs = true -- ZO sort function sorts false entries before true ones
 				else
 					friendData.favs = false
@@ -165,7 +161,7 @@ function Lists:FriendListSortHook()
 			prevSortKey = self_.currentSortKey
 		end
 		FRIENDS_LIST_ENTRY_SORT_KEYS["favs"] = {tiebreaker = prevSortKey}
-		if Parent.SV.favFriendsTop then
+		if SSF.SV.favFriendsTop then
 			self_.currentSortKey = "favs"
 		end
 	end)
@@ -173,21 +169,20 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:FriendKeybindStripHook()
+Lists.FriendKeybindStripHook()
 Inputs:			  None
 Outputs:			None
 Description:	Hooks into the friends keybind strip to add the invite and whisper option for offline 
 							favs as well as the add/remove fav friend button.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:FriendKeybindStripHook()
-  local Parent = self:GetParent()
+function Lists.FriendKeybindStripHook()
 	ZO_PostHook(FL, 'InitializeKeybindDescriptors', function(self_)
-		Parent.Chat:Debug("Friend Keybind Strip posthook started.")
+		SSF.Chat:Debug("Friend Keybind Strip posthook started.")
 		-- Group Invite
 		self_.keybindStripDescriptor[2].visible = function()
 			if IsGroupModificationAvailable() and self_.mouseOverRow then
 				local data = ZO_ScrollList_GetData(self_.mouseOverRow)
-				if data and data.hasCharacter and (data.online or (Parent.SV.Favs[data.displayName] and Parent.SV.groupInvite ~= Parent.AllFavNone.None) or Parent.SV.groupInvite == Parent.AllFavNone.All) then
+				if data and data.hasCharacter and (data.online or (SSF.SV.Favs[data.displayName] and SSF.SV.groupInvite ~= SSF.AllFavNone.List.None) or SSF.SV.groupInvite == SSF.AllFavNone.List.All) then
 					return true
 				end
 			end
@@ -198,7 +193,7 @@ function Lists:FriendKeybindStripHook()
 			name = function()
 				if self_.mouseOverRow then
 					local data = ZO_ScrollList_GetData(self_.mouseOverRow)
-					if Parent.SV.Favs[data.displayName] then
+					if SSF.SV.Favs[data.displayName] then
 						return "Remove Fav"
 					end
 				end
@@ -208,10 +203,10 @@ function Lists:FriendKeybindStripHook()
 			callback = function()
 				if self_.mouseOverRow then
 					local data = ZO_ScrollList_GetData(self_.mouseOverRow)
-					if Parent.SV.Favs[data.displayName] then
-						self:RemoveFavFriend(data.displayName)
+					if SSF.SV.Favs[data.displayName] then
+						Lists.RemoveFavFriend(data.displayName)
 					else
-						self:AddFavFriend(data.displayName)
+						Lists.AddFavFriend(data.displayName)
 					end
 				end
 			end,
@@ -221,23 +216,22 @@ function Lists:FriendKeybindStripHook()
 				end
 				return false
 			end,
-			--icon = Parent.SV.favIconTexture,
+			--icon = SSF.SV.favIconTexture,
 		}
 	end)
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:FriendListTooltipHook()
+Lists.FriendListTooltipHook()
 Inputs:			  None
 Outputs:			None
 Description:	Hooks into the friends list to add mutual guilds to the tooltips.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:FriendListTooltipHook()
-  local Parent = self:GetParent()
+function Lists.FriendListTooltipHook()
 	ZO_PostHook(ZO_SocialListKeyboard, 'DisplayName_OnMouseEnter', function(self_, control)
-		--self.Chat:Debug("Friend List Tooltip prehook started.")
-		if Parent.SV.sharedGuilds == Parent.AllFavNone.None then return end
+		--Lists.Chat:Debug("Friend List Tooltip prehook started.")
+		if SSF.SV.sharedGuilds == SSF.AllFavNone.List.None then return end
 		local row = control:GetParent()
     local data = ZO_ScrollList_GetData(row)
 		local guilds = {}
@@ -251,7 +245,7 @@ function Lists:FriendListTooltipHook()
 			end
 		end
 		guilds = table.concat(guilds, "\n")
-		if data and data.hasCharacter and guilds ~= "" and (Parent.SV.sharedGuilds == Parent.AllFavNone.All or (Parent.SV.sharedGuilds == Parent.AllFavNone.Fav and  Parent.SV.Favs[data.displayName])) then
+		if data and data.hasCharacter and guilds ~= "" and (SSF.SV.sharedGuilds == SSF.AllFavNone.List.All or (SSF.SV.sharedGuilds == SSF.AllFavNone.List.Fav and  SSF.SV.Favs[data.displayName])) then
 			SetTooltipText(InformationTooltip, guilds)
 		end
 	end)
@@ -259,16 +253,15 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:GroupListTooltipHook()
+Lists.GroupListTooltipHook()
 Inputs:			  None
 Outputs:			None
 Description:	Hooks into the group list to sort Fav friends to the top.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:GroupListTooltipHook()
-  local Parent = self:GetParent()
+function Lists.GroupListTooltipHook()
 	ZO_PostHook('ZO_GroupListRowCharacterName_OnMouseEnter', function(control)
-		--Parent.Chat:Debug("Group List Tooltip prehook started.")
-		if not Parent.SV.sharedGuildsGroup then return end
+		--SSF.Chat:Debug("Group List Tooltip prehook started.")
+		if not SSF.SV.sharedGuildsGroup then return end
     local data = ZO_ScrollList_GetData(control.row)
 		if data.displayName == GetDisplayName() then return end
 		local guilds = {}
@@ -290,24 +283,23 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:FriendListContextMenu()
+Lists.FriendListContextMenu()
 Inputs:			  None
 Outputs:			None
 Description:	Adds an entry to the friends list context menu.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:FriendListContextMenu()
-  local Parent = self:GetParent()
+function Lists.FriendListContextMenu()
 	local function AddItem(data)
-		Parent.Chat:Debug("Friend List Context Menu started.")
+		SSF.Chat:Debug("Friend List Context Menu started.")
 		local name = data.displayName
-		if Parent.SV.Favs[name] then 
-			AddCustomMenuItem("Remove Fav Friend", function() self:RemoveFavFriend(name) end)
-			if data.status == Parent.PlayerStatus.Offline and Parent.SV.groupInvite ~= Parent.AllFavNone.None then
+		if SSF.SV.Favs[name] then 
+			AddCustomMenuItem("Remove Fav Friend", function() Lists.RemoveFavFriend(name) end)
+			if data.status == SSF.PlayerStatus.List.Offline and SSF.SV.groupInvite ~= SSF.AllFavNone.List.None then
 				AddCustomMenuItem("Invite to Group", function() GroupInviteByName(name) end)
 			end
 		else
-			AddCustomMenuItem("Add Fav Friend", function() self:AddFavFriend(name) end)
-			if data.status == Parent.PlayerStatus.Offline and Parent.SV.groupInvite == Parent.AllFavNone.All then
+			AddCustomMenuItem("Add Fav Friend", function() Lists.AddFavFriend(name) end)
+			if data.status == SSF.PlayerStatus.List.Offline and SSF.SV.groupInvite == SSF.AllFavNone.List.All then
 				AddCustomMenuItem("Invite to Group", function() GroupInviteByName(name) end)
 			end
 		end
@@ -317,67 +309,61 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:AddFavFriend(name)
+Lists.AddFavFriend(name)
 Inputs:			  name 						- The @name to add to the fav friends list
 Outputs:			None
 Description:	Adds the name to the Fav list.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:AddFavFriend(name)
-  local Parent = self:GetParent()
-	Parent.SV.Favs[name] = true
-	Parent.Chat:Debug(zo_strformat("<<1>> added to Fav Friends.", name))
+function Lists.AddFavFriend(name)
+	SSF.SV.Favs[name] = true
+	SSF.Chat:Debug(zo_strformat("<<1>> added to Fav Friends.", name))
 	FLM:BuildMasterList()
 	FL:RefreshFilters()
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:RemoveFavFriend(name)
+Lists.RemoveFavFriend(name)
 Inputs:			  name 						- The @name to remove from the fav friends list
 Outputs:			None
 Description:	Removes the name from the Fav list.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:RemoveFavFriend(name)
-  local Parent = self:GetParent()
-	Parent.SV.Favs[name] = nil
-	Parent.Chat:Debug(zo_strformat("<<1>> removed from Fav Friends.", name))
+function Lists.RemoveFavFriend(name)
+	SSF.SV.Favs[name] = nil
+	SSF.Chat:Debug(zo_strformat("<<1>> removed from Fav Friends.", name))
 	FLM:BuildMasterList()
 	FL:RefreshFilters()
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:OnIgnoreAdded(eventCode, displayName)
+Lists.OnIgnoreAdded(eventCode, displayName)
 Inputs:				eventCode 			- ZOS event code
               displayName     - display name of the ignore added
 Outputs:			None
 Description:	Determines if the added ignore needs to be placed on the virtual list. Reserves the
               last ignore spot for transferring data and preserving ignore add functionality.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:OnIgnoreAdded(eventCode, displayName)
+function Lists.OnIgnoreAdded(eventCode, displayName)
   -- if not at max ignore then we don't have to add to virtual list
   if GetNumIgnored() ~= IGNORED_MAX then return end
 
-  local Parent = self:GetParent()
-
-  table.insert(Parent.SV.Ignored, {displayName})
+  table.insert(SSF.SV.Ignored, {displayName})
   RemoveIgnore(displayName)
 
-  Parent.Chat:Msg(zo_strformat("Ignore list is full! <<1>> added to virtual ignore list.", displayName))
+  SSF.Chat:Msg(zo_strformat("Ignore list is full! <<1>> added to virtual ignore list.", displayName))
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-Lists:IgnoreMasterListHook()
+Lists.IgnoreMasterListHook()
 Inputs:				None
 Outputs:			None
 Description:	Hooks into the ignore master list to add our virtual items.
 ------------------------------------------------------------------------------------------------]]--
-function Lists:IgnoreMasterListHook()
-  local Parent = self:GetParent()
-
+function Lists.IgnoreMasterListHook()
   ZO_PostHook(ILM, "BuildMasterList", function(self_)
-    for index, Ignore in ipairs(Parent.SV.Ignored) do
+    for index, Ignore in ipairs(SSF.SV.Ignored) do
       table.insert(self_.masterList, {Ignore.displayName, Ignore.note, SOCIAL_NAME_SEARCH, IGNORED_MAX - 1 + index})
     end
   end)
@@ -452,16 +438,6 @@ AddIgnore(*string* _charOrDisplayName_)
 EVENT_SOCIAL_DATA_LOADED
 * EVENT_SOCIAL_ERROR (*[SocialActionResult|#SocialActionResult]* _error_)
 ]]--
-
---[[------------------------------------------------------------------------------------------------
-Lists:GetParent()
-Inputs:				None
-Outputs:			Parent          - The parent object of this object.
-Description:	Returns the parent object of this object for reference to parent variables.
-------------------------------------------------------------------------------------------------]]--
-function Lists:GetParent()
-  return self.Parent
-end
 
 
 --[[------------------------------------------------------------------------------------------------

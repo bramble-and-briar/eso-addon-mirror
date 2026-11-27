@@ -56,16 +56,28 @@ function EditorPane.Build(tab, parent)
     EditorSections.BuildTargetAreaControls(tab, targetSec.body, panelName)
     EditorSections.BuildTargetConfigControls(tab, targetSec.body, panelName)
 
-    local discoverySec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "discovery", "LABEL_DISCOVERY_SECTION", 156)
+    local discoverySec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "discovery", "LABEL_DISCOVERY_SECTION", 184)
     EditorSections.BuildDiscoveryControls(tab, discoverySec.body, panelName)
     EditorSections.BuildDiscoveryInputs(tab, discoverySec.body, panelName)
 
-    local dialogueSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "dialogue", "LABEL_DIALOGUE_SECTION", 264)
+    local dialogueSec = EditorSections.CreateAccordionSection(tab, formParent, panelName, "dialogue", "LABEL_DIALOGUE_SECTION", 300)
     EditorSections.BuildDialogueControls(tab, dialogueSec.body, panelName)
     EditorSections.BuildDialogueInputs(tab, dialogueSec.body, panelName)
 
     EditorPane.LayoutSections(tab)
     EditorSections.BuildFooterButtons(tab, pane, panelName)
+
+    Addon.JournalWidgets.RegisterTabChain({
+        tab.titleEdit,
+        tab.descEdit,
+        tab.recipientEdit,
+        tab.recipientCharEdit,
+        tab.completionEdit,
+        tab.targetCustomEdit,
+        tab.discoveryMsgEdit,
+        tab.clueEdit,
+        tab.dlgResponseEdit,
+    }, tab.editorScroll)
 end
 
 local function GetSectionBadge(draft, key)
@@ -230,6 +242,39 @@ local function RefreshEditorBaseAndArea(tab, draft)
     SyncUnfocusedEdit(tab.recipientEdit, draft.recipientAccount or "")
     SyncUnfocusedEdit(tab.recipientCharEdit, draft.recipientCharacterName or "")
     SyncUnfocusedEdit(tab.completionEdit, draft.completionMessage or "")
+    if tab.senderCharComboBox then
+        local targetSender = Addon.QuestRepository:NormalizeCharacterName(draft.senderCharacterName)
+        if targetSender == "" then
+            targetSender = Addon.QuestRepository:GetPlayerCharacterName()
+        end
+        local charNames = Addon.QuestRepository:GetAccountCharacterNames()
+        local hasTarget = false
+        for _, name in ipairs(charNames) do
+            if name == targetSender then
+                hasTarget = true
+                break
+            end
+        end
+        if targetSender ~= "" and not hasTarget then
+            table.insert(charNames, 1, targetSender)
+        end
+
+        local combo = tab.senderCharComboBox
+        combo:ClearItems()
+        for _, charName in ipairs(charNames) do
+            local entry = combo:CreateItemEntry(charName, function()
+                Addon.QuestRepository:UpdateDraftFields({ senderCharacterName = charName })
+            end)
+            entry.senderCharacterName = charName
+            combo:AddItem(entry)
+        end
+        combo:SetEnabled(#charNames > 0)
+        if targetSender ~= "" then
+            combo:SetSelectedItemByEval(function(item)
+                return item.senderCharacterName == targetSender
+            end, true)
+        end
+    end
     if tab.questIconComboBox then
         local targetIcon = Addon.QuestDraftStore:NormalizeQuestIcon(draft.icon) or ""
         local selected = tab.questIconComboBox:GetSelectedItemData()
@@ -384,11 +429,12 @@ local function TruncateDiscoveryText(text, maxChars)
 end
 
 local function FormatDiscoveryDropdownEntry(index, point)
+    local reqTag = (point and point.required == true) and (Addon.Locale:Get("TAG_REQUIRED_SHORT") .. " ") or ""
     local preview = TruncateDiscoveryText(point and point.message or "", MAX_DISCOVERY_PREVIEW_CHARS)
     if preview == "" then
-        return string.format("#%d - ...", index)
+        return string.format("#%d %s- ...", index, reqTag)
     end
-    return string.format("#%d - %s", index, preview)
+    return string.format("#%d %s- %s", index, reqTag, preview)
 end
 
 function EditorPane.RefreshDiscoveryDropdown(tab, draft)
@@ -445,6 +491,15 @@ local function RefreshEditorDiscoveries(tab, draft)
     end
 
     EditorPane.RefreshDiscoveryDropdown(tab, draft)
+    if tab.chkDiscoveryRequired then
+        ZO_CheckButton_SetCheckState(tab.chkDiscoveryRequired, selectedPoint and selectedPoint.required == true or false)
+        ZO_CheckButton_SetEnableState(tab.chkDiscoveryRequired, hasDiscoveries)
+    end
+    if tab.chkDiscoverySequential then
+        ZO_CheckButton_SetCheckState(tab.chkDiscoverySequential, draft.sequentialDiscoveries == true)
+    end
+    SetButtonEnabled(tab.btnMoveDiscoveryUp, hasDiscoveries and tab.selectedDiscoveryIndex and tab.selectedDiscoveryIndex > 1)
+    SetButtonEnabled(tab.btnMoveDiscoveryDown, hasDiscoveries and tab.selectedDiscoveryIndex and tab.selectedDiscoveryIndex < totalDisc)
     SetButtonEnabled(tab.btnRemoveDiscovery, hasDiscoveries)
     SetButtonEnabled(tab.btnClearDiscoveries, hasDiscoveries)
 end
@@ -475,11 +530,19 @@ local function RefreshEditorDialoguesAndOptions(tab, draft)
 
     if tab.lblSelectedNpc then
         if selectedDlg then
-            tab.lblSelectedNpc:SetText(Addon.Locale:Get("DIALOGUE_SELECTED_NPC_FORMAT", selectedDlg.npcName or ""))
+            local npcDisplay = selectedDlg.npcName or ""
+            if selectedDlg.required == true then
+                npcDisplay = npcDisplay .. " " .. Addon.Locale:Get("TAG_REQUIRED_SHORT")
+            end
+            tab.lblSelectedNpc:SetText(Addon.Locale:Get("DIALOGUE_SELECTED_NPC_FORMAT", npcDisplay))
             tab.lblSelectedNpc:SetHidden(false)
         else
             tab.lblSelectedNpc:SetHidden(true)
         end
+    end
+    if tab.chkDialogueRequired then
+        ZO_CheckButton_SetCheckState(tab.chkDialogueRequired, selectedDlg and selectedDlg.required == true or false)
+        ZO_CheckButton_SetEnableState(tab.chkDialogueRequired, selectedDlg ~= nil)
     end
     if tab.lblInputClue then
         tab.lblInputClue:SetText(selectedDlg and Addon.Locale:Get("DIALOGUE_OPTION_FOR_NPC_FORMAT", selectedDlg.npcName or "") or Addon.Locale:Get("LABEL_INPUT_CLUE"))
@@ -502,6 +565,9 @@ local function RefreshEditorDialoguesAndOptions(tab, draft)
             local names = {}
             for i, d in ipairs(dialogues) do
                 local n = d.npcName or ""
+                if d.required == true then
+                    n = n .. " " .. Addon.Locale:Get("TAG_REQUIRED_SHORT")
+                end
                 table.insert(names, (i == tab.selectedDialogueIndex) and ("|cE8D5A0[" .. n .. "]|r") or n)
             end
             tab.lblCapturedDialogues:SetText(Addon.Locale:Get("DIALOGUE_CAPTURED_FORMAT", totalDlg, maxNpcs, table.concat(names, ", ")))

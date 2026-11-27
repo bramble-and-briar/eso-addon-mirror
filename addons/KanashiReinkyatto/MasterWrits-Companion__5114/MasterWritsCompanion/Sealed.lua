@@ -1,3 +1,4 @@
+local L = MWC.L
 MWC.Sealed = {}
 
 local EVENT_NS = MWC.name .. "Sealed"
@@ -113,7 +114,7 @@ local function Finish(message)
   local opened = run and run.opened or 0
   run = nil
   MWC.Activity.End(message)
-  MWC.Activity.Notify(string.format("%s Opened %d.", message, opened))
+  MWC.Activity.Notify(string.format(L.OPENED_COUNT, message, opened))
   MWC.UI.Refresh("view")
 end
 
@@ -141,15 +142,16 @@ local function Step()
   if not run then return end
   local entry = NextEntry()
   if not entry then
-    Finish("Done.")
+    MWC.Activity.Succeed()
+    Finish(L.DONE)
     return
   end
   if GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
-    Finish("Bag is full.")
+    Finish(L.BAG_IS_FULL)
     return
   end
   if not CanUseItems() then
-    Finish("Stopped: can't open containers right now (combat, looting or an open interaction).")
+    Finish(L.STOPPED_CANT_OPEN)
     return
   end
   local slot = SlotOf(entry.itemId)
@@ -159,7 +161,7 @@ local function Step()
     return
   end
 
-  MWC.Activity.Progress(run.opened, "Opening " .. entry.name .. "…")
+  MWC.Activity.Progress(run.opened, string.format(L.OPENING_ITEM, entry.name))
   local before = GetSlotStackSize(BAG_BACKPACK, slot)
   local attempts, usedAt = 0, nil
   local waitStarted = GetGameTimeMilliseconds()
@@ -182,12 +184,12 @@ local function Step()
     if usedAt and now - usedAt < ATTEMPT_TIMEOUT_MS then return end
     if OnCooldown() then
       if now - waitStarted > COOLDOWN_WAIT_LIMIT_MS then
-        Finish("The item cooldown didn't end, stopped.")
+        Finish(L.COOLDOWN_STOPPED)
       end
       return
     end
     if attempts >= MAX_ATTEMPTS then
-      Finish("The game didn't open the container after several tries, stopped.")
+      Finish(L.CONTAINER_NOT_OPENED)
       return
     end
     attempts, usedAt = attempts + 1, now
@@ -202,7 +204,7 @@ end
 function MWC.Sealed.Open()
   if run then return end
   if not CanUseItems() then
-    MWC.Print("Can't open containers right now: leave combat, close the loot window, bank or station.")
+    MWC.Print("%s", L.CANT_OPEN_NOW)
     return
   end
   local entries, byId, target = {}, {}, 0
@@ -215,10 +217,10 @@ function MWC.Sealed.Open()
     end
   end
   if target == 0 then
-    MWC.Print("Nothing to open: nothing selected, no sealed writs in the bag or no free slots.")
+    MWC.Print("%s", L.NOTHING_TO_OPEN)
     return
   end
-  if not MWC.Activity.Begin("Opening", target, function() Finish("Opening stopped.") end) then return end
+  if not MWC.Activity.Begin(L.ACTIVITY_OPENING, target, function() Finish(L.OPENING_STOPPED) end) then return end
   run = { entries = entries, byId = byId, opened = 0 }
   -- Some containers show a loot window instead of dropping straight into the bag.
   EVENT_MANAGER:RegisterForEvent(EVENT_NS, EVENT_LOOT_UPDATED, function()

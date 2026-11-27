@@ -22,7 +22,7 @@
     "MANABank"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5117/",
-  "fingerprint": "530d7eba1e7b9d59d9f9a57a0ca92f39153d6b893901e29419d1f0329fdbc2a9",
+  "fingerprint": "fdbb6b6972f2ce352b0b64f34606f1c033376ef400435ec185057e1fbd3a8a42",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -30,11 +30,11 @@
   "source_id": "5117",
   "source_url": "https://www.esoui.com/downloads/info5117-MANABank.html",
   "stats": {
-    "downloads": 0,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 7,
+    "favorites": 2,
+    "monthly_downloads": 5
   },
   "title": "MANA Bank",
-  "updated_at": 1795690295000,
-  "version": "1.0.0"
+  "updated_at": 1795785787000,
+  "version": "1.0.1"
 }

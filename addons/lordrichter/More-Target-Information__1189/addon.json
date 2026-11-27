@@ -1,18 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/lordrichter/More-Target-Information__1189",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "lordrichter",
   "canonical_id": "esoui:1189",
   "category_id": "17",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     },
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1189",
@@ -21,7 +22,7 @@
     "MoreTargetInformation"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1189/",
-  "fingerprint": "2cc43535b634defc51a9184238a8d2e48ea6f50da3ad5f65401e65cabf834528",
+  "fingerprint": "f6ab09ff35473c1bb8d1fb59712c0245ddd9531661f775a3c6c3783d66e6608c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14085.jpg"
   ],
@@ -31,11 +32,11 @@
   "source_id": "1189",
   "source_url": "https://www.esoui.com/downloads/info1189-MoreTargetInformation.html",
   "stats": {
-    "downloads": 84176,
-    "favorites": 71,
-    "monthly_downloads": 103
+    "downloads": 84558,
+    "favorites": 73,
+    "monthly_downloads": 60
   },
   "title": "More Target Information",
-  "updated_at": 1773080814000,
-  "version": "3.49"
+  "updated_at": 1795744782000,
+  "version": "3.52"
 }

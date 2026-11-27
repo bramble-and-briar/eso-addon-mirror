@@ -1,5 +1,5 @@
 1.1.1
-  - Fixed UI error with misc. category items
+  - Updated to reflect changes in LibStatic
 
 1.1.0
   - Adjusted how the vault stats window is shown and hidden
@@ -22,7 +22,7 @@
   - Updated for 49
 
 0.2.0
-  - Made the retrieve to menu show up during more editor scenes
+  - Made the retrieveto menu show up during more editor scenes
   - Added a function with keybind/slashcommand to store same items from house to furnishing vault
   - Added feature to be able to always send craftings stations to the furniture vault when retrieved
   - Added a settings menu

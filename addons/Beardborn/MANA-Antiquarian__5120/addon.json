@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Beardborn/MANA-Antiquarian__5120",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Beardborn",
+  "canonical_id": "esoui:5120",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5120",
+  "deleted": false,
+  "directories": [
+    "MANAAntiquarian"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5120/",
+  "fingerprint": "11691b0a68053a55567290fcc8ab412495ee0c2b0e6910dfb40a2dbf64e73e68",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18824.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18825.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5120",
+  "source_url": "https://www.esoui.com/downloads/info5120-MANAAntiquarian.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 1,
+    "monthly_downloads": 4
+  },
+  "title": "MANA Antiquarian",
+  "updated_at": 1795785789000,
+  "version": "1.0.1"
+}

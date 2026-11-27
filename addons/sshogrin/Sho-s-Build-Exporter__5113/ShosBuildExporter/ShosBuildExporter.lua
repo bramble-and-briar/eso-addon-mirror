@@ -7,7 +7,7 @@ local SBE = ShosBuildExporter
 SBE.name      = "ShosBuildExporter"
 SBE.title     = "Sho's Build Exporter"
 SBE.author    = "sshogrin"
-SBE.version   = "1.0.0"
+SBE.version   = "1.0.1"
 SBE.colorHex  = "2046e5"
 -- ============================================================================
 
@@ -25,6 +25,7 @@ local selectedBuildData = nil
 local selectedBuildKey  = nil
 local pendingDeleteKey  = nil
 local recentChatBuilds  = {}
+local selectedBuildTable = nil
 
 local function ResetDeleteState()
     pendingDeleteKey = nil

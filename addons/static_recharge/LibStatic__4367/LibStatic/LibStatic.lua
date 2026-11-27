@@ -1,19 +1,19 @@
 --[[------------------------------------------------------------------------------------------------
 Title:					LibStatic
 Author:					Static_Recharge
-Version:				2.0.0
+Version:				2.2.0
 Description:		Static_Recharge common utility functions.
 
 LS                                                - Object containing all functions, tables, variables, constants and other data managers.
-├─ :IsInitialized()                               - Returns true if the object has been successfully initialized.
-├─ :ReverseTableLookup(data, value)               - Returns the key or nil of the found value.
-├─ :StringConvert(input, returnType)              - Returns a string friendly converted input or the input if no change needed.
-├─ :PairedListNew(Choices, Values)                - Returns a new PairedList object.
-├─ :ChatNew(Options)                              - Returns a new Chat object.
-├─ :TimerNew(Options)                             - Returns a new Timer object.
-├─ :LibStatic:StringConvert(input, returnType)    - Returns a string friendly converted input or the input if no change needed.
-├─ :LibStatic:Sort(list, sortType)                - Sorts the list by the specified sortType (use globals). Defaults to LIBSTATIC_LIST_SORT_ASCENDING
-└─ :Test(...)                                     - For internal add-on testing only.
+├─ .IsInitialized()                               - Returns true if the object has been successfully initialized.
+├─ .ReverseTableLookup(data, value)               - Returns the key or nil of the found value.
+├─ .StringConvert(input, returnType)              - Returns a string friendly converted input or the input if no change needed.
+├─ .PairedListNew(Choices, Values)                - Returns a new PairedList object.
+├─ .ChatNew(Options)                              - Returns a new Chat object.
+├─ .TimerNew(Options)                             - Returns a new Timer object.
+├─ .StringConvert(input, returnType)              - Returns a string friendly converted input or the input if no change needed.
+├─ .Sort(list, sortType)                          - Sorts the list by the specified sortType (use globals). Defaults to LIBSTATIC_LIST_SORT_ASCENDING
+└─ .Test(...)                                     - For internal add-on testing only.
 ------------------------------------------------------------------------------------------------]]--
 
 
@@ -44,68 +44,69 @@ LIBSTATIC_LIST_SORT_MAX = 2
 LIBSTATIC_LIST_SORT_ASCENDING = 1
 LIBSTATIC_LIST_SORT_DESCENDING = 2
 
--- sort functions
-local Sorts = {
-  function(a, b) return a < b end,
-  function(a, b) return a > b end,
-  function(a, b) return a < b end,
-  function(a, b) return a > b end,
-}
-
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic Class Initialization
+LibStatic Initialization
 LibStatic    - Parent object containing all functions, tables, variables, constants and other data managers.
 ------------------------------------------------------------------------------------------------]]--
-LibStatic = {}
+LibStatic = {
+  -- Static definitions
+	addonName = "LibStatic",
+	addonVersion = "2.2.0",
+	author = "|cFF0000Static_Recharge|r",
+  chatPrefixColor = "FFFFFF",
+	chatTextColor = "FFFFFF",
+}
+local Lib = LibStatic
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:Initialize()
+Lib.Initialize()
 Inputs:				None
 Outputs:			None
 Description:	Initializes all of the variables, object managers, slash commands and main event
 							callbacks.
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:Initialize()
-	-- Static definitions
-	self.addonName = "LibStatic"
-	self.addonVersion = "2.0.0"
-	self.author = "|cFF0000Static_Recharge|r"
-  self.chatPrefixColor = "FFFFFF"
-	self.chatTextColor = "FFFFFF"
+function Lib.Initialize()
+	-- sort functions
+  Lib.Sorts = {
+    function(a, b) return a < b end,
+    function(a, b) return a > b end,
+    function(a, b) return a < b end,
+    function(a, b) return a > b end,
+  }
 
   -- Module Initialization
   local Options = {
 		addonIdentifier = "LibStatic",
     addonShortName = "LS",
-		prefixColor = "FFFFFF",
-		textColor = "FFFFFF",
+		prefixColor = Lib.chatPrefixColor,
+		textColor = Lib.chatTextColor,
 		chatEnabled = true,
 		debugEnabled = false,
 	}
-	self.Chat = self:ChatNew(Options)
+	Lib.Chat = Lib.ChatNew(Options)
 
 
-  SLASH_COMMANDS["/lstest"] = function(...) self:Test(...) end
+  SLASH_COMMANDS["/lstest"] = Lib.Test
 
-  self.initialized = true
+  Lib.initialized = true
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:IsInitialized()
+Lib.IsInitialized()
 Inputs:				None
 Outputs:			initialized                         - bool for object initialized state
 Description:	Returns true if the object has been successfully initialized.
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:IsInitialized()
-  return self.initialized
+function Lib.IsInitialized()
+  return Lib.initialized
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:ReverseTableLookup(data, search, subKey)
+Lib.ReverseTableLookup(data, search, subKey)
 Inputs:				data                                - the table to search
               search                              - the value to search for
               subKey                              - (optional) if provided, will be used as the subKey to search
@@ -114,7 +115,7 @@ Inputs:				data                                - the table to search
 Outputs:			key                                 - the key for the found value (nillable)
 Description:	Returns the key or nil of the found value.
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:ReverseTableLookup(data, search, subKey, min, max)
+function Lib.ReverseTableLookup(data, search, subKey, min, max)
   if subKey then
     if min and max then
       for i = min, max do
@@ -148,13 +149,13 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:StringConvert(input, returnType)
+Lib.StringConvert(input, returnType)
 Inputs:				input 						                  - input to convert
               returnType                          - (optional) determines the pair of possible return values for bool inputs
 Outputs:			string 					                    - string containing the converted input, or the input if no change needed
 Description:	Returns a string friendly converted input or the input if no change needed.
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:StringConvert(input, returnType)
+function Lib.StringConvert(input, returnType)
   -- exit right away if nil with 'nil' text
   if input == nil then return "nil" end
   -- exit right away if empty string with 'empty_string' text
@@ -189,36 +190,36 @@ end
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:Sort(list, sortType, sortKey)
+Lib.Sort(list, sortType, sortKey)
 Inputs:				list                                - the list to sort
               sortType                            - how to sort (globals)
               sortKey                             - key to sort by (optional)
 Outputs:			None
 Description:	Sorts the list by the specified sortType (use globals). Defaults to LIBSTATIC_LIST_SORT_ASCENDING
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:Sort(list, sortType, sortKey)
+function Lib.Sort(list, sortType, sortKey)
   -- set default if not specified
   if sortType == nil then sortType = LIBSTATIC_LIST_SORT_ASCENDING end
   
   -- check range
   if sortType < LIBSTATIC_LIST_SORT_MIN or sortType > LIBSTATIC_LIST_SORT_MAX then 
-    self.Chat:Msg("Sort type out of range.")
+    Lib.Chat:Msg("Sort type out of range.")
     return
   end
 
   -- sort the list
   if sortKey then
     table.sort(list, function(a, b)
-      return Sorts[sortType](a[sortKey], b[sortKey])
+      return Lib.Sorts[sortType](a[sortKey], b[sortKey])
     end)
   else
-    table.sort(list, Sorts[sortType])
+    table.sort(list, Lib.Sorts[sortType])
   end
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:TimerNew(Options)
+Lib.TimerNew(Options)
 Inputs:				Options                             - Table containing all of the options
                                                     - uniqueName
                                                     - (optional) timerType
@@ -229,13 +230,13 @@ Inputs:				Options                             - Table containing all of the opt
 Outputs:			Timer                                  - New timer object
 Description:	Initializes the object with given inputs.
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:TimerNew(Options)
-  return self.TIMER:New(Options)
+function Lib.TimerNew(Options)
+  return Lib.TIMER:New(Options)
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:ChatNew(Options)
+Lib.ChatNew(Options)
 Inputs:				Options                             - Table containing parameters
               ├─ .addonIdentifier                   - (optional) addonIdentifier
               ├─ .prefixColor                       - (optional) Prefix Hexcode color
@@ -246,31 +247,31 @@ Outputs:			Chat                                  - New chat object
 Description:	Initializes the object with given inputs.
 <<prefixColor>>[<<addonIdentifier>>]: <<textColor>><<message>>
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:ChatNew(Options)
-  return self.CHAT:New(Options)
+function Lib.ChatNew(Options)
+  return Lib.CHAT:New(Options)
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:PairedListNew(Choices, Values)
+Lib.PairedListNew(Choices, Values)
 Inputs:				Choices                             - Table of choices (enums)
               Values                              - (optional) Table of values
 Outputs:			PairedList                          - New paired list object
 Description:	Initializes the object with given inputs.
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:PairedListNew(Choices, Values)
-  return self.PAIREDLIST:New(Choices, Values)
+function Lib.PairedListNew(Choices, Values)
+  return Lib.PAIREDLIST:New(Choices, Values)
 end
 
 
 --[[------------------------------------------------------------------------------------------------
-LibStatic:Test(...)
+Lib.Test(...)
 Inputs:				...							                    - Various test inputs
 Outputs:			...                                 - Various test outputs
 Description:	For internal add-on testing only.
 ------------------------------------------------------------------------------------------------]]--
-function LibStatic:Test(...)
-  self.Chat:Msg(
+function Lib.Test(...)
+  Lib.Chat:Msg(
     "Test Cases:",
     "Empty String:",
     "",
@@ -302,8 +303,8 @@ end
 --[[------------------------------------------------------------------------------------------------
 Main add-on event registration.
 ------------------------------------------------------------------------------------------------]]--
-EM:RegisterForEvent("LibStatic", EVENT_ADD_ON_LOADED, function(eventCode, addonName)
-	if addonName ~= "LibStatic" then return end
-	EM:UnregisterForEvent("LibStatic", EVENT_ADD_ON_LOADED)
-	LibStatic:Initialize()
+EM:RegisterForEvent(Lib.addonName, EVENT_ADD_ON_LOADED, function(eventCode, addonName)
+	if addonName ~= Lib.addonName then return end
+	EM:UnregisterForEvent(Lib.addonName, EVENT_ADD_ON_LOADED)
+	Lib.Initialize()
 end)

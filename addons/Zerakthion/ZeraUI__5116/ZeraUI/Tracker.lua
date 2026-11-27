@@ -672,6 +672,7 @@ function T:Bind(slot,index,category,reuse,lockMode,sampledRaw)
     slot.topRightTimer=BUILTIN.topRightTimer[id] or false
     slot.noStackGlow=BUILTIN.noStackGlow[id] or false
     slot.stackReadyAt=BUILTIN.stackReadyAt[id]
+    slot.fragProc=BUILTIN.fragProc[id] or false
     slot.noExpiryGlow=BUILTIN.noExpiryGlow[targetEffect] or (targetEffect and self:IsOffBalance(targetEffect,GetAbilityName and GetAbilityName(targetEffect))) or false
     if not slot.noExpiryGlow then
         for _,entry in ipairs(rule or {}) do

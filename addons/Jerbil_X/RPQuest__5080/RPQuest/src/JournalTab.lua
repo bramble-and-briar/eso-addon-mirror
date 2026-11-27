@@ -218,21 +218,6 @@ function JournalTab:Initialize()
     end)
     self.panel = panel
 
-    local versionLabel = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_VersionLabel", panel, CT_LABEL)
-    versionLabel:SetDimensions(140, 20)
-    versionLabel:SetAnchor(TOPRIGHT, panel, TOPRIGHT, -33, 38)
-    versionLabel:SetDrawLayer(DL_OVERLAY)
-    versionLabel:SetDrawLevel(10)
-    if versionLabel.SetFont then versionLabel:SetFont("ZoFontGameSmall") end
-    if versionLabel.SetColor then versionLabel:SetColor(0.95, 0.92, 0.82, 1) end
-    if versionLabel.SetStyleColor then versionLabel:SetStyleColor(0, 0, 0, 1) end
-    if versionLabel.SetHorizontalAlignment then
-        versionLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    end
-    local versionStr = (Addon.Constants and Addon.Constants.METADATA and Addon.Constants.METADATA.VERSION) or ""
-    versionLabel:SetText(versionStr ~= "" and ("v" .. tostring(versionStr)) or "")
-    self.versionLabel = versionLabel
-
     self:BuildLeftColumn(panel)
     self:BuildRightColumn(panel)
 
@@ -354,6 +339,27 @@ function JournalTab:BuildLeftColumn(panel)
     end)
     self.btnListNext:SetAnchor(TOPLEFT, leftCol, TOPLEFT, 250, 554)
     self.btnListNext:SetHidden(true)
+
+    local chkAutoOpen = Addon.JournalWidgets.CreateCheckButton(
+        PANEL_NAME .. "_ChkAutoOpenOnReceive",
+        leftCol,
+        Addon.Locale:Get("CHK_AUTO_OPEN_ON_RECEIVE"),
+        function(isChecked)
+            if Addon.QuestRepository then
+                Addon.QuestRepository:SetSetting("autoOpenJournalOnReceive", isChecked)
+            end
+        end
+    )
+    chkAutoOpen:SetAnchor(TOPLEFT, leftCol, TOPLEFT, 4, 590)
+    local chkLabel = chkAutoOpen.GetNamedChild and chkAutoOpen:GetNamedChild("Label")
+    if chkLabel and chkLabel.SetWidth then
+        chkLabel:SetWidth(295)
+    end
+    ZO_CheckButton_SetCheckState(
+        chkAutoOpen,
+        Addon.QuestRepository and Addon.QuestRepository:GetSetting("autoOpenJournalOnReceive") == true
+    )
+    self.chkAutoOpenJournalOnReceive = chkAutoOpen
 end
 
 function JournalTab:ScrollQuestList(step)
@@ -745,15 +751,17 @@ function JournalTab:OnCompleteQuestClicked()
     local q = Addon.QuestRepository:GetQuestById(self.selectedQuestId)
     if not q then return end
 
-    local ok, completedQuest = Addon.QuestRepository:CompleteQuest(q.id)
-    if ok and completedQuest then
-        Addon.Announcements:AnnounceQuestCompleted(completedQuest)
+    local ok, resolvedQuest, questFailed, failReason = Addon.QuestRepository:CompleteQuest(q.id)
+    if questFailed and resolvedQuest then
+        Addon.Announcements:AnnounceQuestFailed(resolvedQuest, nil, failReason)
+    elseif ok and resolvedQuest then
+        Addon.Announcements:AnnounceQuestCompleted(resolvedQuest)
     end
 end
 
 function JournalTab:ConfirmAbandonQuest(questId)
     local q = Addon.QuestRepository:GetQuestById(questId)
-    if not q or Addon.QuestRepository:IsOfferedQuest(q) then return false end
+    if not q or (Addon.QuestRepository:IsOfferedQuest(q) and q.isTutorial ~= true) then return false end
 
     ZO_Dialogs_ShowDialog("RPQUEST_ABANDON_QUEST", { questId = questId }, { mainTextParams = { q.title or "" } })
     return true
@@ -894,7 +902,7 @@ local function FormatQuestRowText(tab, q, sectionKey, isCompleted, activeQuest)
     end
     local iconTex = Addon.QuestDraftStore and Addon.QuestDraftStore:GetQuestIconTexture(q.icon) or nil
     local iconMarkup = iconTex and string.format("|t18:18:%s|t ", iconTex) or ""
-    return prefix .. iconMarkup .. selColor .. (q.title or "") .. "|r" .. suffix
+    return prefix .. iconMarkup .. selColor .. (q.title or "") .. "|r", suffix
 end
 
 function JournalTab:EnsureAccordionRow(sectionKey, section, index)
@@ -902,16 +910,32 @@ function JournalTab:EnsureAccordionRow(sectionKey, section, index)
     if rowBtn then
         return rowBtn
     end
-    rowBtn = WINDOW_MANAGER:CreateControl(PANEL_NAME .. "_SectionRow_" .. sectionKey .. "_" .. index, section.childContainer, CT_BUTTON)
+    local rowName = PANEL_NAME .. "_SectionRow_" .. sectionKey .. "_" .. index
+    rowBtn = WINDOW_MANAGER:CreateControl(rowName, section.childContainer, CT_BUTTON)
     rowBtn:SetDimensions(LIST_WIDTH, ROW_HEIGHT)
     rowBtn:SetAnchor(TOPLEFT, section.childContainer, TOPLEFT, 0, (index - 1) * ROW_STEP)
-    if rowBtn.SetFont then rowBtn:SetFont("ZoFontHeader") end
-    if rowBtn.SetHorizontalAlignment then
-        rowBtn:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    end
-    if rowBtn.SetVerticalAlignment then
-        rowBtn:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    end
+
+    local statusLabel = WINDOW_MANAGER:CreateControl(rowName .. "_Status", rowBtn, CT_LABEL)
+    statusLabel:SetFont("ZoFontHeader")
+    statusLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    statusLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    statusLabel:SetMaxLineCount(1)
+    statusLabel:SetAnchor(TOPRIGHT, rowBtn, TOPRIGHT, 0, 0)
+    statusLabel:SetAnchor(BOTTOMRIGHT, rowBtn, BOTTOMRIGHT, 0, 0)
+    statusLabel:SetHidden(true)
+
+    local titleLabel = WINDOW_MANAGER:CreateControl(rowName .. "_Title", rowBtn, CT_LABEL)
+    titleLabel:SetFont("ZoFontHeader")
+    titleLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    titleLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    titleLabel:SetMaxLineCount(1)
+    titleLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    titleLabel:SetAnchor(TOPLEFT, rowBtn, TOPLEFT, 0, 0)
+    titleLabel:SetAnchor(BOTTOMRIGHT, rowBtn, BOTTOMRIGHT, 0, 0)
+
+    rowBtn._statusLabel = statusLabel
+    rowBtn._titleLabel = titleLabel
+
     rowBtn:SetHandler("OnClicked", function(ctrl)
         if ctrl._questId then
             PlaySound(SOUNDS.DEFAULT_CLICK)
@@ -1064,7 +1088,8 @@ function JournalTab:RefreshQuestList(allQuests, activeQuest)
             end
 
             for idx, q in ipairs(quests) do
-                local rowText = FormatQuestRowText(self, q, sectionKey, def.isCompleted, activeQuest)
+                local titleText, suffixText = FormatQuestRowText(self, q, sectionKey, def.isCompleted, activeQuest)
+                local rowText = titleText .. (suffixText or "")
                 if not self.collapsedSections[sectionKey] then
                     table.insert(displayRows, {
                         isHeader = false,
@@ -1075,7 +1100,19 @@ function JournalTab:RefreshQuestList(allQuests, activeQuest)
                 if section then
                     local rowBtn = self:EnsureAccordionRow(sectionKey, section, idx)
                     rowBtn._questId = q.id
-                    rowBtn:SetText(rowText)
+                    rowBtn._titleLabel:SetText(titleText)
+                    local trimmedSuffix = suffixText and suffixText:gsub("^%s+", "") or ""
+                    rowBtn._titleLabel:ClearAnchors()
+                    rowBtn._titleLabel:SetAnchor(TOPLEFT, rowBtn, TOPLEFT, 0, 0)
+                    if trimmedSuffix ~= "" then
+                        rowBtn._statusLabel:SetText(trimmedSuffix)
+                        rowBtn._statusLabel:SetHidden(false)
+                        rowBtn._titleLabel:SetAnchor(BOTTOMRIGHT, rowBtn._statusLabel, BOTTOMLEFT, -6, 0)
+                    else
+                        rowBtn._statusLabel:SetText("")
+                        rowBtn._statusLabel:SetHidden(true)
+                        rowBtn._titleLabel:SetAnchor(BOTTOMRIGHT, rowBtn, BOTTOMRIGHT, 0, 0)
+                    end
                     rowBtn:SetMouseEnabled(true)
                     rowBtn:SetHidden(false)
                 end
@@ -1181,6 +1218,12 @@ function JournalTab:Refresh()
 
     -- 1. Actualizar columna izquierda
     self:RefreshQuestList(allQuests, activeQuest)
+    if self.chkAutoOpenJournalOnReceive then
+        ZO_CheckButton_SetCheckState(
+            self.chkAutoOpenJournalOnReceive,
+            Addon.QuestRepository and Addon.QuestRepository:GetSetting("autoOpenJournalOnReceive") == true
+        )
+    end
 
     -- 2. Actualizar columna derecha según el modo de vista
     self.detailPane:SetHidden(true)

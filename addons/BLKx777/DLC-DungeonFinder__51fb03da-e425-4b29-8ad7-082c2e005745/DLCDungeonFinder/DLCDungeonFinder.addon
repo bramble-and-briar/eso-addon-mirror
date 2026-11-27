@@ -1,0 +1,8 @@
+## Title: DLC Dungeon Finder
+## Description: Adds a veteran DLC-only matchmaking option to the gamepad Dungeon Finder.
+## Author: BLKx777
+## Version: 0.1.0
+## AddOnVersion: 100
+## APIVersion: 101051
+
+DLCDungeonFinder.lua

@@ -13,7 +13,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ZAM Stats Exp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Seerah/ZAM-Stats-Exp__21) | Seerah | PC / Mac | 1.0.7 |
 | [ZAM Stats Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Seerah/ZAM-Stats-Quests__22) | Seerah | PC / Mac | 1.0.6 |
 | [ZeebsOffTaunt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zbzszzzt123/ZeebsOffTaunt__3756) | zbzszzzt123 | PC / Mac | 1.0 |
-| [ZeraUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zerakthion/ZeraUI__5116) | Zerakthion | PC / Mac | 1.1.5 |
+| [ZeraUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zerakthion/ZeraUI__5116) | Zerakthion | PC / Mac | 1.1.6 |
 | [Zero Panel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zero.esoui/Zero-Panel__4540) | zero.esoui | PC / Mac | R1.0.0 |
 | [Zeth's Experience Scroll Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zetheras/Zeth-s-Experience-Scroll-Reminder__3107) | zetheras | PC / Mac | 1.02 |
 | [zFeder Gamepad Camera Boost](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zFeder/zFeder-Gamepad-Camera-Boost__4617) | zFeder | PC / Mac | 1.0.2 |

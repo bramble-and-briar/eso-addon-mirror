@@ -42,8 +42,7 @@ local function matchesSkill(bar, slot, wanted)
     local a = SKILLS_DATA_MANAGER:GetProgressionDataByAbilityId(actual)
     local b = SKILLS_DATA_MANAGER:GetProgressionDataByAbilityId(wanted)
     if not a or not b then return false end
-    local ability = a:GetSkillData()
-    return ability and ability == b:GetSkillData() and not ability:IsCraftedAbility()
+    return a == b
 end
 
 local combatPaused = false
@@ -116,7 +115,7 @@ local function step()
     for _,bar in ipairs(bars) do
         for slot=3,8 do
             local id=setup.skills[bar][slot]
-            if not matchesSkill(bar,slot,id) then
+            if id ~= nil and not matchesSkill(bar,slot,id) then
                 changes[#changes+1]={bar=bar,slot=slot,id=id}
             end
         end
@@ -177,9 +176,9 @@ local function step()
         local key = "Ausrüstungsgruppe"
         issue(key, function()
             for _,move in ipairs(moves) do
-                if item(BAG_WORN, move.slot) ~= move.id then return false end
+                if item(BAG_WORN, move.slot) == move.id then return true end
             end
-            return true
+            return false
         end, function()
             for _,move in ipairs(moves) do
                 if item(BAG_BACKPACK, move.source) == move.id then
@@ -191,7 +190,7 @@ local function step()
     end
     for _, slot in ipairs(slots) do
         local id = setup.gear[slot]
-        if id ~= "" and item(BAG_WORN, slot) ~= id then
+        if id and id ~= "" and item(BAG_WORN, slot) ~= id then
             local bag, source = locate(id)
             if not bag then stop("Teil für Platz " .. slot .. " fehlt im Inventar."); return end
             if bag == BAG_WORN then
@@ -221,7 +220,23 @@ end
 
 local function loadSetup(index)
     if not saved.setups[index] then message("Setup " .. index .. " ist leer."); return end
-    if selected == index then return end
+    if selected then
+        if selected ~= index then message("Bitte den laufenden Wechsel abwarten.") end
+        return
+    end
+    local setup = saved.setups[index]
+    if type(setup.gear) ~= "table" or type(setup.skills) ~= "table"
+        or type(setup.skills[bars[1]]) ~= "table" or type(setup.skills[bars[2]]) ~= "table" then
+        message("Dieses Setup ist unvollständig. Bitte erneut speichern.")
+        return
+    end
+    for _, slot in ipairs(slots) do
+        local id = setup.gear[slot]
+        if id and id ~= "" and not locate(id) then
+            message("Teil für Platz " .. slot .. " fehlt im Inventar.")
+            return
+        end
+    end
     selected, previousKey, attempts = index, nil, 0
     combatPaused, resumeAt = false, 0
     checkedWeaponPose, sheathDeadline = false, nil
@@ -254,7 +269,10 @@ em:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addon)
     local lib = LibHarvensAddonSettings
     local menu = lib:AddAddon("SetupWardrobe", { allowDefaults = false })
     ControllerWardrobeMenu(menu, saved, slots, bars, title, save, loadSetup, locate, refreshHud,
-        function() return selected end)
+        function() return selected end,
+        function()
+            stop("Ausstehender Wechsel abgebrochen.")
+        end)
     SLASH_COMMANDS["/cw"] = function(text)
         local index = tonumber(text)
         if index and index == math.floor(index) and index >= 1 and index <= 4 then loadSetup(index)

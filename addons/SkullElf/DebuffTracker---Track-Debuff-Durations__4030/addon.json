@@ -78,7 +78,7 @@
     "DebuffTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4030/",
-  "fingerprint": "c888d758353e5bece40c265f270473f0add004a306eef0e4a38f5bc1fa65e77c",
+  "fingerprint": "176eb228b52cd0a1de7c8205cf0d27823ddea263a392f6598defe964cfecba36",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18418.png",
     "https://cdn-eso.mmoui.com/preview/pvw18417.png",
@@ -96,11 +96,11 @@
   "source_id": "4030",
   "source_url": "https://www.esoui.com/downloads/info4030-DebuffTracker-TrackDebuffDurations.html",
   "stats": {
-    "downloads": 3515,
+    "downloads": 3640,
     "favorites": 15,
-    "monthly_downloads": 233
+    "monthly_downloads": 341
   },
   "title": "DebuffTracker - Track Debuff Durations!",
-  "updated_at": 1794945841000,
-  "version": "5.21.24"
+  "updated_at": 1795783465000,
+  "version": "5.25.6"
 }

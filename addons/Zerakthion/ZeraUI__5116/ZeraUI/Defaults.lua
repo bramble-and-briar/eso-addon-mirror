@@ -38,7 +38,7 @@ function ZeraUIAttachDefaults(A,UI)
         setCooldownProcSound="None",setCooldownReadySound="None",setCooldownZenBoss=false,setCooldownZenCountMode="All",setCooldownRODuration=true,setCooldownROCount=true,
         setCooldownResourceValue=true,setCooldownProcCount=true,
         scale=1,x=0,y=-70,skillSize=64,gapX=4,gapY=7,gridX=0,gridY=-17,
-        inactiveDesaturation=.9,inactiveAlpha=1,showArrow=true,arrowStyle="Classic",activeBarOnTop=false,showFill=true,swapFade=true,
+        inactiveDesaturation=.9,inactiveAlpha=1,showArrow=true,arrowStyle="Classic",activeBarPosition="Default",hideInactiveIdle=false,showFill=true,swapFade=true,
         showUnavailable=true,darkenResource=true,darkenCorpse=true,darkenTarget=true,unavailableTint=.28,unavailableAlpha=.75,
         timerSize=30,stackSize=19,stackBadge=true,extraSize=16,extraLeftSize=15,extraRightSize=15,cornerBadgeSize=16,keySize=14,fontStyle="thick-outline",fontFace="Rajdhani Bold",
         extraLeftX=-5,extraLeftY=0,extraRightX=4,extraRightY=0,
@@ -355,6 +355,14 @@ function ZeraUIAttachDefaults(A,UI)
             else s.attrMode="Default" end
             s.attrCleanGlow=true
             s.attrModeVersion=1
+        end
+        if (s.activeBarPositionVersion or 0)<1 then
+            if s.activeBarOnTop==true then s.activeBarPosition="Top"
+            elseif s.activeBarPosition~="Top" and s.activeBarPosition~="Bottom" then s.activeBarPosition="Default" end
+            s.activeBarOnTop=nil
+            s.activeBarPositionVersion=1
+        elseif s.activeBarPosition~="Top" and s.activeBarPosition~="Bottom" then
+            s.activeBarPosition="Default"
         end
         self:NormalizeAttributeLayout()
         self.settings.tracking=self.settings.tracking or {}

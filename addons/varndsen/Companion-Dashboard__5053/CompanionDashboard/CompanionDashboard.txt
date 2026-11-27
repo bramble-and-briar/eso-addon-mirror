@@ -1,7 +1,7 @@
 ## Title: Companion Dashboard
 ## Description: Lightweight Companion information and simple companion combat stats for most recent combat. Toggle window: type '/cd' or '/cdash'. Toggle combat logs: type '/cdd'.
 ## Author: varndsen
-## Version: 1.5.3
+## Version: 1.5.4
 ## APIVersion: 101051
 
-CompanionDashboard-v1.5.3.lua
+CompanionDashboard-v1.5.4.lua

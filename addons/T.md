@@ -21,7 +21,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Take One](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mightyjo/Take-One__3076) | mightyjo | PC / Mac | 1.3.0 |
 | [Talk Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/Talk-Toggle__cda29292-5e10-4045-9219-10ff1a9444fe) | dicen9 | Console | — |
 | [Tamriel Ambulance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheInfiniti352/Tamriel-Ambulance__3124) | TheInfiniti352 | PC / Mac | 1.2.11 |
-| [Tamriel Calendar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Tamriel-Calendar__4357) | Soul_Hagans | PC / Mac | 2.4.1 |
+| [Tamriel Calendar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Tamriel-Calendar__4357) | Soul_Hagans | PC / Mac | 2.4.2 |
 | [Tamriel Chronos - Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gandalf/Tamriel-Chronos---Clock__3348) | Gandalf | PC / Mac | 20101 |
 | [Tamriel Collections - Archive Antiquities](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Antiquities__ce080e90-e198-4d6b-8b7e-19c933c02e6e) | MajesticMinxi | Console | — |
 | [Tamriel Collections - Archive Furnishing Plans](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Furnishing-Plans__8e8983cd-c304-4a89-b625-ec8c4560820d) | MajesticMinxi | Console | — |
@@ -45,6 +45,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Trade Centre Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Tamriel-Trade-Centre-Companion__3509) | Sharlikran | PC / Mac | 1.11 |
 | [Tamriel Trade Centre jpPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/Tamriel-Trade-Centre-jpPatch__2193) | Marify | PC / Mac | 0.11.0 |
 | [Tamriel Trade Centre Simple Price](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kriax/Tamriel-Trade-Centre-Simple-Price__3078) | _Kriax | PC / Mac | 1.1.3 |
+| [Tamriel Unbound](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Tamriel-Unbound__c029fa20-e860-4adb-9122-5ecc557b4260) | m1lkst3ak | Console | — |
 | [TamrielGuard - disable accidental stealing (discontinued)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/TamrielGuard---disable-accidental-stealing-discontinued__2780) | Schrodi | PC / Mac | 1.0 |
 | [Tamrielic Languages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Tamrielic-Languages__4814) | aausten | PC / Mac | 2.0.1 |
 | [TamrielTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NWDD/TamrielTime__232) | NWDD | PC / Mac | 0.9.9.3 |
@@ -169,6 +170,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ToggleStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/ToggleStatus__2954) | Wheels | PC / Mac | 2.1 |
 | [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.5.0 |
 | [TOM Guild's Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/TOM-Guild-s-Addon__3703) | Splat | PC / Mac | 2.70 |
+| [Tome Point Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wildskiller/Tome-Point-Collector__07107f66-2817-46b8-9e15-cca10cc5b68d) | wildskiller | Console | — |
 | [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.3 |
 | [TomesGuard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/TomesGuard__5055) | alezhu | PC / Mac | 1.0.2 |
 | [Tooltip Resizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ifridius/Tooltip-Resizer__4409) | ifridius | PC / Mac | 2.2 |

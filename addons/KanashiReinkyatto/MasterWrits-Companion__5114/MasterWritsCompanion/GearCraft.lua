@@ -1,3 +1,4 @@
+local L = MWC.L
 -- Crafting blacksmithing, clothing, woodworking and jewelry writ items at a set station or a consolidated
 -- station: one item at a time, then improved step by step to the writ's quality with a sure (100%) chance.
 -- Every item is checked against the writ before crafting (result preview) and after (the finished item).
@@ -54,16 +55,16 @@ end
 local function SelectSet(setId)
   if IsConsolidatedStation() then
     local index = ConsolidatedIndex(setId)
-    if not index then return "set not available at this station" end
-    if not IsConsolidatedSmithingItemSetIdUnlocked(setId) then return "set not unlocked at this station" end
+    if not index then return L.PROBLEM_SET_NOT_AVAILABLE end
+    if not IsConsolidatedSmithingItemSetIdUnlocked(setId) then return L.PROBLEM_SET_LOCKED end
     if GetActiveConsolidatedSmithingItemSetId() ~= setId then
       SetActiveConsolidatedSmithingSetByIndex(index)
     end
     if GetActiveConsolidatedSmithingItemSetId() ~= setId then
-      return string.format("the station didn't switch to the set (active %d)", GetActiveConsolidatedSmithingItemSetId())
+      return string.format(L.PROBLEM_SET_NOT_SWITCHED, GetActiveConsolidatedSmithingItemSetId())
     end
   end
-  if not CanSmithingSetPatternsBeCraftedHere(setId) then return "needs this set's crafting station" end
+  if not CanSmithingSetPatternsBeCraftedHere(setId) then return L.PROBLEM_SET_STATION end
 end
 
 local function Owned(link)
@@ -73,17 +74,17 @@ end
 
 -- Why the game refuses the craft: the first missing thing we can name.
 local function MissingReason(group, fields, pattern, materialIndex, quantity)
-  if fields[6] > 0 and MWC.Gear.IsStyleKnown(fields[6], fields[1]) == false then return "style not known for this piece" end
-  if MWC.Gear.TraitResearch(fields) == false then return "trait not researched on this item" end
+  if fields[6] > 0 and MWC.Gear.IsStyleKnown(fields[6], fields[1]) == false then return L.PROBLEM_STYLE_UNKNOWN_PIECE end
+  if MWC.Gear.TraitResearch(fields) == false then return L.PROBLEM_TRAIT_UNKNOWN end
   local materialLink = GetSmithingPatternMaterialItemLink(pattern, materialIndex, LINK_STYLE_BRACKETS)
   if materialLink and materialLink ~= "" and Owned(materialLink) < quantity then
-    return "not enough " .. MWC.ItemName(materialLink) .. " in bag or craft bag"
+    return string.format(L.PROBLEM_NOT_ENOUGH_IN_BAG, MWC.ItemName(materialLink))
   end
   local traitStone = MWC.KeyItems.TraitStone(fields[5])
-  if traitStone and Owned(traitStone) < 1 then return "no " .. MWC.ItemName(traitStone) .. " in bag or craft bag" end
+  if traitStone and Owned(traitStone) < 1 then return string.format(L.PROBLEM_NONE_IN_BAG, MWC.ItemName(traitStone)) end
   local styleMaterial = group.mimic and MWC.LinkFromItemId(MWC.Gear.MIMIC_STONE_ID) or MWC.KeyItems.StyleMaterial(fields[6])
-  if styleMaterial and Owned(styleMaterial) < 1 then return "no " .. MWC.ItemName(styleMaterial) .. " in bag or craft bag" end
-  return "the game refuses to craft it"
+  if styleMaterial and Owned(styleMaterial) < 1 then return string.format(L.PROBLEM_NONE_IN_BAG, MWC.ItemName(styleMaterial)) end
+  return L.PROBLEM_GAME_REFUSES
 end
 
 -- Everything needed to craft one item for the group, or nil and the reason it can't be crafted here.
@@ -92,13 +93,13 @@ local function Prepare(group)
   local problem = SelectSet(fields[4])
   if problem then return nil, problem end
   local pattern, materialIndex, setItemId = GetSmithingPatternInfoForItemSet(fields[1], fields[4], fields[2])
-  if not pattern or not materialIndex then return nil, "no matching pattern at this station" end
+  if not pattern or not materialIndex then return nil, L.PROBLEM_NO_PATTERN end
   MWC.Gear.RememberItemKind(setItemId, MWC.Gear.WritKind(fields))
   -- The set's trait requirement is known here only: remember it for planning, and stop at it.
   local _, _, _, _, traitsRequired, traitsKnown = GetSmithingPatternInfo(pattern)
   MWC.Gear.RememberSetTraits(fields[4], traitsRequired)
   if traitsRequired and traitsKnown and traitsKnown < traitsRequired then
-    return nil, string.format("set needs %d traits researched on this item (%d)", traitsRequired, traitsKnown)
+    return nil, string.format(L.PROBLEM_SET_TRAITS, traitsRequired, traitsKnown)
   end
   local quantity = select(3, GetSmithingPatternMaterialItemInfo(pattern, materialIndex))
   -- Sixth value: use the universal style item (Crown Mimic Stone) instead of the style material.
@@ -114,7 +115,7 @@ local function Prepare(group)
       or GetItemLinkRequiredChampionPoints(preview) ~= MWC.Gear.REQUIRED_CP then
     Log("Preview %s: key %s, CP %d; expected %s, CP %d", preview, preview ~= "" and MWC.Gear.LinkKey(preview, 0) or "-",
       preview ~= "" and GetItemLinkRequiredChampionPoints(preview) or 0, expected, MWC.Gear.REQUIRED_CP)
-    return nil, "the station would craft " .. (preview ~= "" and preview or "nothing") .. ", not the writ's item", true
+    return nil, string.format(L.PROBLEM_WRONG_ITEM, preview ~= "" and preview or L.PROBLEM_NOTHING), true
   end
   return { craft = craft, preview = preview }
 end
@@ -175,7 +176,7 @@ local NextStep
 local function SkipCurrent(reason)
   local group = run.current.group
   Log("Skip %s: %s", group.name, reason)
-  run.skipped[group.key] = string.format("%s (%s)", group.name, reason)
+  run.skipped[group.key] = string.format(L.SKIP_REASON, group.name, reason)
   run.current = nil
   NextStep()
 end
@@ -187,7 +188,7 @@ local function FinishItem()
   if not slot or MWC.Gear.SlotIndexKey(BAG_BACKPACK, slot) ~= current.group.indexKey then
     Log("Finished %s: key %s, expected %s", link or "(not found)",
       slot and tostring(MWC.Gear.SlotIndexKey(BAG_BACKPACK, slot)) or "-", current.group.indexKey)
-    SkipCurrent(string.format("the finished item %s doesn't match the writ", link or "(not found)"))
+    SkipCurrent(string.format(L.PROBLEM_FINISHED_MISMATCH, link or L.PROBLEM_NOT_FOUND))
     return
   end
   run.current = nil
@@ -204,7 +205,7 @@ local function Improve()
   local current = run.current
   local slot = FindById(current.id)
   if not slot then
-    SkipCurrent("lost track of the crafted item")
+    SkipCurrent(L.PROBLEM_LOST_ITEM)
     return
   end
   local quality = GetItemFunctionalQuality(BAG_BACKPACK, slot)
@@ -214,7 +215,7 @@ local function Improve()
     return
   end
   if CanItemBeSmithingImproved and not CanItemBeSmithingImproved(BAG_BACKPACK, slot, run.craftType) then
-    SkipCurrent(string.format("the game can't improve the item at quality %d", quality))
+    SkipCurrent(string.format(L.PROBLEM_CANT_IMPROVE, quality))
     return
   end
   local boosters, chance = 0, 0
@@ -223,18 +224,18 @@ local function Improve()
     chance = GetSmithingImprovementChance(BAG_BACKPACK, slot, boosters, run.craftType)
   end
   if chance < 100 then
-    SkipCurrent("no sure improvement step possible: improvement skill too low?")
+    SkipCurrent(L.PROBLEM_NO_SURE_STEP)
     return
   end
   local name, _, owned = GetSmithingImprovementItemInfo(run.craftType, quality)
   if (owned or 0) < boosters then
-    SkipCurrent(string.format("not enough %s: %d needed, %d owned", zo_strformat("<<1>>", name or "?"),
+    SkipCurrent(string.format(L.PROBLEM_NOT_ENOUGH, zo_strformat("<<1>>", name or "?"),
       boosters, owned or 0))
     return
   end
   current.phase = "improve"
   current.qualityBefore, current.waited = quality, 0
-  MWC.Activity.Progress(run.done, string.format("Improving %s (%d → %d)…", current.group.name, quality, quality + 1))
+  MWC.Activity.Progress(run.done, string.format(L.IMPROVING_ITEM, current.group.name, quality, quality + 1))
   ImproveSmithingItem(BAG_BACKPACK, slot, boosters)
 end
 
@@ -256,7 +257,7 @@ local function AfterCraft()
     return
   end
   if not id then
-    SkipCurrent("the crafted item was not found in the bag")
+    SkipCurrent(L.PROBLEM_ITEM_NOT_IN_BAG)
     return
   end
   current.id = id
@@ -267,7 +268,7 @@ end
 NextStep = function()
   if not run then return end
   if MWC.GearCraft.StationWritType() ~= run.writType then
-    MWC.GearCraft.Stop("Station closed, crafting stopped.")
+    MWC.GearCraft.Stop(L.STATION_CLOSED)
     return
   end
 
@@ -278,7 +279,7 @@ NextStep = function()
       -- Holiday furnishings are made from a recipe (Craft.lua), not as gear.
     elseif group.type == run.writType and left > 0 and not run.skipped[group.key] and group.kept then
       -- Keep materials is a veto: writs that would spend them are never crafted.
-      run.skipped[group.key] = group.name .. " (spends Keep materials)"
+      run.skipped[group.key] = string.format(L.SKIP_SPENDS_KEPT, group.name)
     elseif group.type == run.writType and left > 0 and not run.skipped[group.key] then
       local unfinishedId, unfinishedLink = FindUnfinished(group, readyKeys)
       if unfinishedId then
@@ -288,17 +289,17 @@ NextStep = function()
         return
       end
       if GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
-        MWC.GearCraft.Stop("Bag full. Free some slots and craft again.")
+        MWC.GearCraft.Stop(L.BAG_FULL_CRAFT)
         return
       end
       local job, reason = Prepare(group)
       if not job then
-        run.skipped[group.key] = string.format("%s (%s)", group.name, reason)
+        run.skipped[group.key] = string.format(L.SKIP_REASON, group.name, reason)
       else
         local fields = group.writs[1].fields
         run.current = { group = group, phase = "craft", before = MatchingIds(group),
           wanted = MWC.Gear.IndexKey(MWC.Gear.WritKind(fields), fields[4], fields[5], fields[6], 0) }
-        MWC.Activity.Progress(run.done, string.format("Crafting %s…", group.name))
+        MWC.Activity.Progress(run.done, string.format(L.CRAFTING_ITEM, group.name))
         CraftSmithingItem(unpack(job.craft))
         return
       end
@@ -310,9 +311,11 @@ NextStep = function()
     table.insert(skipped, text)
   end
   if #skipped > 0 then
-    MWC.GearCraft.Stop("Done. Skipped: %s", table.concat(skipped, "; "))
+    MWC.Activity.Succeed(true)
+    MWC.GearCraft.Stop(L.DONE_SKIPPED, table.concat(skipped, "; "))
   else
-    MWC.GearCraft.Stop("Done, every queued item is crafted.")
+    MWC.Activity.Succeed()
+    MWC.GearCraft.Stop(L.DONE_ALL_ITEMS_CRAFTED)
   end
 end
 
@@ -334,7 +337,7 @@ local function AfterCraftEvent(current)
       current.waited = current.waited + POLL_MS
       zo_callLater(function() AfterCraftEvent(current) end, POLL_MS)
     else
-      SkipCurrent("the improvement didn't show on the item")
+      SkipCurrent(L.PROBLEM_IMPROVEMENT_NOT_SHOWN)
     end
     return
   end
@@ -360,23 +363,15 @@ end
 local function OnCraftFailed(_, result)
   Log("Craft failed: result %s, current %s, phase %s", tostring(result),
     run and run.current and run.current.group.name or "-", run and run.current and run.current.phase or "-")
-  MWC.GearCraft.Stop("Crafting failed: %s", GetString("SI_TRADESKILLRESULT", result))
+  MWC.GearCraft.Stop(L.CRAFTING_FAILED, GetString("SI_TRADESKILLRESULT", result))
 end
 
 local function OnStationClosed()
-  MWC.GearCraft.Stop("Station closed, crafting stopped.")
+  MWC.GearCraft.Stop(L.STATION_CLOSED)
 end
 
-function MWC.GearCraft.Start()
-  if run then
-    MWC.Print("Already crafting. Press Stop in the window to stop.")
-    return
-  end
-  local writType = MWC.GearCraft.StationWritType()
-  if not writType then return end
-
-  -- Hard cap per writ group for this run: never more items than the queued writs still need. The plan is
-  -- built once here: what is made is counted in run.made, so it isn't rebuilt before every item.
+-- Hard cap per writ group for a run: never more items than the queued writs still need.
+local function Limits(writType)
   local limit, total, groups, readyKeys = {}, 0, {}, {}
   for _, group in ipairs(MWC.Plan.Build().groups) do
     table.insert(groups, group)
@@ -387,20 +382,43 @@ function MWC.GearCraft.Start()
       total = total + left
     end
   end
+  return limit, total, groups, readyKeys
+end
+
+-- Whether this gear station has gear of queued writs to make (after its holiday furnishings, Craft.lua).
+function MWC.GearCraft.HasWork()
+  local writType = MWC.GearCraft.StationWritType()
+  return writType ~= nil and select(2, Limits(writType)) > 0
+end
+
+-- carried: skipped notes of the holiday furnishings made just before at this station, reported with the gear's.
+function MWC.GearCraft.Start(carried)
+  if run then
+    MWC.Print(L.ALREADY_CRAFTING)
+    return
+  end
+  local writType = MWC.GearCraft.StationWritType()
+  if not writType then return end
+
+  -- The plan is built once here: what is made is counted in run.made, so it isn't rebuilt before every item.
+  local limit, total, groups, readyKeys = Limits(writType)
   if total == 0 then
-    MWC.Print("Nothing to craft here.")
+    MWC.Print(L.NOTHING_TO_CRAFT)
     return
   end
   Log("Start at %s: %d items, consolidated %s, active set %s, %d tempers for a sure gold step", writType, total,
     tostring(IsConsolidatedStation()),
     IsConsolidatedStation() and tostring(GetActiveConsolidatedSmithingItemSetId()) or "-",
     MWC.Gear.BoostersForStep(writType, 4))
-  if not MWC.Activity.Begin("Crafting", total,
-      function() MWC.GearCraft.Stop("Crafting stopped.") end, true) then return end
+  if not MWC.Activity.Begin(L.ACTIVITY_CRAFTING, total,
+      function() MWC.GearCraft.Stop(L.CRAFTING_STOPPED) end, true) then return end
   run = {
     writType = writType, craftType = GetCraftingInteractionType(), limit = limit, made = {}, skipped = {},
     done = 0, groups = groups, readyKeys = readyKeys,
   }
+  for i, text in ipairs(carried or {}) do
+    run.skipped["carried:" .. i] = text
+  end
   table.sort(groups, CraftOrder)
   EVENT_MANAGER:RegisterForEvent(EVENT_NS, EVENT_CRAFT_COMPLETED, OnCraftCompleted)
   EVENT_MANAGER:RegisterForEvent(EVENT_NS, EVENT_CRAFT_FAILED, OnCraftFailed)

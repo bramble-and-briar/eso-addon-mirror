@@ -1,0 +1,48 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/kireto/NEW-WORLD-X-ESO-UI__5125",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "kireto",
+  "canonical_id": "esoui:5125",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5125",
+  "deleted": false,
+  "directories": [
+    "NWInterfaz"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5125/",
+  "fingerprint": "d9cfe96bb54aa1e536edadcb48963a24a74f774b354e735dd3a0c59b96ea6566",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18842.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18844.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18843.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18845.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18846.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18847.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18848.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5125",
+  "source_url": "https://www.esoui.com/downloads/info5125-NEWWORLDXESOUI.html",
+  "stats": {
+    "downloads": 4,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "NEW WORLD X ESO UI",
+  "updated_at": 1795754735000,
+  "version": "1.8.1"
+}

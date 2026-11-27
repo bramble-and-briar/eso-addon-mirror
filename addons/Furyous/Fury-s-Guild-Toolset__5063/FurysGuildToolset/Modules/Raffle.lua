@@ -34,6 +34,7 @@
 
 local GT = FurysGuildToolset
 local U = GT.Util
+local T = GT.Theme
 
 local Raffle = GT:RegisterModule("raffle", {})
 GT.Raffle = Raffle
@@ -83,6 +84,10 @@ Raffle.defaults = {
     locked = {},            -- [payment key] = raffle id: counted by a raffle whose winners are drawn
     mailCheckedAt = 0,      -- last time the mailbox was read
     past = {},              -- finished raffles (last 20)
+    show = false,           -- 1.34.0: draw show (countdown and winner reveal on screen)
+    showCountdown = 5,      -- seconds of countdown before each winner
+    showSpin = 4,           -- seconds of names spinning before each winner
+    showSound = true,       -- sounds during the draw show
 }
 
 function Raffle.SeenKey(d)
@@ -773,41 +778,10 @@ end
 -- far. Tickets taken away come off the person's highest numbers and those numbers are not used
 -- again. The first time a raffle is seen, the numbers it shows right then are saved as they are.
 -- Returns the number of tickets in the draw.
-local RESTORE_CUTOFF = 1795473600   -- 2026-11-23 22:40 UTC, just before 1.20.0's regrouping
 function Raffle:KeepNumbers(r, list, byName, price)
     if not r.issued then
         r.issued = {}
-        local seed = list
-        -- One-off for the raffle that 1.20.0 renumbered when a buyer paid again: start from the
-        -- numbers as they were before that payment (still grouped by buyer); later payments go
-        -- after them. Only for that guild's raffle that was running then, and only this week.
-        local started = self:StartTime(r) or 0
-        if not r.numbering and r.guildId == 927751 and started > 0 and started < RESTORE_CUTOFF
-            and GetTimeStamp() < RESTORE_CUTOFF + 7 * 86400 then
-            local before = {}
-            for _, d in ipairs(self:Routing().byRaffle[r.id] or {}) do
-                if d.ts < RESTORE_CUTOFF then
-                    local key = zo_strlower(d.who)
-                    before[key] = (before[key] or 0) + math.floor(d.amt / price)
-                end
-            end
-            seed = {}
-            for _, b in ipairs(list) do
-                local n = before[zo_strlower(b.who)] or 0
-                if r.maxTickets > 0 and n > r.maxTickets then n = r.maxTickets end
-                n = b.excluded and 0 or math.max(0, n + b.adjust)
-                seed[#seed + 1] = { who = b.who, ranges = n > 0 and { { 1, n } } or {} }
-            end
-            local at = 0
-            for _, b in ipairs(seed) do
-                if b.ranges[1] then
-                    local n = b.ranges[1][2]
-                    b.ranges[1] = { at + 1, at + n }
-                    at = at + n
-                end
-            end
-        end
-        for _, b in ipairs(seed) do
+        for _, b in ipairs(list) do
             for _, range in ipairs(b.ranges) do r.issued[#r.issued + 1] = { who = b.who, from = range[1], to = range[2] } end
         end
         table.sort(r.issued, function(a, b) return a.from < b.from end)
@@ -1204,14 +1178,31 @@ function Raffle:Draw(r, now)
         if not self.sv.assign[key] then self.sv.locked[key] = r.id end
     end
     self:Dirty()
-    for _, res in ipairs(draw.results) do
-        U.Print("%s draw %d: ticket #%d of %d, %s (tickets %s)%s.", self:Tag(r), res.n, res.ticket, tally.total, res.who, HeldText(res), self:ForPrize(r, res))
+    local function After()
+        if #draw.results < r.winners then
+            U.Print("Only %d %s could be drawn: there aren't enough buyers.", #draw.results, #draw.results == 1 and "winner" or "winners")
+        end
+        U.Print("To announce the winners, click Winners to guild chat or Winners for Discord at the bottom of the Raffle tab.")
     end
-    if #draw.results < r.winners then
-        U.Print("Only %d %s could be drawn: there aren't enough buyers.", #draw.results, #draw.results == 1 and "winner" or "winners")
+    -- 1.34.0: with the draw show on, each winner is printed as the show reveals them.
+    -- The report window hides during the show, so its list doesn't give the winners away
+    -- on stream, and comes back on the Raffle tab when the show ends.
+    if self.sv.show and #draw.results > 0 then
+        GT.Report:Hide()
+        self:StartShow(r, draw.results, { print = true, after = function() After(); self:Show(r) end })
+    else
+        for _, res in ipairs(draw.results) do self:PrintResult(r, res) end
+        After()
+        self:Show(r)
     end
-    U.Print("To announce the winners, click Winners to guild chat or Winners for Discord at the bottom of the Raffle tab.")
-    self:Show(r)
+end
+
+function Raffle:PrintResult(r, res)
+    if res.replaces then
+        U.Print("%s draw %d (replaces %s): ticket #%d of %d, %s (tickets %s)%s.", self:Tag(r), res.n, res.replaces, res.ticket, r.draw.total, res.who, HeldText(res), self:ForPrize(r, res))
+    else
+        U.Print("%s draw %d: ticket #%d of %d, %s (tickets %s)%s.", self:Tag(r), res.n, res.ticket, r.draw.total, res.who, HeldText(res), self:ForPrize(r, res))
+    end
 end
 
 -- A winner who can't take the prize: their win is voided and another ticket is drawn.
@@ -1227,7 +1218,12 @@ function Raffle:Redraw(r, who)
         if res then
             res.replaces = who
             res.slot = Slot(voided)
-            U.Print("%s draw %d (replaces %s): ticket #%d of %d, %s (tickets %s)%s.", self:Tag(r), res.n, who, res.ticket, draw.total, res.who, HeldText(res), self:ForPrize(r, res))
+            if self.sv.show then
+                GT.Report:Hide()
+                self:StartShow(r, { res }, { print = true, after = function() self:Show(r) end })
+            else
+                self:PrintResult(r, res)
+            end
         else
             U.Print("No tickets are left to draw a replacement from.")
         end
@@ -1248,6 +1244,149 @@ function Raffle:WinsOf(r, who)
         if res.who == who then wins[#wins + 1] = res end
     end
     return wins
+end
+
+-- Draw show (1.34.0) ----------------------------------------------------------------
+-- Only shows results that are already drawn and saved: closing the window, a reload or a
+-- crash in the middle changes nothing about who won. One winner at a time: countdown, the
+-- buyers' names spinning and slowing down, then the winner. Next winner waits for your click.
+local SHOW_NAME = "FurysGuildToolset_RaffleShow"
+local SHOW_TICK_MS = 40
+
+function Raffle:ShowControls()
+    local win = FurysGuildToolset_RaffleShow
+    return win, win:GetNamedChild("Title"), win:GetNamedChild("Prize"), win:GetNamedChild("Big"),
+        win:GetNamedChild("Sub"), win:GetNamedChild("Next"), win:GetNamedChild("Done")
+end
+
+local function ShowSound(self, sound)
+    if self.sv.showSound then PlaySound(sound) end
+end
+
+-- results: the results to reveal, in order. opts.print: print each winner in chat when shown;
+-- opts.after: called once the show ends (or is closed).
+function Raffle:StartShow(r, results, opts)
+    local names = {}
+    for _, b in ipairs(self:GetTally(r).list) do
+        if b.tickets > 0 then names[#names + 1] = b.who end
+    end
+    if #names == 0 then
+        for _, res in ipairs(results) do names[#names + 1] = res.who end
+    end
+    if self.showState then self:ShowClosed() end
+    self.showState = { r = r, list = results, i = 0, names = names, print = opts and opts.print, after = opts and opts.after }
+    local win, title = self:ShowControls()
+    title:SetText(self:Name(r))
+    U.ShowOnTop(win)
+    self:ShowNext()
+end
+
+function Raffle:ReplayShow(r)
+    local list = {}
+    for _, res in ipairs(r.draw and r.draw.results or {}) do
+        if not res.void then list[#list + 1] = res end
+    end
+    if #list == 0 then U.Print("This raffle has no winners to show."); return end
+    table.sort(list, function(a, b) return Slot(a) < Slot(b) end)
+    self:StartShow(r, list)
+end
+
+function Raffle:ShowNext()
+    local st = self.showState
+    if not st then return end
+    st.i = st.i + 1
+    local res = st.list[st.i]
+    if not res then self:HideShow(); return end
+    local _, _, prizeLabel, big, sub, nextButton, doneButton = self:ShowControls()
+    nextButton:SetHidden(true)
+    doneButton:SetHidden(true)
+    local prize = self:PrizeFor(st.r, Slot(res))
+    local count = #st.list > 1 and string.format("Winner %d of %d", st.i, #st.list) or "The winner"
+    if res.replaces then count = "Replacement winner" end
+    prizeLabel:SetText(prize and prize ~= "" and (count .. ": " .. prize) or count)
+    big:SetColor(T.GOLD:UnpackRGBA())
+    big:SetText("")
+    sub:SetText(string.format("%d tickets in the draw", st.r.draw and st.r.draw.total or 0))
+    st.res = res
+    st.phase = "count"
+    st.start = GetGameTimeMilliseconds()
+    st.shown = nil
+    EVENT_MANAGER:RegisterForUpdate(SHOW_NAME, SHOW_TICK_MS, function() self:ShowTick() end)
+    self:ShowTick()
+end
+
+function Raffle:ShowTick()
+    local st = self.showState
+    if not st then self:StopShowTimer(); return end
+    local _, _, _, big, sub = self:ShowControls()
+    local now = GetGameTimeMilliseconds()
+    if st.phase == "count" then
+        local left = self.sv.showCountdown - math.floor((now - st.start) / 1000)
+        if left > 0 then
+            if st.shown ~= left then
+                st.shown = left
+                big:SetColor(T.VIOLET:UnpackRGBA())
+                big:SetText(tostring(left))
+                ShowSound(self, SOUNDS.DEFAULT_CLICK)
+            end
+            return
+        end
+        st.phase, st.spinStart, st.nextFlip = "spin", now, now
+        big:SetColor(T.TEXT:UnpackRGBA())
+    end
+    if st.phase == "spin" then
+        local spinMs = self.sv.showSpin * 1000
+        local done = (now - st.spinStart) / spinMs
+        if done >= 1 then
+            self:Reveal()
+            return
+        end
+        if now >= st.nextFlip then
+            local total = st.r.draw and st.r.draw.total or 1
+            big:SetText(st.names[math.random(#st.names)])
+            sub:SetText(string.format("Ticket #%d", math.random(math.max(total, 1))))
+            ShowSound(self, SOUNDS.DEFAULT_CLICK)
+            -- Starts fast and slows down toward the end.
+            st.nextFlip = now + 60 + math.floor(done * done * 450)
+        end
+    end
+end
+
+function Raffle:Reveal()
+    local st = self.showState
+    self:StopShowTimer()
+    local res = st.res
+    st.phase = "shown"
+    st.revealed = st.i
+    local _, _, _, big, sub, nextButton, doneButton = self:ShowControls()
+    big:SetColor(T.GOLD:UnpackRGBA())
+    big:SetText(res.who)
+    sub:SetText(string.format("Ticket #%d of %d  |cB4B0D8(held tickets %s)|r", res.ticket, st.r.draw and st.r.draw.total or 0, HeldText(res)))
+    ShowSound(self, SOUNDS.LEVEL_UP)
+    if st.print then self:PrintResult(st.r, res) end
+    nextButton:SetHidden(st.i >= #st.list)
+    doneButton:SetHidden(false)
+end
+
+function Raffle:StopShowTimer()
+    EVENT_MANAGER:UnregisterForUpdate(SHOW_NAME)
+end
+
+function Raffle:HideShow()
+    SCENE_MANAGER:HideTopLevel(FurysGuildToolset_RaffleShow)
+    self:ShowClosed()   -- the window's OnHide calls it too; it only runs once
+end
+
+-- The window closed (button, X or Esc): winners not revealed yet go to chat, so nothing is lost.
+function Raffle:ShowClosed()
+    self:StopShowTimer()
+    local st = self.showState
+    if not st then return end
+    self.showState = nil
+    if st.print then
+        for i = (st.revealed or 0) + 1, #st.list do self:PrintResult(st.r, st.list[i]) end
+    end
+    if st.after then st.after() end
 end
 
 -- Guild chat ----------------------------------------------------------------------
@@ -1821,6 +1960,10 @@ function Raffle:TabFooter()
     if status == "drawn" then
         footer[#footer + 1] = { label = "Winners to guild chat", tip = "Puts the winners (and their prizes) in the guild chat box, one part at a time, for you to press Enter. Without a raffle guild, shows them to copy.", fn = function() self:PostResults(r) end }
         footer[#footer + 1] = { label = "Winners for Discord", tip = "Shows the winners and their prizes as text to copy and paste into Discord.", fn = function() self:Discord(r) end }
+        if self.sv.show then
+            footer[#footer + 1] = { label = "Replay draw show", tip = "Plays the draw show again with the same winners (nothing is drawn again), for example on stream.",
+                fn = function() self:ReplayShow(r) end }
+        end
     end
     footer[#footer + 1] = menu
     return footer
@@ -1945,6 +2088,14 @@ function Raffle:SettingsControls()
           getFunc = function() return sv.enabled end, setFunc = function(v) sv.enabled = v end, default = false, requiresReload = true },
         { type = "checkbox", name = "Chat line when someone buys tickets", tooltip = "Prints a line in your chat when a bank deposit during the sale buys tickets. Counted mails always get a line, since you are at your mailbox then. Only you see it.",
           getFunc = function() return sv.buyNotice end, setFunc = function(v) sv.buyNotice = v end, default = false },
+        { type = "checkbox", name = "Draw show", tooltip = "When you draw the winners, a window counts down, spins through the buyers' names and reveals each winner with a sound, one winner at a time. Great on stream. The winners are drawn the moment you click Draw winners, as before; the show only reveals them. Replay it with Replay draw show on the Raffle tab.",
+          getFunc = function() return sv.show end, setFunc = function(v) sv.show = v end, default = false },
+        { type = "slider", name = "Draw show: countdown (seconds)", min = 0, max = 10, step = 1, tooltip = "Countdown before each winner. 0 = no countdown.",
+          getFunc = function() return sv.showCountdown end, setFunc = function(v) sv.showCountdown = v end, default = 5, disabled = function() return not sv.show end },
+        { type = "slider", name = "Draw show: spinning names (seconds)", min = 1, max = 10, step = 1, tooltip = "How long the buyers' names spin, slowing down, before the winner shows.",
+          getFunc = function() return sv.showSpin end, setFunc = function(v) sv.showSpin = v end, default = 4, disabled = function() return not sv.show end },
+        { type = "checkbox", name = "Draw show: sounds", tooltip = "A tick for each second of the countdown, clicks while the names spin and a fanfare for the winner.",
+          getFunc = function() return sv.showSound end, setFunc = function(v) sv.showSound = v end, default = true, disabled = function() return not sv.show end },
         { type = "description", title = "Setting up", text = function()
             local r = R()
             return string.format("%s (%s)%s", self:Name(r), self:StatusShort(r), self:Multi() and string.format(", raffle %d of %d. Switch with New / other raffles on the Raffle tab.", self:IndexOf(r), #sv.raffles) or "")

@@ -1,6 +1,7 @@
 -- Ref: docs/adr/0002-modelo-de-dominio-captura-y-codec-de-comparticion.md
 -- Ref: docs/adr/0004-objetivos-multiples-inferidos-por-reticula.md
 -- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
+-- Ref: docs/adr/0017-objetivos-duelo-jugadores-y-event-duel-finished.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -10,6 +11,7 @@ local CombatTracker = Addon.CombatTracker
 
 local LISTENER_DIED = "RPQuest_CombatTracker_Died"
 local LISTENER_DIED_XP = "RPQuest_CombatTracker_DiedXP"
+local LISTENER_DUEL_FINISHED = "RPQuest_CombatTracker_DuelFinished"
 local LISTENER_JUSTICE_BOUNTY = "RPQuest_Justice_Bounty"
 local LISTENER_JUSTICE_INFAMY = "RPQuest_Justice_Infamy"
 local LISTENER_JUSTICE_PICKPOCKET = "RPQuest_Justice_Pickpocket"
@@ -66,9 +68,41 @@ function CombatTracker:UpdateJusticeRegistration(activeQuest)
     self._isJusticeRegistered = true
 end
 
+local function HasPendingDuelTarget(quest)
+    if not quest or quest.completed or quest.failed or type(quest.targets) ~= "table" then
+        return false
+    end
+    for _, t in ipairs(quest.targets) do
+        if t.isPlayer == true and (t.currentCount or 0) < (t.requiredCount or 1) then
+            return true
+        end
+    end
+    return false
+end
+
+function CombatTracker:UpdateDuelRegistration(activeQuest)
+    local shouldTrack = HasPendingDuelTarget(activeQuest)
+    if not shouldTrack then
+        if self._isDuelRegistered then
+            EVENT_MANAGER:UnregisterForEvent(LISTENER_DUEL_FINISHED, EVENT_DUEL_FINISHED)
+            self._isDuelRegistered = false
+        end
+        return
+    end
+
+    if self._isDuelRegistered then return end
+
+    self._duelHandler = self._duelHandler or function(...)
+        self:OnDuelFinished(...)
+    end
+    EVENT_MANAGER:RegisterForEvent(LISTENER_DUEL_FINISHED, EVENT_DUEL_FINISHED, self._duelHandler)
+    self._isDuelRegistered = true
+end
+
 function CombatTracker:UpdateRegistration()
     local activeQuest = Addon.QuestRepository:GetActiveQuest()
     self:UpdateJusticeRegistration(activeQuest)
+    self:UpdateDuelRegistration(activeQuest)
 
     local hasActiveQuest = (activeQuest ~= nil)
     if not hasActiveQuest then
@@ -92,6 +126,7 @@ end
 
 function CombatTracker:Initialize()
     self._isRegistered = false
+    self._isDuelRegistered = false
     self._isJusticeRegistered = false
     self._recentKilledOrder = {}
     self._recentKilledSet = {}
@@ -133,6 +168,38 @@ local function GetAreaContextIfNeeded(quest)
     return Addon.TargetCapture:GetPlayerMapContext(false, false)
 end
 
+local function BuildTargetPlayerContext(matchedTarget)
+    if not Addon.QuestRepository:HasTargetLocation(matchedTarget) then
+        return nil
+    end
+    local pZone, pWorldX, _, pWorldZ = GetUnitWorldPosition("player")
+    return {
+        worldZoneId = pZone,
+        worldX = pWorldX,
+        worldZ = pWorldZ,
+    }
+end
+
+local function AnnounceTargetOutcome(recorded, updatedQuest, justCompleted, finalTarget, questFailed, customMsgText)
+    if questFailed and updatedQuest then
+        Addon.Announcements:AnnounceQuestFailed(updatedQuest, finalTarget, customMsgText)
+        return true
+    end
+    if not recorded or not updatedQuest then
+        return false
+    end
+
+    if justCompleted then
+        Addon.Announcements:AnnounceQuestCompleted(updatedQuest, finalTarget)
+    else
+        Addon.Announcements:AnnounceQuestProgress(updatedQuest, finalTarget)
+    end
+    if type(customMsgText) == "string" and customMsgText ~= "" then
+        Addon.Announcements:AnnounceTargetCustomMessage(updatedQuest, finalTarget, customMsgText)
+    end
+    return true
+end
+
 function CombatTracker:OnCombatEvent(_eventCode, result, isError, _abilityName, _abilityGraphic,
                                      _abilityActionSlotType, _sourceName, sourceType, targetName,
                                      _targetType, _hitValue, _powerType, _damageType, _log,
@@ -153,43 +220,37 @@ function CombatTracker:OnCombatEvent(_eventCode, result, isError, _abilityName, 
         return
     end
 
-    local activeQuest, matchedTarget = Addon.QuestRepository:FindPendingTarget(targetName)
+    local activeQuest, matchedTarget = Addon.QuestRepository:FindPendingTarget(targetName, false)
     if not activeQuest or not matchedTarget then
         return
     end
 
-    local playerContext = nil
-    if Addon.QuestRepository:HasTargetLocation(matchedTarget) then
-        local pZone, pWorldX, _, pWorldZ = GetUnitWorldPosition("player")
-        playerContext = {
-            worldZoneId = pZone,
-            worldX = pWorldX,
-            worldZ = pWorldZ,
-        }
-    end
-
+    local playerContext = BuildTargetPlayerContext(matchedTarget)
     local recorded, updatedQuest, justCompleted, finalTarget, questFailed, customMsgText = Addon.QuestRepository:RecordTargetEliminated(
         targetName, playerContext, activeQuest, matchedTarget
     )
-    if questFailed and updatedQuest then
+    if AnnounceTargetOutcome(recorded, updatedQuest, justCompleted, finalTarget, questFailed, customMsgText) then
         self:MarkUnitKilled(targetUnitId)
-        Addon.Announcements:AnnounceQuestFailed(updatedQuest, finalTarget, customMsgText)
-        return
     end
-    if not recorded or not updatedQuest then
+end
+
+function CombatTracker:OnDuelFinished(_eventCode, duelResult, wasLocalPlayersResult, opponentCharacterName)
+    local isLocalVictory = (duelResult == DUEL_RESULT_WON and wasLocalPlayersResult == true)
+        or (duelResult == DUEL_RESULT_FORFEIT and wasLocalPlayersResult == false)
+    if not isLocalVictory then
         return
     end
 
-    self:MarkUnitKilled(targetUnitId)
+    local activeQuest, matchedTarget = Addon.QuestRepository:FindPendingTarget(opponentCharacterName, true)
+    if not activeQuest or not matchedTarget then
+        return
+    end
 
-    if justCompleted then
-        Addon.Announcements:AnnounceQuestCompleted(updatedQuest, finalTarget)
-    else
-        Addon.Announcements:AnnounceQuestProgress(updatedQuest, finalTarget)
-    end
-    if type(customMsgText) == "string" and customMsgText ~= "" then
-        Addon.Announcements:AnnounceTargetCustomMessage(updatedQuest, finalTarget, customMsgText)
-    end
+    local playerContext = BuildTargetPlayerContext(matchedTarget)
+    local recorded, updatedQuest, justCompleted, finalTarget, questFailed, customMsgText = Addon.QuestRepository:RecordTargetEliminated(
+        opponentCharacterName, playerContext, activeQuest, matchedTarget
+    )
+    AnnounceTargetOutcome(recorded, updatedQuest, justCompleted, finalTarget, questFailed, customMsgText)
 end
 
 function CombatTracker:HandleJusticeViolation()

@@ -79,7 +79,7 @@
     <TopLevelControl name="SFI_Queue_Window" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
       <Dimensions x="384" y ="384" />
       <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0" />
-      <OnMoveStop> StaticsFurnishingImprovements.Queue:OnMoveStop() </OnMoveStop>
+      <OnMoveStop> StaticsFurnishingImprovements.Queue.OnMoveStop() </OnMoveStop>
       <Controls>
 
         <!-- Main Backdrop -->
@@ -91,7 +91,7 @@
         <Button name="$(parent)CloseButton" text="X" inherits="SFIButton">
           <Dimensions x="32" y="32" />
           <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="0" offsetY="0" />
-          <OnClicked> StaticsFurnishingImprovements.Queue:ShowWindow(false) </OnClicked>
+          <OnClicked> StaticsFurnishingImprovements.Queue.ShowWindow(false) </OnClicked>
         </Button>
 
         <!-- Title -->
@@ -135,7 +135,7 @@
     <TopLevelControl name="SFI_Vault_Stats_Window" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
       <Dimensions x="384" y ="640" />
       <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0" />
-      <OnMoveStop> StaticsFurnishingImprovements.VaultStats:OnMoveStop() </OnMoveStop>
+      <OnMoveStop> StaticsFurnishingImprovements.VaultStats.OnMoveStop() </OnMoveStop>
       <Controls>
 
         <!-- Main Backdrop -->
@@ -153,7 +153,7 @@
             <Button name="$(parent)CloseButton" text="X" inherits="SFIButton">
               <Dimensions x="32" y="32" />
               <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="0" offsetY="0" />
-              <OnClicked> StaticsFurnishingImprovements.VaultStats:ShowWindow(false) </OnClicked>
+              <OnClicked> StaticsFurnishingImprovements.VaultStats.ShowWindow(false) </OnClicked>
             </Button>
 
             <Label name="$(parent)Label" text="Furniture Vault Stats" font="ZoFontWinH3" color="0086B3" horizontalAlignment="CENTER" verticalAlignment="CENTER">
@@ -194,7 +194,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="88CCEE" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)ServicesBg" centerColor="88CCEE" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -210,7 +210,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="44AA99" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)ConservatoryBg" centerColor="44AA99" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -226,7 +226,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="AAFFC3" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)CourtyardBg" centerColor="AAFFC3" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -242,7 +242,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="888822" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)DiningBg" centerColor="888822" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -258,7 +258,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="FFFAC8" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)GalleryBg" centerColor="FFFAC8" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -274,7 +274,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="E69F00" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)HearthBg" centerColor="E69F00" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -290,7 +290,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="FABED4" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)LibraryBg" centerColor="FABED4" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -306,7 +306,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="CC79A7" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)LightingBg" centerColor="CC79A7" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -322,7 +322,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="DCBEFF" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)ParlorBg" centerColor="DCBEFF" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -338,7 +338,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="957DAD" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)StructuresBg" centerColor="957DAD" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -354,7 +354,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="D6D2C4" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)SuiteBg" centerColor="D6D2C4" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -370,7 +370,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="A9A9A9" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)UndercroftBg" centerColor="A9A9A9" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -386,7 +386,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="555555" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)WorkshopBg" centerColor="555555" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -402,7 +402,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)Bg" centerColor="FFDB4D" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)MiscellaneousBg" centerColor="FFFFFF" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -613,10 +613,10 @@
             </Control>
 
             <Control name="$(parent)Miscellaneous" inherits="SFIStorageLegendContainer">
-              <Anchor point="TOPLEFT" relativeTo="$(parent)Undercroft" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+              <Anchor point="TOPRIGHT" relativeTo="$(parent)Undercroft" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0" />
               <Controls>
 
-                <Backdrop name="$(parent)Swatch" centerColor="FFDB4D" inherits="SFIStorageLegendSwatch">
+                <Backdrop name="$(parent)Swatch" centerColor="FFFFFF" inherits="SFIStorageLegendSwatch">
                   <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
                 </Backdrop>
 
@@ -702,7 +702,7 @@
               <Dimensions x="120" y="32" />
               <Anchor point="TOPLEFT" relativeTo="$(parent)Label" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="2" />
               <OnClicked>
-                StaticsFurnishingImprovements.VaultStats:RemoveItemsFromSinglesList()
+                StaticsFurnishingImprovements.VaultStats.RemoveItemsFromSinglesList()
               </OnClicked>
               <OnMouseEnter>
                 ZO_Tooltips_ShowTextTooltip(self, TOP, "Remove all single items from the |c0086B3Furnishing Vault|r")
@@ -716,7 +716,7 @@
               <Dimensions x="120" y="32" />
               <Anchor point="TOP" relativeTo="$(parent)Label" relativePoint="BOTTOM" offsetX="0" offsetY="2" />
               <OnClicked>
-                StaticsFurnishingImprovements.VaultStats:RemoveItemsFromPairsList(true)
+                StaticsFurnishingImprovements.VaultStats.RemoveItemsFromPairsList(true)
               </OnClicked>
               <OnMouseEnter>
                 ZO_Tooltips_ShowTextTooltip(self, TOP, "Remove all doubled up bound items from the |c0086B3Furnishing Vault|r")
@@ -730,7 +730,7 @@
               <Dimensions x="120" y="32" />
               <Anchor point="TOPRIGHT" relativeTo="$(parent)Label" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="2" />
               <OnClicked>
-                StaticsFurnishingImprovements.VaultStats:RemoveItemsFromPairsList(false)
+                StaticsFurnishingImprovements.VaultStats.RemoveItemsFromPairsList(false)
               </OnClicked>
               <OnMouseEnter>
                 ZO_Tooltips_ShowTextTooltip(self, TOP, "Remove all doubled up unbound items from the |c0086B3Furnishing Vault|r")

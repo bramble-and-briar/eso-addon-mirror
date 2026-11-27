@@ -12,6 +12,8 @@ for _, p in ipairs(C.CONDITION_PROPS) do PROP_KIND[p[1]] = p[3] end
 
 local PERMANENT = 99999
 
+local TagOf     -- (below)
+
 local function Prop(prop, s, now, ctx)
     if prop == "remaining" then
         if not s.active then return 0 end
@@ -56,6 +58,9 @@ local function Prop(prop, s, now, ctx)
         return IsUnitInGroupSupportRange(tag) == true
     elseif prop == "value" then return s.value or 0
     elseif prop == "pct" then return s.pct or 0
+    elseif prop == "shield" then return s.shield or 0
+    elseif prop == "trauma" then return s.trauma or 0
+    elseif prop == "noHeal" then return s.noHeal == true
     elseif prop == "inCombat" then
         -- a combat-state entry knows it exactly (no grace); otherwise the tracker's combat state
         if s.inCombat ~= nil then return s.inCombat end
@@ -72,7 +77,39 @@ local function Prop(prop, s, now, ctx)
         return PERMANENT
     elseif prop == "expired" then return s.expired == true
     elseif prop == "sinceEnd" then return s.expired and math.max(0, now - (s.endedAt or now)) or 0
-    elseif prop == "role" then return Cond.UnitRole(s)
+    elseif prop == "role" then
+        if s.member then return s.role or "" end
+        return Cond.UnitRole(s)
+    elseif prop == "dead" then
+        if s.dead ~= nil then return s.dead == true end
+        local tag = TagOf(s)
+        return tag ~= nil and IsUnitDead(tag) == true
+    elseif prop == "offline" then
+        if s.online ~= nil then return s.online == false end
+        local tag = TagOf(s)
+        if not tag or tag:sub(1, 5) ~= "group" or type(IsUnitOnline) ~= "function" then return false end
+        return IsUnitOnline(tag) ~= true
+    elseif prop == "resurrecting" then
+        if s.member then return s.rez == "ressing" or s.rez == "pending" end
+        local tag = TagOf(s)
+        if not tag then return false end
+        return (type(IsUnitBeingResurrected) == "function" and IsUnitBeingResurrected(tag) == true)
+            or (type(DoesUnitHaveResurrectPending) == "function" and DoesUnitHaveResurrectPending(tag) == true)
+    elseif prop == "weaveDelay" then
+        if not s.weave or s.weaveEmpty then return nil end
+        if s.weaveLight ~= "ok" then return s.weaveSettled and 1000 or nil end
+        return s.weaveDelay
+    elseif prop == "weaveLight" then return s.weaveLight or ""
+    elseif prop == "weaveBash" then return s.weaveBash == true
+    elseif prop == "weaveAvg" then return s.weaveAvg
+    elseif prop == "leader" then
+        if s.leader ~= nil then return s.leader == true end
+        local tag = TagOf(s)
+        return tag ~= nil and type(IsUnitGroupLeader) == "function" and IsUnitGroupLeader(tag) == true
+    elseif prop == "companion" then
+        if s.companion ~= nil then return s.companion == true end
+        local tag = TagOf(s)
+        return tag ~= nil and (tag == "companion" or (type(IsGroupCompanionUnitTag) == "function" and IsGroupCompanionUnitTag(tag) == true))
     elseif prop == "distance" then return Cond.UnitDistance(s)
     elseif prop == "healthPct" then return Cond.UnitHealth(s)
     elseif prop == "tickProgress" then
@@ -93,7 +130,7 @@ end
 
 -- The unit tag an entry is about: tagged scopes carry it; an enemy entry is only addressable
 -- when it's your current target.
-local function TagOf(s)
+TagOf = function(s)
     if s.unitTag then return s.unitTag end
     if s.isTarget and DoesUnitExist("reticleover") then return "reticleover" end
     return nil

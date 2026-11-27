@@ -203,13 +203,62 @@ function Viewer:CreateCGVF()
 			end)
 		.__END
 
-	local s = "Click to generate a bug report.\nOpens a copyable dump — nothing is sent automatically."
+	local s = "Click to generate a bug report.\nOpens a copyable dump — nothing is sent automatically.\nPaste into the CGESO comments on ESOUI."
 	if Zgoo and CGV.DEV then
 		s = s .. "\nDEV:\nRight click to Zgoo the current step.\nShift-Right click to Zgoo current guide."
 	end
 	Viewer:add_tooltip(titlebar.bug,s)
 	-- Default on; Extras → “Show bug report button” toggles visibility.
 	titlebar.bug:SetHidden(not (CGV.db.profile.bugreports ~= false))
+
+	-- Bookmark pin: left = set, right = resume.
+	titlebar.bookmark = CHAIN(ui:Create("GuideButton",titlebar,tname.."_Bookmark","Info"))
+		:SetPoint(LEFT, titlebar.bug, RIGHT, BIG_PADDING, 0 )
+		:SetHandler("OnClicked",function(_,but)
+				if not CGV.Features then return end
+				if but == RIGHT_MOUSE_BUTTON then
+					CGV.Features:ResumeBookmark()
+				else
+					CGV.Features:SetBookmark()
+				end
+			end)
+		.__END
+	Viewer:add_tooltip(titlebar.bookmark, "Left click: bookmark this step.\nRight click: resume bookmark.")
+	titlebar.bookmark:SetHidden(CGV.db.profile.bookmarks == false)
+
+	-- Find in current guide (opens small overlay; Esc cancels — avoids EditBox mouse trap on the bar).
+	titlebar.find = CHAIN(ui:Create("GuideButton",titlebar,tname.."_Find","Down"))
+		:SetPoint(LEFT, titlebar.bookmark, RIGHT, BIG_PADDING, 0 )
+		:SetHandler("OnClicked",function()
+				if CGV.Features and CGV.Features.ToggleViewerFind then
+					CGV.Features:ToggleViewerFind()
+				end
+			end)
+		.__END
+	Viewer:add_tooltip(titlebar.find, "Find in this guide.\nAlso /cgv find <text> then /cgv step N.")
+
+	-- Note badge: visible when a note exists (or always dim); click opens note prompt.
+	titlebar.note = CHAIN(ui:Create("GuideButton",titlebar,tname.."_Note","Info"))
+		:SetPoint(LEFT, titlebar.find, RIGHT, BIG_PADDING, 0 )
+		:SetHandler("OnClicked",function()
+				if CGV.Features and CGV.Features.PromptGuideNote then
+					CGV.Features:PromptGuideNote()
+				end
+			end)
+		.__END
+	Viewer:add_tooltip(titlebar.note, "Guide note — click to edit.\nAlso /cgv note …")
+	titlebar.note:SetHidden(true)
+
+	-- Jump to this zone's preferred Full/MQO guide.
+	titlebar.zone = CHAIN(ui:Create("GuideButton",titlebar,tname.."_Zone","Settings"))
+		:SetPoint(LEFT, titlebar.note, RIGHT, BIG_PADDING, 0 )
+		:SetHandler("OnClicked",function()
+				if CGV.Features and CGV.Features.JumpToZoneGuide then
+					CGV.Features:JumpToZoneGuide()
+				end
+			end)
+		.__END
+	Viewer:add_tooltip(titlebar.zone, "Load this zone’s preferred guide.\nAlso /cgv zone.")
 
 	titlebar.title = CHAIN(ui:Create("Logo",titlebar,tname.."_Title"))
 		:SetPoint(CENTER,titlebar,0,-8)
@@ -274,9 +323,12 @@ function Viewer:CreateCGVF()
 		:SetHeight(GUIDE_BAR_HEIGHT)
 		.__END
 
+	-- Anchor only inside guideBox — never to guideSelect (outside parent).
+	-- Outside anchors on children under ResizeToFit trees trip:
+	-- "Too many resize to fit updates processed."
 	titlebar.guideLabel = CHAIN(ui:Create("Label",titlebar.guideBox,tname.."_GuideLabel"))
-		:SetPoint(TOPLEFT,SMALL_PADDING,0)
-		:SetAnchor(BOTTOMRIGHT,titlebar.guideSelect,BOTTOMLEFT,-SMALL_PADDING,0)
+		:SetPoint(TOPLEFT, SMALL_PADDING, 0)
+		:SetPoint(BOTTOMRIGHT, -SMALL_PADDING, 0)
 		:SetText("Guide")
 		.__END
 
@@ -289,8 +341,16 @@ function Viewer:CreateCGVF()
 		:SetResizeToFitDescendents(true)
 		:SetHandler("OnResizedToFit",function(_,...)
 				if Viewer.moving then return end
+				if Viewer._resizeToFitQueued then return end
+				Viewer._resizeToFitQueued = true
 				Viewer:Debug("Stepbox Resized to %d %d",...)
-				Viewer:ResizeToFitSteps() -- Time to fix the guide viewer.
+				-- Defer one frame to collapse nested goal/step/stepbox RTF cascades.
+				_G.zo_callLater(function()
+					Viewer._resizeToFitQueued = false
+					if not Viewer.moving then
+						Viewer:ResizeToFitSteps()
+					end
+				end, 0)
 			end)
 		.__END
 
@@ -574,6 +634,10 @@ function FrameUI:OnUpdate(time)
 
 	CGV:TryToCompleteStep(CGV.fastforward)
 
+	if CGV.Features and CGV.Features.OnViewerUpdate then
+		CGV.Features:OnViewerUpdate()
+	end
+
 	-- Try to update the Progress bar periodically incase they are not advancing steps
 	if time - (self.lastProgBarUpdate or 0) > PROG_UPDATETIME then
 		self.lastProgBarUpdate = time
@@ -647,6 +711,13 @@ function GoalUI:OnMouseUp(but)
 		-- |confirm |nextreload … switches guides live on click (still a hyperlink).
 		local halt = self.goal:OnClick()
 		if not halt then Viewer:NextStepButton_OnClick() end
+	end
+	-- Quest link: Ctrl+click a goal that names a quest → open journal.
+	if but ~= RIGHT_MOUSE_BUTTON and self.goal and self.goal.quest
+		and _G.IsControlKeyDown and _G.IsControlKeyDown()
+		and CGV.Features and CGV.Features.OpenQuestInJournal
+		and CGV.db and CGV.db.profile and CGV.db.profile.questlink ~= false then
+		CGV.Features:OpenQuestInJournal(self.goal.quest)
 	end
 	if but == RIGHT_MOUSE_BUTTON and Zgoo then
 		Zgoo("CGV.CurrentStep.goals["..(self.goal.num).."]")
@@ -808,6 +879,10 @@ function Viewer:Update(full)
 						local text = goal:GetText()
 						local status = goal:GetStatus()
 						if status == "hidden" then break end	-- Don't display a hidden goal.
+						-- Optional: hide completed goals to declutter the viewer.
+						if status == "complete" and CGV.sv.profile.hidecompletedgoals then
+							break
+						end
 
 						goalnum = goalnum + 1
 

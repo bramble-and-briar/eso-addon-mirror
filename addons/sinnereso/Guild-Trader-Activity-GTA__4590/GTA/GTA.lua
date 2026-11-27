@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.11.26",
+	version = "2026.11.27",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -406,7 +406,7 @@ local GTANameLabel = WINDOW_MANAGER:CreateControl("GTANameLabel", GTAPersonalVie
 GTANameLabel:SetAnchor(BOTTOMLEFT, GTANameList, TOPLEFT, 17, 0)-- 0, 0)-->> Adjusted for LINKED indicator
 GTANameLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
 GTANameLabel:SetFont("ZoFontGameMedium")
-GTANameLabel:SetColor(0.3, 0.3, 0.2, 0.9)
+GTANameLabel:SetColor(0.2, 0.2, 0.2, 0.9)
 GTANameLabel:SetText("GUILD NAME  ~  GUILD TOTAL |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t")
 GTANameLabel:SetMouseEnabled(true)
 GTANameLabel:SetHandler("OnMouseUp", function(self, button, upInside)
@@ -434,7 +434,7 @@ local GTASalesLabel = WINDOW_MANAGER:CreateControl("GTASalesLabel", GTAPersonalV
 GTASalesLabel:SetAnchor(BOTTOMRIGHT, GTASalesList, TOPRIGHT, -16, 0)
 GTASalesLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTASalesLabel:SetFont("ZoFontGameMedium")
-GTASalesLabel:SetColor(0.3, 0.3, 0.2, 0.9)
+GTASalesLabel:SetColor(0.2, 0.2, 0.2, 0.9)
 GTASalesLabel:SetText("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t TRADED")
 GTASalesLabel:SetMouseEnabled(true)
 GTASalesLabel:SetHandler("OnMouseUp", function(self, button, upInside)
@@ -462,7 +462,7 @@ local GTAPurchaseLabel = WINDOW_MANAGER:CreateControl("GTAPurchaseLabel", GTAPer
 GTAPurchaseLabel:SetAnchor(BOTTOMRIGHT, GTAPurchaseList, TOPRIGHT, -16, 0)
 GTAPurchaseLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTAPurchaseLabel:SetFont("ZoFontGameMedium")
-GTAPurchaseLabel:SetColor(0.3, 0.3, 0.2, 0.9)
+GTAPurchaseLabel:SetColor(0.2, 0.2, 0.2, 0.9)
 GTAPurchaseLabel:SetText("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t BOUGHT")
 GTAPurchaseLabel:SetMouseEnabled(true)
 GTAPurchaseLabel:SetHandler("OnMouseUp", function(self, button, upInside)
@@ -490,7 +490,7 @@ local GTAActivityLabel = WINDOW_MANAGER:CreateControl("GTAActivityLabel", GTAPer
 GTAActivityLabel:SetAnchor(BOTTOMRIGHT, GTAActivityList, TOPRIGHT, -16, 0)
 GTAActivityLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 GTAActivityLabel:SetFont("ZoFontGameMedium")
-GTAActivityLabel:SetColor(0.3, 0.3, 0.2, 0.9)
+GTAActivityLabel:SetColor(0.2, 0.2, 0.2, 0.9)
 GTAActivityLabel:SetText("|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t ACTIVITY")
 GTAActivityLabel:SetMouseEnabled(true)
 GTAActivityLabel:SetHandler("OnMouseUp", function(self, button, upInside)
@@ -710,13 +710,13 @@ local defaultStyle = {
 }
 local headerStyle = combine(defaultStyle, {
 	SetFont = {'ZoFontGameMedium'},
-	SetColor = {0.3, 0.3, 0.2, 0.9},
+	SetColor = {0.2, 0.2, 0.2, 0.9},
 	SetModifyTextType = {MODIFY_TEXT_TYPE_UPPERCASE},
-	{'SetHandler', 'OnMouseEnter', function(ctrl) ctrl:SetColor(0.3, 0.3, 0.2, 0.9)
+	{'SetHandler', 'OnMouseEnter', function(ctrl) ctrl:SetColor(0.2, 0.2, 0.2, 0.9)
 		InitializeTooltip(InformationTooltip, ctrl, BOTTOM, 0, 0)
 		SetTooltipText(InformationTooltip, "SORT")
 	end},
-	{'SetHandler', 'OnMouseExit', function(ctrl) ctrl:SetColor(0.3, 0.3, 0.2, 0.9)
+	{'SetHandler', 'OnMouseExit', function(ctrl) ctrl:SetColor(0.2, 0.2, 0.2, 0.9)
 		ClearTooltip(InformationTooltip)
 	end},
 	{'SetHandler', 'OnMouseUp', function(self, button, upInside)
@@ -848,12 +848,12 @@ local CenterAlignedCell = Label(combine(defaultStyle, alignCenter))
 local CenterAlignedHeader = Label(combine(combine(defaultStyle, alignCenter), headerStyle))
 
 local guildDetailColumns = {
-	Column('Rank',		30,		0,		RankCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',				CenterAlignedHeader,	SORTABLE),
-	Column('Name',		270,	0,		LeftAlignedCell, 'NAME |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	LeftAlignedHeader,		SORTABLE),
-	Column('Sales',		140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t TRADED',		SalesHeader,			SORTABLE),
-	Column('Purch',		140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t BOUGHT',		SalesHeader,			SORTABLE),
-	Column('Activity',	140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t ACTIVITY',		SalesHeader,			SORTABLE),
-	Column('Notes',		20,		10,		NoteCell, '|t20:20:/esoui/art/contacts/social_note_up.dds|t',						CenterAlignedCell,		NOT_SORTABLE),
+	Column('Rank',		30,		0,		RankCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',					CenterAlignedHeader,	SORTABLE),
+	Column('Name',		270,	0,		LeftAlignedCell, 'PLAYER NAME |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	LeftAlignedHeader,		SORTABLE),
+	Column('Sales',		140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t TRADED',			SalesHeader,			SORTABLE),
+	Column('Purch',		140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t BOUGHT',			SalesHeader,			SORTABLE),
+	Column('Activity',	140,	0,		SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t ACTIVITY',			SalesHeader,			SORTABLE),
+	Column('Notes',		20,		10,		NoteCell, '|t20:20:/esoui/art/contacts/social_note_up.dds|t',							CenterAlignedCell,		NOT_SORTABLE),
 }
 
 local function sendMailCallback(scene, oldState, newState)

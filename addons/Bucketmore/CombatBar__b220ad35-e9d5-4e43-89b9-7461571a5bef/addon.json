@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Bucketmore/CombatBar__b220ad35-e9d5-4e43-89b9-7461571a5bef",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Bucketmore",
+  "canonical_id": "bethesda:b220ad35-e9d5-4e43-89b9-7461571a5bef",
+  "content_id": "b220ad35-e9d5-4e43-89b9-7461571a5bef",
+  "deleted": false,
+  "fingerprint": "b9262905d369c035bc87dfeb704efe6bfc5efa12524564f3873666d0997c289b",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "b220ad35-e9d5-4e43-89b9-7461571a5bef",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/b220ad35-e9d5-4e43-89b9-7461571a5bef",
+  "title": "CombatBar"
+}

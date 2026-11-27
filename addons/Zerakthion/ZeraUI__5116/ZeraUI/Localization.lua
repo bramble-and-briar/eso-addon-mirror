@@ -124,8 +124,13 @@ Inactive icon opacity	Pasif ikonun opaklığı
 Smooth icon style changes	Yumuşak ikon geçişleri
 Show active bar arrow	Aktif çubuk okunu göster
 Active bar arrow style	Aktif çubuk oku stili
+Active bar position	Aktif çubuk konumu
+Default (Front top)	Varsayılan (Ön üstte)
 Active bar on top	Aktif çubuğu üstte göster
-Move the active weapon bar to the top row whenever you weapon swap.	Silah değiştirdiğinde aktif yetenek çubuğunu her zaman üst satıra taşır.
+Active bar on bottom	Aktif çubuğu altta göster
+Choose whether front/back rows stay fixed, or move the active weapon bar to the top or bottom row whenever you weapon swap.	Ön/arka çubuk satırlarının sabit kalmasını veya silah değiştirdiğinde aktif çubuğun her zaman üst ya da alt satıra taşınmasını seçer.
+Hide idle skills on inactive bar	Pasif çubukta aktif olmayan yetenekleri gizle
+On the inactive weapon bar, hide skill boxes that have no active timer, stack, toggle, proc, or warning animation.	Pasif silah çubuğunda aktif süresi, stack'i, toggle'ı, proc'u veya uyarı animasyonu olmayan yetenek kutucuklarını gizler.
 Classic	Klasik
 Large	Büyük
 Double	Çift
@@ -1087,7 +1092,7 @@ Show sample timers, stacks, buffs, sets and meters while configuring Zera UI.	Ze
 Global default HUD font. Widgets set to 'HUD font' inherit this choice.	Genel varsayılan HUD yazı tipi. 'HUD yazı tipi' seçili bileşenler bunu kullanır.
 Global default text outline. Widgets set to 'HUD outline' inherit this choice.	Genel varsayılan yazı konturu. 'HUD konturu' seçili bileşenler bunu kullanır.
 Restore HUD colors, sizes, positioning and animations. Custom skill tracking rules remain intact.	HUD renklerini, boyutlarını, konumlarını ve animasyonlarını varsayılana döndürür. Özel yetenek takip kuralları korunur.
-Zera UI 1.1.5  ·  /zera  ·  /zeraset  ·  Visual sizing, fonts & colors live in Edit HUD.	Zera UI 1.1.5  ·  /zera  ·  /zeraset  ·  Görsel boyut, yazı tipi ve renkler HUD Düzenleyici'dedir.
+Zera UI 1.1.6  ·  /zera  ·  /zeraset  ·  Visual sizing, fonts & colors live in Edit HUD.	Zera UI 1.1.6  ·  /zera  ·  /zeraset  ·  Görsel boyut, yazı tipi ve renkler HUD Düzenleyici'dedir.
 Darken skills whose Magicka or Stamina cost exceeds your current resource.	Magicka veya Stamina maliyeti mevcut kaynağını aşan yetenekleri karartır.
 Darken Blastbones/corpse consumers when ESO reports a corpse is required and none is available.	ESO ceset gerektiğini bildirdiğinde ve uygun ceset olmadığında Blastbones ve ceset tüketen yetenekleri karartır.
 Darken enemy-targeted skills when you have no valid attackable target or are out of range.	Saldırılabilir geçerli bir hedefin olmadığında veya menzil dışındayken düşman hedefli yetenekleri karartır.

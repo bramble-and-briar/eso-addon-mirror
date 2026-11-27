@@ -18,11 +18,11 @@
     "Ramaladni_buff_debuff_tracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5022/",
-  "fingerprint": "d502aff951c8b529547965c88de7c2743d091abdf4372cda0993e8b768d93861",
+  "fingerprint": "3cc11bcd44c18bffd6eb947eb0c26053782d683e871c05a639d6f5c2e0755600",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18307.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18309.png",
-    "https://cdn-eso.mmoui.com/preview/pvw18308.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18840.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18839.png"
   ],
   "platform": "pc",
   "published": true,
@@ -30,11 +30,11 @@
   "source_id": "5022",
   "source_url": "https://www.esoui.com/downloads/info5022-Ramaladni-ClassMasteryBuffDebuffTracker.html",
   "stats": {
-    "downloads": 38,
+    "downloads": 98,
     "favorites": 1,
-    "monthly_downloads": 26
+    "monthly_downloads": 91
   },
   "title": "Ramaladni - Class Mastery & Buff/Debuff Tracker",
-  "updated_at": 1793792074000,
-  "version": "v1.0.0_STABLE"
+  "updated_at": 1795745393000,
+  "version": "v1.0.1-Stable"
 }

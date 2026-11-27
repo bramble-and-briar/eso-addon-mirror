@@ -5,6 +5,7 @@
 -- Ref: docs/adr/0014-areas-por-objetivo-mensajes-eliminacion-y-visibilidad-mapa.md
 -- Ref: docs/adr/0015-separacion-ciclo-de-vida-y-estado-de-resolucion.md
 -- Ref: docs/adr/0016-limites-texto-y-entidades-presupuesto-correo.md
+-- Ref: docs/adr/0018-ejes-de-victoria-modo-freeform-y-objetivos-requeridos.md
 
 RPQuest = RPQuest or {}
 local Addon = RPQuest
@@ -13,11 +14,11 @@ Addon.Constants = {
     METADATA = {
         NAME = "RPQuest",
         TITLE = "RPQuest",
-        VERSION = "1.11.0",
+        VERSION = "1.12.0",
         AUTHOR = "JerbilX",
     },
     QUEST_SCHEMA = {
-        CURRENT_VERSION = 5,
+        CURRENT_VERSION = 6,
     },
     STEALTH_MODE = {
         DISABLED = "disabled",
@@ -108,9 +109,11 @@ Addon.Constants = {
         HUGE = 7000,
     },
     DISCOVERY_POLL_INTERVAL_MS = 750,
+    COMPASS_AREA_GLOW_POLL_INTERVAL_MS = 500,
     UI = {
         CHAT_PREFIX = "|cE8D5A0[RPQuest]|r ",
         TAB_DESCRIPTOR = "rpquest_custom_quests",
+        COMPASS_AREA_GLOW_COLOR = { r = 1.0, g = 0.78, b = 0.22, a = 1.0 },
         PIN_TYPE_STRING = "RPQUEST_SEARCH_AREA_PIN",
         SEARCH_AREA_COLOR = { r = 0.16, g = 0.78, b = 0.48, a = 0.65 },
         LOCATION_PIN_TYPE_STRING = "RPQUEST_TARGET_LOCATION_PIN",

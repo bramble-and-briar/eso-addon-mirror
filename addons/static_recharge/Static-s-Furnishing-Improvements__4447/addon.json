@@ -8,8 +8,8 @@
   "category_id": "160",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4447",
@@ -18,7 +18,7 @@
     "StaticsFurnishingImprovements"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4447/",
-  "fingerprint": "ca3ba9b1b462f563055aacdfb1fce008e50f73933649d5d50636cd9ad5714579",
+  "fingerprint": "7a092a18e1cf28963acb2aeaa45508b0cd96a8b691220e87ec329e8e320e3535",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15494.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4447",
   "source_url": "https://www.esoui.com/downloads/info4447-StaticsFurnishingImprovements.html",
   "stats": {
-    "downloads": 209,
-    "favorites": 2,
-    "monthly_downloads": 20
+    "downloads": 329,
+    "favorites": 3,
+    "monthly_downloads": 70
   },
   "title": "Static's Furnishing Improvements",
-  "updated_at": 1791594298000,
-  "version": "1.1.1"
+  "updated_at": 1795781480000,
+  "version": "1.1.2"
 }

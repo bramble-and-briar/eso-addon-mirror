@@ -38,7 +38,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rakkis Guild Points](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/arkais_troumaan/Rakkis-Guild-Points__2605) | arkais_troumaan | PC / Mac | 1.15 |
 | [Rally Group](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Rally-Group__4658) | evainefaye | PC / Mac | 1.02 |
 | [Rallying Cry Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Rallying-Cry-Tracker__cec19621-d3f2-4b43-b391-5d028918cfb4) | codeWarrior82 | Console | — |
-| [Ramaladni - Class Mastery & Buff/Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/adilmf/Ramaladni---Class-Mastery-Buff-Debuff-Tracker__5022) | adilmf | PC / Mac | v1.0.0_STABLE |
+| [Ramaladni - Class Mastery & Buff/Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/adilmf/Ramaladni---Class-Mastery-Buff-Debuff-Tracker__5022) | adilmf | PC / Mac | v1.0.1-Stable |
 | [Ranckor's Baggage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Ranckor-s-Baggage__a17836b4-17ec-478f-91a6-f0c59e123e2a) | Ranckor90 | Console | — |
 | [Ranckors Baggage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Ranckors-Baggage__3933) | Ranckor90 | PC / Mac | v3.1.2 |
 | [Ranckors Leaderboard Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Ranckors-Leaderboard-Tracker__4047) | Ranckor90 | PC / Mac | v1.0.3 |
@@ -177,7 +177,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RP Profile Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBobbyLlama/RP-Profile-Viewer__2959) | TheBobbyLlama | PC / Mac | 1.7 |
 | [RP Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/RP-Target-Frame__1371) | Phinix | PC / Mac | 1.05 |
 | [RPFlagger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iwontsay/RPFlagger__1644) | iwontsay | PC / Mac | 1.1.0 |
-| [RPQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jerbil_X/RPQuest__5080) | Jerbil_X | PC / Mac | 1.11.0 |
+| [RPQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jerbil_X/RPQuest__5080) | Jerbil_X | PC / Mac | 1.12.0 |
 | [RSS Theme Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/RSS-Theme-Bars__4957) | its_wifey | PC / Mac | 1.4.1 |
 | [RU Client Fix Font](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marvellous-Chester/RU-Client-Fix-Font__3829) | Marvellous Chester | PC / Mac | 1.2.0 |
 | [RU Patch for Asylum Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/qulilalti/RU-Patch-for-Asylum-Tracker__2636) | qulilalti | PC / Mac | 1.0 |

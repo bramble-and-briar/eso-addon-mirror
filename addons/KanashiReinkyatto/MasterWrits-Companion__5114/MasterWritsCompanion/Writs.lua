@@ -140,8 +140,13 @@ end
 
 -- What a holiday writ asks for, the same whether read from the writ or from its quest: kind and item to make, or
 -- kind and solvent code for alchemy.
+-- A quest names the solvent by its item id, a writ by its code: both become the code.
+local SOLVENT_CODE_OF_ITEM = { [64501] = 199, [75365] = 239 } -- Lorkhan's Tears, Alkahest
+
 local function EventTaskKey(kind, craft, itemId, solvent)
-  if craft == "alchemy" then return string.format("%s:alchemy:%s", kind, tostring(solvent)) end
+  if craft == "alchemy" then
+    return string.format("%s:alchemy:%s", kind, tostring(SOLVENT_CODE_OF_ITEM[solvent] or solvent))
+  end
   return string.format("%s:%s", kind, tostring(itemId))
 end
 
@@ -156,6 +161,19 @@ local function EventRecord(link, event, uid, bag, slot)
   MWC.sv.eventWritLinks = saved
   saved[EventTaskKey(event.kind, event.craft, event.itemId, writ.fields[1])] = link
   return writ
+end
+
+-- The kind of holiday writ that asks for this (from the holiday writs seen in the bags), or nil.
+local EVENT_KINDS = { "witches", "newlife", "deepwinter", "imperial" }
+
+function MWC.Writs.EventKindOfTask(craftType, itemId, solvent)
+  local saved = MWC.sv.eventWritLinks
+  if not saved then return nil end
+  local craft = craftType == CRAFTING_TYPE_ALCHEMY and "alchemy" or nil
+  for _, kind in ipairs(EVENT_KINDS) do
+    if saved[EventTaskKey(kind, craft, itemId, solvent)] then return kind end
+  end
+  return nil
 end
 
 -- The writ of a holiday quest whose writ item is gone (used to start it): from the link seen before, or for

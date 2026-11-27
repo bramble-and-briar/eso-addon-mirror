@@ -5,15 +5,15 @@
         <Down>LeoAltholic:ToggleUI()</Down>
       </Action>
       <Action name="LEOALTHOLIC_TOGGLE_CHECKLIST">
-        <Down>LeoAltholicChecklistUI.ToggleUI()</Down>
+        <Down>LeoAltholic.ChecklistUI.ToggleUI()</Down>
       </Action>
       <Action name="LEOALTHOLIC_TOGGLE_TOOLBAR">
         <Down>
-          if LeoAltholicToolbarUI.IsEnabled() then
-            LeoAltholicToolbarUI.BumpCompass(false)
-            LeoAltholicToolbarUI.SetEnabled(false)
+          if LeoAltholic.ToolbarUI.IsEnabled() then
+            LeoAltholic.ToolbarUI.BumpCompass(false)
+            LeoAltholic.ToolbarUI.SetEnabled(false)
           else
-            LeoAltholicToolbarUI.SetEnabled(true)
+            LeoAltholic.ToolbarUI.SetEnabled(true)
           end
           </Down>
       </Action>

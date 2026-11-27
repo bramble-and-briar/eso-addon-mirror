@@ -149,7 +149,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FurnitureShoppingList (patched)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/FurnitureShoppingList-patched__1865) | manavortex | PC / Mac | 2.0.0 |
 | [Fury](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DustyWarehouse/Fury__2422) | DustyWarehouse | PC / Mac | 1.11 |
 | [Fury's Account Sync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Account-Sync__5106) | Furyous | PC / Mac | 0.6.4 |
-| [Fury's Character Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Character-Tracker__5078) | Furyous | PC / Mac | 1.8.4 |
-| [Fury's Guild Toolset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Guild-Toolset__5063) | Furyous | PC / Mac | 1.33.4 |
-| [Fury's Inventory Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Inventory-Ledger__5099) | Furyous | PC / Mac | 1.7.4 |
+| [Fury's Character Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Character-Tracker__5078) | Furyous | PC / Mac | 1.8.5 |
+| [Fury's Guild Toolset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Guild-Toolset__5063) | Furyous | PC / Mac | 1.34.0 |
+| [Fury's Inventory Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Inventory-Ledger__5099) | Furyous | PC / Mac | 1.7.5 |
 | [Fury's Quality of Life](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furyous/Fury-s-Quality-of-Life__5115) | Furyous | PC / Mac | 0.5.5 |

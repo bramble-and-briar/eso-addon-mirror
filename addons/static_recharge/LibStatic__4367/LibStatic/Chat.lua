@@ -19,6 +19,7 @@ Libraries and Aliases
 ------------------------------------------------------------------------------------------------]]--
 local CS = CHAT_SYSTEM
 local LCM = LibChatMessage
+local LS = LibStatic
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -45,7 +46,7 @@ function Chat:Initialize(Options)
   self.prefixColor = Options.prefixColor or "FFFFFF"
   self.addonIdentifier = Options.addonIdentifier or "LibStatic"
   self.textColor = Options.textColor or "FFFFFF"
-  self.addonShortName = Options.addonShortName
+  self.addonShortName = Options.addonShortName or "LS"
   if Options.chatEnabled == nil then self.chatEnabled = true else self.chatEnabled = Options.chatEnabled end
   if Options.debugEnabled == nil then self.debugEnabled = true else self.debugEnabled = Options.debugEnabled end
 
@@ -97,36 +98,34 @@ Description:	Formats text to be sent to the chat box for the user. Bools, nil an
               Only the first line gets the add-on prefix.
 ------------------------------------------------------------------------------------------------]]--
 function Chat:Msg(...)
-  -- exit if not enabled
   if not self.chatEnabled then return end
 
-	local Args = {...}
   local first = true
   local currentTagMode = LCM:GetTagPrefixMode()
+  self.Proxy:SetTagColor(self.prefixColor)
 
-  -- check for first line and format output
   local function sendMsg(input)
+    local formatted = zo_strformat("|c<<1>><<2>>|r", self.textColor, input)
     if first then
-      self.Proxy:SetTagColor(self.prefixColor):Print(zo_strformat("|c<<1>><<2>>|r", self.textColor, input))
+      self.Proxy:Print(formatted)
       first = false
     else
-      -- turn off tag for subsequent messages and then put it back to what it was.
       LCM:SetTagPrefixMode(LCM.TAG_PREFIX_OFF)
-      self.Proxy:SetTagColor(self.prefixColor):Print(zo_strformat("|c<<1>><<2>>|r", self.textColor, input))
+      self.Proxy:Print(formatted)
       LCM:SetTagPrefixMode(currentTagMode)
     end
   end
 
-  -- cycle through the inputs and send them to chat
-  for i, v in ipairs(Args) do
+  for i = 1, select("#", ...) do
+    local v = select(i, ...)
     if type(v) == "table" then
       for j, k in ipairs(v) do
         if type(k) ~= "table" then
-          sendMsg(LibStatic:StringConvert(k))
+          sendMsg(LibStatic.StringConvert(k))
         end
       end
-    else
-      sendMsg(LibStatic:StringConvert(v))
+    elseif v ~= nil then
+      sendMsg(LibStatic.StringConvert(v))
     end
   end
 end
@@ -149,4 +148,4 @@ end
 --[[------------------------------------------------------------------------------------------------
 Global template assignment
 ------------------------------------------------------------------------------------------------]]--
-LibStatic.CHAT = Chat
+LS.CHAT = Chat

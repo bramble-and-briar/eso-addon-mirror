@@ -1,3 +1,4 @@
+local L = MWC.L
 MWC.Alchemy = {
   ITEMS_PER_WRIT = 16,
   STACK_SIZE = 100,
@@ -318,7 +319,7 @@ function MWC.Alchemy.ChooseByResult(solventId, combos, effectKey, writText, live
   if firstUnknown then
     return firstUnknown, "unchecked"
   end
-  return nil, "no reagents make exactly this potion"
+  return nil, L.PROBLEM_NO_EXACT_POTION
 end
 
 -- At an alchemy station: preview every alchemy writ's combinations at hand, so planning knows which give the
@@ -338,16 +339,43 @@ end
 
 -- Whether a potion name (a name key) stands in a writ's text as a whole name: the writ's text names the potion
 -- it wants in the client's language, so no fixed phrasing is needed. Letters include any non-ASCII byte.
+-- The longer words of a name (3+ bytes: articles like "de", "du", "of" don't count), apostrophes splitting.
+local function NameWords(text)
+  local words, count = {}, 0
+  local spaced = zo_strlower(text or ""):gsub("\226\128\153", " "):gsub("'", " ")
+  for word in spaced:gmatch("[%w\128-\255]+") do
+    if #word >= 3 and not words[word] then
+      words[word], count = true, count + 1
+    end
+  end
+  return words, count
+end
+
+-- Some languages bend the potion's name inside the writ's text: French writes "une puissance du essence" for
+-- the potion the game names otherwise. Then the name is told by its words: the same longer words as the name
+-- the language file's pattern reads from the writ, in any order.
+local function SameWords(nameKey, writName)
+  local nameWords, nameCount = NameWords(nameKey)
+  local writWords, writCount = NameWords(writName)
+  if nameCount == 0 or nameCount ~= writCount then return false end
+  for word in pairs(nameWords) do
+    if not writWords[word] then return false end
+  end
+  return true
+end
+
 function MWC.Alchemy.NameInText(text, nameKey)
   if not nameKey or nameKey == "" then return false end
   local lower, start = zo_strlower(text or ""), 1
   while true do
     local first, last = lower:find(nameKey, start, true)
-    if not first then return false end
+    if not first then break end
     local before, after = lower:sub(first - 1, first - 1), lower:sub(last + 1, last + 1)
     if not before:find("[%w\128-\255]") and not after:find("[%w\128-\255]") then return true end
     start = last + 1
   end
+  local writName = L.ALCHEMY_NAME_PATTERN and (text or ""):match(L.ALCHEMY_NAME_PATTERN)
+  return writName ~= nil and SameWords(nameKey, writName)
 end
 
 -- The name key of the potion a writ wants: learned from the station's preview or a matching potion (kept per
@@ -371,8 +399,8 @@ function MWC.Alchemy.ExpectedName(writ, potionIndex)
     MWC.sv.potionNames[writ.key] = best
     return best
   end
-  local english = text:match("Craft an? (.-) with")
-  return english and MWC.Alchemy.NameKey(english) or nil
+  local named = L.ALCHEMY_NAME_PATTERN and text:match(L.ALCHEMY_NAME_PATTERN)
+  return named and MWC.Alchemy.NameKey(named) or nil
 end
 
 function MWC.Alchemy.LearnName(writKey, nameKey)
@@ -383,7 +411,7 @@ end
 -- "Craft a Damage Health Poison IX with the following Traits: ..." -> "Damage Health Poison IX" (shown only)
 function MWC.Alchemy.WritPotionName(writLink)
   local text = GenerateMasterWritBaseText(writLink) or ""
-  return text:match("Craft an? (.-) with") or text:match("^[^\n]*")
+  return MWC.WritItemName(text, L.ALCHEMY_NAME_PATTERN)
 end
 
 -- Index key of a writ-grade potion or poison in this slot, or nil for anything else. Worked out once per link.

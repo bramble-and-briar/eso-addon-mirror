@@ -7,7 +7,7 @@
 -- Which craft a writ is for is found without reading its name, so it works on every game language:
 -- the quest's own "craft this" steps say which craft they need. The quest's ID is remembered with
 -- its craft (data.writQuestIds), because a writ that is ready to deliver has no such step left.
--- On an English client the quest's name is a second way to tell.
+-- On an English client the quest's name comes first (1.8.5), because it is never wrong.
 local CT = FurysCharacterTracker
 local U = CT.Util
 local Daily = {}
@@ -104,7 +104,9 @@ local function ReadWrit(journalIndex)
     local questId = GetJournalQuestId(journalIndex)
     local fromSteps = CraftFromSteps(journalIndex)
     if fromSteps then sv.writBySteps = true end
-    local craft = fromSteps or sv.writQuestIds[questId] or CraftFromName(GetJournalQuestName(journalIndex))
+    -- 1.8.5: on an English client the quest's name is the surest sign (the steps of an alchemy
+    -- writ can point at another craft), then the steps, then the quest's ID as learned before.
+    local craft = CraftFromName(GetJournalQuestName(journalIndex)) or fromSteps or sv.writQuestIds[questId]
     if not craft then return nil end
     sv.writQuestIds[questId] = craft
     local state = Daily.STARTED
@@ -158,8 +160,17 @@ local function Read(c)
             end
         end
     end
+    -- 1.8.5: a writ of today that was in the journal and is gone was handed in, even when the game's
+    -- "quest removed" event was missed (an abandoned writ is cleared by that event, below).
+    local today = Daily.LastReset(CT.home and CT.home.world)
     for craft, entry in pairs(previous or {}) do
-        if not inJournal[craft] and entry.state == Daily.DONE then writs[craft] = entry end
+        if not inJournal[craft] then
+            if entry.state == Daily.DONE then
+                writs[craft] = entry
+            elseif entry.at >= today then
+                writs[craft] = { state = Daily.DONE, at = GetTimeStamp() }
+            end
+        end
     end
     c.writs = writs
     ReadCertified(c)
@@ -176,12 +187,19 @@ local function Start(queue, current)
     Register("Counter", EVENT_QUEST_CONDITION_COUNTER_CHANGED, OnQuestChanged)
     -- Handed in (done today) or abandoned (gone).
     Register("Removed", EVENT_QUEST_REMOVED, function(_, isCompleted, _, questName, _, _, questId)
-        local craft = (CT.sv.writQuestIds or {})[questId] or CraftFromName(questName)
+        local craft = CraftFromName(questName) or (CT.sv.writQuestIds or {})[questId]
         local c = current()
         if not craft or not c then return end
         c.writs = c.writs or {}
         c.writs[craft] = isCompleted and { state = Daily.DONE, at = GetTimeStamp() } or nil
         queue(true)
+    end)
+    -- 1.8.5: read the writs again whenever any quest is finished or removed, and once more on the
+    -- way out (logout, character switch, reload), so a hand-in is never missed.
+    Register("Complete", EVENT_QUEST_COMPLETE, function() queue(true) end)
+    EVENT_MANAGER:RegisterForEvent(CT.name .. "WritOut", EVENT_PLAYER_DEACTIVATED, function()
+        local c = current()
+        if c then Read(c) end
     end)
 end
 

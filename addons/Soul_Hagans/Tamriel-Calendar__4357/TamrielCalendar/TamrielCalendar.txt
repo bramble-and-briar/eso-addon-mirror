@@ -1,9 +1,10 @@
 ## Title: |c66f2ffTamriel Calendar|r
 ## Author: |cff6401Soul_Hagans|r
-## Version: 2.4.1
-## AddOnVersion: 20401
+## Version: 2.4.2
+## AddOnVersion: 20402
 ## APIVersion: 101051 101052
 ## SavedVariables: TamrielCalendarVars
+## DependsOn: LibAddonMenu-2.0>=43
 ## Description: Tamriel Calendar
 
 lang/en.lua

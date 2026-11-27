@@ -288,7 +288,7 @@ function hud:Draw(mine, rows)
             local row = shown[r]
             local rank = row == rows[selfIndex] and selfIndex or r
             local color = row.self and LIVE or (row.ended and GREY or WHITE)
-            local cells = { rank .. " " .. row.name, ADDON.Commas(row.dps), Pct(row.dpsShare), ADDON.Commas(row.hps), Pct(row.hpsShare) }
+            local cells = { rank .. " " .. ADDON.names.Shown(row.name), ADDON.Commas(row.dps), Pct(row.dpsShare), ADDON.Commas(row.hps), Pct(row.hpsShare) }
             for index, label in ipairs(self.lines[r]) do
                 SetText(self, label, r .. ":" .. index, cells[index], color)
             end

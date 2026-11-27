@@ -196,6 +196,13 @@ local TOKEN_FUNCS = {
     value = function(s) return s.value and tostring(math.floor(s.value + 0.5)) or "" end,
     max = function(s) return s.max and tostring(math.floor(s.max + 0.5)) or "" end,
     pct = function(s) return s.pct and string.format("%d%%", math.floor(s.pct + 0.5)) or "" end,
+    -- health bars (5.22.0): the damage shield and the trauma on the unit, empty when there's none
+    shield = function(s) return (s.shield or 0) > 0 and tostring(math.floor(s.shield + 0.5)) or "" end,
+    -- weaving (5.24.0): this skill's delay in ms, the fight's average in seconds ("0.15"), the light attack's letter
+    delay = function(s) return s.weaveDelay and tostring(math.floor(s.weaveDelay + 0.5)) or "" end,
+    avgdelay = function(s) return s.weaveAvg and string.format("%.2f", s.weaveAvg / 1000) or "" end,
+    weave = function(s) return s.weaveLetter or "" end,
+    trauma = function(s) return (s.trauma or 0) > 0 and tostring(math.floor(s.trauma + 0.5)) or "" end,
     id = function(s) return s.abilityId and tostring(s.abilityId) or "" end,
     calc = function(s) return s.calcText or "" end,
     info = function(s) return s.info and string.format(s.info < 100 and "%.1f" or "%d", s.info) or "" end,

@@ -48,7 +48,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DeBluedIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/DeBluedIcons__5006) | DakJaniels | PC / Mac | 1 |
 | [DebuffMe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/DebuffMe__2260) | Floliroy | PC / Mac | 1.7 |
 | [DebuffMe - Stonethorn Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bitrock/DebuffMe---Stonethorn-Update__2777) | bitrock | PC / Mac | 1.7.1 |
-| [DebuffTracker - Track Debuff Durations!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030) | SkullElf | PC / Mac | 5.21.24 |
+| [DebuffTracker - Track Debuff Durations!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/DebuffTracker---Track-Debuff-Durations__4030) | SkullElf | PC / Mac | 5.25.6 |
 | [DebugLogViewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/DebugLogViewer__2389) | sirinsidiator | PC / Mac | 1.2.0 |
 | [Decluttered Scrying Leads](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Decluttered-Scrying-Leads__3009) | kawamonkey | PC / Mac | 1.0.1 |
 | [Decluttered Scrying Leads](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Schrodi/Decluttered-Scrying-Leads__5088) | Schrodi | PC / Mac | 2.0.1 |
@@ -120,6 +120,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dizzy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PurpleFinch/Dizzy__4021) | PurpleFinch | PC / Mac | 1.23 |
 | [DK MASTERY TRACKER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/DK-MASTERY-TRACKER__4857) | its_wifey | PC / Mac | 1.0.5 |
 | [DKcorrosiveAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/DKcorrosiveAlert__4444) | lebiez | PC / Mac | 1.10 |
+| [DLC DungeonFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BLKx777/DLC-DungeonFinder__51fb03da-e425-4b29-8ad7-082c2e005745) | BLKx777 | Console | — |
 | [DLC Notice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrilledSpamSteaks/DLC-Notice__3603) | GrilledSpamSteaks | PC / Mac | 1.6 |
 | [DLC Roulette](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/DLC-Roulette__0f2a1db4-049e-454b-96b8-52c65ff6cb85) | -Chin | Console | — |
 | [DLC Yes No](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Takadol/DLC-Yes-No__4451) | Takadol | PC / Mac | 2.4 |
@@ -157,6 +158,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dragon Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Dragon-Hunter__3550) | kawamonkey | PC / Mac | 1.0 |
 | [Dragon Lair Weyr Run](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hochbrawn/Dragon-Lair-Weyr-Run__2573) | Hochbrawn | PC / Mac | 0.1.9.3 |
 | [Dragon Namer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Dragon-Namer__3549) | kawamonkey | PC / Mac | 1.0 |
+| [Dragon Wall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Dragon-Wall__66a3a01e-a53b-4e57-985b-ee30b280ab09) | SugaComa | Console | — |
 | [DragonNextLocation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bulton-fr/DragonNextLocation__2472) | bulton-fr | PC / Mac | 1.2.2 |
 | [Drake's Rush Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Drake-s-Rush-Tracker__3002) | ownedbynico | PC / Mac | 1.2 |
 | [Drakhyr's Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drakhyr/Drakhyr-s-Assistant__2226) | Drakhyr | PC / Mac | 0.2 |

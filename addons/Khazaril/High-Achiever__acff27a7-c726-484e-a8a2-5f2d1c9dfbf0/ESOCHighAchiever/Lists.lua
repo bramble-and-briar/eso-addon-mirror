@@ -40,22 +40,103 @@ local function pinnedLine()
     return C(HA.GREY, "Pinned on screen: ") .. name
 end
 
--- One achievement as a short block of lines.
-local function entryLines(entry, state, lines)
+local function pointsText(points)
+    if not points or points <= 0 then return nil end
+    return points .. (points == 1 and " point" or " points")
+end
+
+-- The name line: name, progress, stage, points, pinned.
+local function headLine(entry)
     local head = C(HA.GOLD, entry.name)
     local details = {}
     if entry.progressText then details[#details + 1] = entry.progressText end
     if entry.stage then details[#details + 1] = "stage " .. entry.stage end
     if #details > 0 then head = head .. ": " .. table.concat(details, ", ") end
+    local points = pointsText(entry.points)
+    if points then head = head .. C(HA.GREY, "  (" .. points .. ")") end
     if entry.id == HA.Pinned() then head = head .. C(HA.GREEN, "  (pinned)") end
-    lines[#lines + 1] = head
-    if entry.nextStep then
+    return head
+end
+
+-- One achievement as a short block of lines.
+local function entryLines(entry, state, lines)
+    lines[#lines + 1] = headLine(entry)
+    if entry.description ~= "" then lines[#lines + 1] = "   " .. entry.description end
+    local steps = entry.steps and #entry.steps or 0
+    if entry.nextStep and (steps > 1 or entry.description == "") then
         lines[#lines + 1] = "   Next: " .. entry.nextStep
-    elseif entry.description ~= "" then
-        lines[#lines + 1] = "   " .. entry.description
     end
     local reward = rewardText(entry.reward)
     if reward then lines[#lines + 1] = "   " .. C(HA.YELLOW, "Reward: " .. reward) end
+    if entry.veteranOnly and state.place.normal then
+        lines[#lines + 1] = "   " .. C(HA.RED, "Needs veteran difficulty")
+    end
+    lines[#lines + 1] = ""
+end
+
+local MAX_STEPS = 12
+
+local function whyListed(entry, place)
+    if entry.source == "zoneGuide" then return "the Zone Guide lists it for " .. place.rootName end
+    if entry.source == "category" then return "the game files it under " .. place.name end
+    if entry.source == "name" then return "its name mentions " .. place.name end
+    if entry.source == "description" then return "its description mentions " .. place.name end
+    return nil
+end
+
+-- Everything the game says about one achievement.
+local function detailLines(entry, state, lines)
+    lines[#lines + 1] = headLine(entry)
+    if entry.description ~= "" then lines[#lines + 1] = "   " .. entry.description end
+    if entry.category then lines[#lines + 1] = "   " .. C(HA.GREY, "In the Achievements menu: ") .. entry.category end
+    local why = whyListed(entry, state.place)
+    if why then lines[#lines + 1] = "   " .. C(HA.GREY, "Listed here because " .. why) end
+
+    -- Each step, the ones still to do first
+    local steps = entry.steps or {}
+    -- One step is already shown by the name line's count or the description
+    if #steps > 1 then
+        local todo, done = {}, {}
+        for _, step in ipairs(steps) do
+            local text = step.text ~= "" and step.text or "Step"
+            if step.done then
+                done[#done + 1] = text
+            else
+                if step.need > 1 then text = text .. " (" .. step.have .. " of " .. step.need .. ")" end
+                todo[#todo + 1] = text
+            end
+        end
+        if #todo > 0 then
+            lines[#lines + 1] = "   " .. C(HA.GOLD, "Still to do:")
+            for i = 1, math.min(#todo, MAX_STEPS) do lines[#lines + 1] = "      " .. todo[i] end
+            if #todo > MAX_STEPS then lines[#lines + 1] = "      and " .. (#todo - MAX_STEPS) .. " more" end
+        end
+        if #done > 0 then
+            lines[#lines + 1] = "   " .. C(HA.GREEN, "Done: ") .. C(HA.GREY, table.concat(done, ", "))
+        end
+    end
+
+    local reward = rewardText(entry.reward)
+    if reward then lines[#lines + 1] = "   " .. C(HA.YELLOW, "Reward: " .. reward) end
+
+    -- The whole line of stages, and what the later ones give
+    if entry.line then
+        lines[#lines + 1] = "   " .. C(HA.GOLD, "All stages:")
+        for i, stage in ipairs(entry.line) do
+            local text = i .. ". " .. stage.name
+            local points = pointsText(stage.points)
+            if points then text = text .. " (" .. points .. ")" end
+            if stage.done then
+                text = C(HA.GREEN, text .. ", done")
+            elseif stage.current then
+                text = text .. ", working on this one"
+            end
+            local stageReward = rewardText(stage.reward)
+            if stageReward and not stage.done then text = text .. C(HA.YELLOW, ", gives " .. stageReward) end
+            lines[#lines + 1] = "      " .. text
+        end
+    end
+
     if entry.veteranOnly and state.place.normal then
         lines[#lines + 1] = "   " .. C(HA.RED, "Needs veteran difficulty")
     end
@@ -100,6 +181,16 @@ function Lists.Here(state)
     return table.concat(lines, "\n"), state.todo
 end
 
+function Lists.Details(state)
+    local lines = {}
+    header(state, lines)
+    if #state.todo == 0 then
+        lines[#lines + 1] = state.total > 0 and C(HA.GREEN, "Everything here is done.") or "Nothing to show for here."
+    end
+    for _, entry in ipairs(state.todo) do detailLines(entry, state, lines) end
+    return table.concat(lines, "\n"), state.todo
+end
+
 function Lists.Rewards(state)
     local lines = {}
     header(state, lines)
@@ -116,6 +207,8 @@ function Lists.Done(state)
     if #state.doneList == 0 then lines[#lines + 1] = "Nothing done here yet." end
     for _, entry in ipairs(state.doneList) do
         local line = C(HA.GREEN, entry.name)
+        local points = pointsText(entry.points)
+        if points then line = line .. C(HA.GREY, " (" .. points .. ")") end
         if entry.date and entry.date ~= "" then line = line .. C(HA.GREY, "  " .. entry.date) end
         lines[#lines + 1] = line
     end
@@ -146,6 +239,7 @@ end
 
 Lists.TABS = {
     { name = "Here", build = Lists.Here },
+    { name = "Details", build = Lists.Details },
     { name = "Rewards", build = Lists.Rewards },
     { name = "Done", build = Lists.Done },
     { name = "Check", build = Lists.Check },

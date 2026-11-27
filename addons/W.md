@@ -18,7 +18,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Warhorn Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mapurr/Warhorn-Tracker__1682) | Mapurr | PC / Mac | 2.0.3 |
 | [WARmart Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/WARmart-Guild-Hall__3816) | DakJaniels | PC / Mac | 1.0 |
 | [Warmask Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Warmask-Tracker__b7f8c335-5c64-42cf-813e-c178bb11a1e5) | codeWarrior82 | Console | — |
-| [Wayfinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KanashiReinkyatto/Wayfinder__4678) | KanashiReinkyatto | PC / Mac | 1.1 |
+| [Wayfinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KanashiReinkyatto/Wayfinder__4678) | KanashiReinkyatto | PC / Mac | 1.2.0 |
 | [Wayshrine Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Infinite_1st/Wayshrine-Blocker__4745) | Infinite_1st | PC / Mac | 1.1 |
 | [Wayshrine Tab Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kulturnilpferd/Wayshrine-Tab-Selector__2294) | Kulturnilpferd | PC / Mac | 1.3 |
 | [WayshrineArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cudddel/WayshrineArrow__5100) | cudddel | PC / Mac | 0.1.0 |

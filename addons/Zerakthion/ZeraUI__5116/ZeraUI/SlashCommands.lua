@@ -124,6 +124,10 @@ function ZeraUIAttachCommands(A,UI)
                 self:UpdatePreview()
                 flash(self.slots[1][4]); flash(self.ultimate); self:FadeSynergy(self.settings.showSynergy,true); self:FlashSynergy()
             else
+                for r=1,2 do for i=1,5 do
+                    local s=self.slots[r][i]
+                    self:SetToggle(s,false); self:SetProc(s,false); s.hasActiveDisplay=nil
+                end end
                 clearFlash(self.synergy); self.synergy.offer=nil; self:WatchSynergy(nil); self.synergy.hold=nil
                 self.lastSynergy=nil; self.synergy.transition=nil; self.synergy.container:SetHidden(true); self.synergy.container:SetAlpha(0)
                 self:ClearCast()

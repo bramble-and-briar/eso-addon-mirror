@@ -17,6 +17,8 @@ D.extraScenes = {}      -- scenes (besides the HUD) the displays also show in: t
 
 local Display = {}
 Display.__index = Display
+-- display types with no window of their own: their entries are placed on other things (allies' heads, group frames)
+D.NO_WINDOW = { heads = true, onframes = true }
 
 ------------------------------------------------------------------------------
 -- Small control helpers
@@ -173,6 +175,8 @@ function Items.bars.Configure(it, display)
     it.bar:ClearAnchors()
     if it.bar2 then it.bar2:SetHidden(true) end
     it.centred, it.zoneSide, it.barCut = false, nil, 0
+    it.hvKey = nil      -- shield / trauma pieces: laid out again (new size or colours)
+    it.vertical = ds.vertical == true
     if ds.vertical then
         -- a column: icon at the bottom, the bar above it filling upward, timer on top
         local colW, colH = h, ds.width
@@ -384,7 +388,7 @@ end
 -- the bottom of a column), in the display's zone colour
 -- The bar's full length (without an end window cut off it)
 local function BarFullLength(it, ds)
-    if ds.vertical then
+    if it.vertical then
         return ds.width - (ds.showRowIcon and ds.height or 0)
     end
     return it.barLen or ds.width
@@ -465,12 +469,90 @@ local function ShowZone(it, ds, s)
     if not it.zoneShown then it.zone:SetHidden(false); it.zoneShown = true end
 end
 
+-- Shield, trauma and "can't be healed" on a health bar (5.22.0), drawn the way LuiExtended's unit frames draw them
+-- (UnitAttributeVisuals/PowerShield.lua): the fill is the health you can use (health minus trauma), trauma is the piece
+-- of the bar right after it (health that heals away first), the damage shield is a see-through layer from the empty
+-- end, and "can't be healed" darkens the health that's left. Three textures over the bar, under the text, made the
+-- first time a bar shows one; not on bars that empty toward the middle or are cut by an end window.
+local HV_PARTS = { "noHeal", "trauma", "shield" }
+local function HealthSegment(it, ds, tex, a, b, len)
+    a, b = U.Clamp(a, 0, 1), U.Clamp(b, 0, 1)
+    local size = math.floor((b - a) * len + 0.5)
+    if size < 1 then tex:SetHidden(true); return end
+    local at = math.floor(a * len + 0.5)
+    tex:ClearAnchors()
+    if it.vertical then
+        tex:SetAnchor(BOTTOMLEFT, it.bar, BOTTOMLEFT, 0, -at)
+        tex:SetAnchor(BOTTOMRIGHT, it.bar, BOTTOMRIGHT, 0, -at)
+        tex:SetHeight(size)
+    elseif ds.fillReverse then
+        tex:SetAnchor(TOPRIGHT, it.bar, TOPRIGHT, -at, 0)
+        tex:SetAnchor(BOTTOMRIGHT, it.bar, BOTTOMRIGHT, -at, 0)
+        tex:SetWidth(size)
+    else
+        tex:SetAnchor(TOPLEFT, it.bar, TOPLEFT, at, 0)
+        tex:SetAnchor(BOTTOMLEFT, it.bar, BOTTOMLEFT, at, 0)
+        tex:SetWidth(size)
+    end
+    tex:SetHidden(false)
+end
+
+local function HideHealthVisuals(it)
+    if not it.hvShown then return end
+    for _, k in ipairs(HV_PARTS) do if it.hv[k] then it.hv[k]:SetHidden(true) end end
+    it.hvShown, it.hvKey = false, nil
+end
+
+-- returns the fill fraction to show instead (health minus trauma), or nil when the bar shows nothing of this
+local function ShowHealthVisuals(it, ds, s)
+    local max = s.max or 0
+    local shield, trauma = s.shield or 0, s.trauma or 0
+    if not s.healthVisuals or max <= 0 or it.centred or (it.barCut or 0) > 0
+            or (shield <= 0 and trauma <= 0 and not s.noHeal) then
+        HideHealthVisuals(it)
+        return nil
+    end
+    local value = s.value or 0
+    local usable = math.max(0, value - trauma) / max
+    local health = value / max
+    local len = BarFullLength(it, ds)
+    local key = table.concat({ math.floor(usable * len + 0.5), math.floor(health * len + 0.5),
+        math.floor(math.min(1, shield / max) * len + 0.5), s.noHeal and 1 or 0, len,
+        it.vertical and "v" or (ds.fillReverse and "r" or "l") }, ":")
+    if key ~= it.hvKey then
+        it.hvKey = key
+        it.hv = it.hv or {}
+        for _, k in ipairs(HV_PARTS) do
+            if not it.hv[k] then
+                local tex = WM:CreateControl(nil, it.control, CT_TEXTURE)
+                tex:SetDrawLevel(3)
+                tex:SetHidden(true)
+                -- a group frame already faded out of range: the new piece fades with it (5.25.6, Yarden: a shield
+                -- that came after the fade stayed bright, so the frame didn't look out of range)
+                tex:SetAlpha(it.fade or 1)
+                it.hv[k] = tex
+            end
+        end
+        local function Paint(k, c, a, b)
+            local tex = it.hv[k]
+            tex:SetColor(c[1], c[2], c[3], c[4] or 1)
+            HealthSegment(it, ds, tex, a, b, len)
+        end
+        if trauma > 0 then Paint("trauma", ds.traumaColor, usable, health) else it.hv.trauma:SetHidden(true) end
+        if s.noHeal then Paint("noHeal", ds.noHealColor, 0, usable) else it.hv.noHeal:SetHidden(true) end
+        if shield > 0 then Paint("shield", ds.shieldColor, 0, math.min(1, shield / max)) else it.hv.shield:SetHidden(true) end
+        it.hvShown = true
+    end
+    return usable
+end
+
 function Items.bars.Animate(it, display, now, nowMs)
     local s, ds = it.state, display.ds
     if not s then return end
     local look = s.look
     local frac = Style.Fraction(s, now, ds)
     if s.zone or it.zoneShown then ShowZone(it, ds, s) end
+    if s.healthVisuals or it.hvShown then frac = ShowHealthVisuals(it, ds, s) or frac end
     local v = CutValue(it, ds, frac)
     it.bar:SetValue(v)
     if it.centred and it.bar2 then it.bar2:SetValue(v) end
@@ -627,11 +709,13 @@ end
 
 SetCard = function(it, display, s, look, target)
     local ds = display.ds
-    local on = ds.procCards and display.kind ~= "heads"
+    local on = ds.procCards and display.kind ~= "heads" and display.kind ~= "onframes"
     local P = Palette(ds)
     local framedNow = on and ds.gameFrame and s.procKey ~= nil
     CardInset(it, framedNow and math.floor((it.frameSize or ds.iconSize) * FRAME_BAND + 0.5) or 0)
-    local gauge = on and s.gauge ~= nil
+    -- (the gauge and its line can be switched off -- Hyssia: "The line + the 92% number, want them gone" on Martial
+    -- Knowledge -- the state colours stay: green while it runs or can proc, the cooldown look while it can't)
+    local gauge = on and s.gauge ~= nil and ds.procGauge
     it.gauge:SetHidden(not gauge)
     local strip = gauge and ds.procPercent
     it.band:SetHidden(not strip)
@@ -692,6 +776,7 @@ SetCard = function(it, display, s, look, target)
         if gauge then fc = (s.level == "max" and P.max) or (s.level == "part" and P.part) or CARD.frame
         elseif s.cooldown or s.phase == 2 then fc = CARD.frameDown
         elseif s.active then fc = P.max
+        elseif s.gate and s.level == "max" then fc = P.max       -- (gauge hidden: ready and able to proc)
         else fc = CARD.frame end
         it.gameFrame:SetColor(fc[1], fc[2], fc[3], fc[4] or 1)
     end
@@ -704,7 +789,7 @@ SetCard = function(it, display, s, look, target)
         local ac = (s.alliesFull and P.max) or (s.alliesLow and P.part) or WHITE
         it.allies:SetColor(ac[1], ac[2], ac[3], 1)
     end
-    if display.kind ~= "heads" then FitBigNumber(it, ds, on, strip, info, allies or not it.stack:IsHidden()) end
+    if display.kind ~= "heads" and display.kind ~= "onframes" then FitBigNumber(it, ds, on, strip, info, allies or not it.stack:IsHidden()) end
     -- the frame tells the state, unless a rule or the target highlight already coloured it
     if on and not it.glowing and not target and not (look and look.color) and (s.procKey or gauge) then
         local c
@@ -1007,6 +1092,513 @@ function D.SizeHeadItem(it, display, size)
     local tf, sf = Style.Font(ds, size, 0.38, 10, 32), Style.Font(ds, size, 0.3, 9, 24)
     if tf ~= it.timeFont then it.time:SetFont(tf); it.timeFont = tf end
     if sf ~= it.stackFont then it.stack:SetFont(sf); it.stackFont = sf end
+end
+
+-- Group frames ---------------------------------------------------------------
+-- One frame per group member (trigger "Group members", Core/Group.lua): the health bar of a DebuffTracker bar -- its
+-- track, texture, fonts, border and rules -- with the member's class icon, leader and role marks, the health (or
+-- Dead / Resurrecting / Offline) on the right, the damage shield, trauma and "can't be healed" over the bar, and the
+-- frame faded while the member is out of support range. Laid out like bars: "Frames per column", spacing, grow.
+-- The mouse: a tooltip and the game's group menu on right-click (Display/GroupFrames.lua).
+
+Items.frames = {}
+-- the crown the game's Group list shows for the leader (zo_grouplist_keyboard.xml, layer OVERLAY). 5.25.6: the group
+-- frames' own groupIcon_leader.dds left an empty gap before the leader's name in game (Yarden's screenshot)
+local MARK_LEADER = "EsoUI/Art/LFG/LFG_leader_icon.dds"
+D.MARK_LEADER = MARK_LEADER
+
+function Items.frames.Create(display)
+    local it = Items.bars.Create(display)
+    it.type = "frames"
+    local row = it.control
+    it.leader = WM:CreateControl(nil, row, CT_TEXTURE)
+    it.leader:SetDrawLevel(5)
+    if DL_OVERLAY then it.leader:SetDrawLayer(DL_OVERLAY) end
+    it.leader:SetTexture(MARK_LEADER)
+    it.leader:SetHidden(true)
+    it.roleIcon = WM:CreateControl(nil, row, CT_TEXTURE)
+    it.roleIcon:SetDrawLevel(5)
+    if DL_OVERLAY then it.roleIcon:SetDrawLayer(DL_OVERLAY) end
+    it.roleIcon:SetHidden(true)
+    row:SetHandler("OnMouseEnter", function() DT.GroupFrames.OnEnter(it, display) end)
+    row:SetHandler("OnMouseExit", function() DT.GroupFrames.OnExit(it, display) end)
+    row:SetHandler("OnMouseUp", function(_, button, upInside) DT.GroupFrames.OnClick(it, display, button, upInside) end)
+    return it
+end
+
+function Items.frames.Configure(it, display)
+    local ds, look = display.ds, display.look
+    local h, w = ds.height, display.rowWidth
+    it.control:SetDimensions(w, h)
+    it.vertical, it.centred, it.barCut, it.zoneSide = false, false, 0, nil
+    it.hvKey = nil
+    local font = Style.Font(ds, h)
+    it.name:SetFont(font); it.time:SetFont(font); it.stack:SetFont(font)
+    it.timeWidths, it.timeBoxW, it.lastTimeText, it.lastName = nil, nil, nil, nil
+    it.track:SetHidden(not look.track and (ds.trackColor[4] or 0) <= 0)
+    local tc = ds.trackColor
+    it.track:SetCenterColor(tc[1], tc[2], tc[3], tc[4] or 1)
+    it.track:SetEdgeColor(0, 0, 0, 0)
+    it.bar:SetTexture(ds.texture)
+    it.bar:SetAlpha(ds.barAlpha)
+    if it.bar.SetOrientation then it.bar:SetOrientation(ORIENTATION_HORIZONTAL) end
+    if it.bar.SetBarAlignment and BAR_ALIGNMENT_NORMAL then
+        it.bar:SetBarAlignment(ds.fillReverse and BAR_ALIGNMENT_REVERSE or BAR_ALIGNMENT_NORMAL)
+    end
+    if it.bar2 then it.bar2:SetHidden(true) end
+    it.zone:SetHidden(true); it.zoneShown = false
+    it.stack:SetHidden(true)
+    it.stripe:SetHidden(true)
+    -- the class icon: a square at the left end, like a bar's ability icon
+    local iconW = ds.frameClassIcon and h or 0
+    it.icon:ClearAnchors()
+    it.icon:SetAnchor(TOPLEFT, it.control, TOPLEFT, 0, 0)
+    it.icon:SetDimensions(h, h)
+    it.icon:SetHidden(not ds.frameClassIcon)
+    it.bar:ClearAnchors()
+    it.bar:SetAnchor(TOPLEFT, it.control, TOPLEFT, iconW, 0)
+    it.bar:SetAnchor(BOTTOMRIGHT, it.control, BOTTOMRIGHT, 0, 0)
+    it.barLen = w - iconW
+    -- leader / role marks: small, before the name
+    local fs = Style.FontSize(ds, h)
+    it.nudge = Style.TextNudge(fs)
+    it.lineH = math.max(h, math.ceil(fs * 1.35))
+    local mark = U.Clamp(math.floor(math.min(h, fs * 1.3) + 0.5), 10, 40)
+    it.markSize = mark
+    it.leader:SetDimensions(mark, mark)
+    it.roleIcon:SetDimensions(mark, mark)
+    it.nameLeft = iconW + 4
+    -- the health text on the right, the name filling the rest
+    it.time:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    it.time:ClearAnchors()
+    it.time:SetAnchor(RIGHT, it.control, RIGHT, -4, it.nudge)
+    it.time:SetDimensions(math.max(40, math.ceil(fs * 4.2)), it.lineH)
+    it.name:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    it.marksKey = nil
+    local b = math.max(1, ds.borderSize or 2)
+    it.edge:ClearAnchors()
+    it.edge:SetAnchor(TOPLEFT, it.control, TOPLEFT, -b, -b)
+    it.edge:SetAnchor(BOTTOMRIGHT, it.control, BOTTOMRIGHT, b, b)
+    it.edge:SetEdgeTexture(nil, 1, 1, b)
+    it.smooth = nil
+    it.fade = nil
+    it.configured = display.configVersion
+end
+
+-- leader and role marks, then the name after them
+local function PlaceMarks(it, ds, s)
+    local leader = ds.frameLeader and s.leader == true
+    local roleTex = ds.frameRoleIcon and U.ROLE_ICONS[s.role or ""] or nil
+    local key = (leader and "L" or "-") .. (roleTex or "-") .. (ds.showName and "n" or "-")
+    if key == it.marksKey then return end
+    it.marksKey = key
+    local x = it.nameLeft
+    local gap = 2
+    it.leader:SetHidden(not leader)
+    if leader then
+        it.leader:ClearAnchors()
+        it.leader:SetAnchor(LEFT, it.control, LEFT, x, 0)
+        x = x + it.markSize + gap
+    end
+    it.roleIcon:SetHidden(roleTex == nil)
+    if roleTex then
+        it.roleIcon:SetTexture(roleTex)
+        it.roleIcon:ClearAnchors()
+        it.roleIcon:SetAnchor(LEFT, it.control, LEFT, x, 0)
+        x = x + it.markSize + gap
+    end
+    it.name:ClearAnchors()
+    it.name:SetAnchor(LEFT, it.control, LEFT, x, it.nudge)
+    it.name:SetAnchor(RIGHT, it.time, LEFT, -4, 0)
+    it.name:SetHeight(it.lineH)
+end
+
+-- 24500 -> "24.5k", 1250000 -> "1.25M" (the game's frames abbreviate the same way)
+local function Short(v)
+    v = math.floor((v or 0) + 0.5)
+    if v >= 1000000 then return (string.format("%.2fM", v / 1000000):gsub("%.?0+M$", "M")) end
+    if v >= 10000 then return (string.format("%.1fk", v / 1000):gsub("%.0k$", "k")) end
+    if v >= 1000 then return (string.format("%.2fk", v / 1000):gsub("%.?0+k$", "k")) end
+    return tostring(v)
+end
+D.ShortNumber = Short
+
+local STATUS = { ressing = "Resurrecting", pending = "Rez pending", ghost = "Ghost" }
+function D.FrameStatusText(s)
+    if s.online == false then return DT.L("Offline") end
+    if s.dead then return DT.L(STATUS[s.rez or ""] or "Dead") end
+    if s.rez == "ghost" then return DT.L("Ghost") end
+    return nil
+end
+
+function D.FrameHealthText(ds, s)
+    local status = D.FrameStatusText(s)
+    if status then return status end
+    local mode = ds.frameHealthText
+    local text
+    if mode == "none" then text = ""
+    elseif mode == "pct" then text = string.format("%d%%", math.floor((s.pct or 0) + 0.5))
+    elseif mode == "both" then text = Short(s.value) .. "  " .. string.format("%d%%", math.floor((s.pct or 0) + 0.5))
+    else text = Short(s.value) end
+    if ds.frameShieldText and (s.shield or 0) > 0 then text = text .. " |c" .. U.ColorToHex(ds.shieldColor):sub(1, 6) .. "+" .. Short(s.shield) .. "|r" end
+    return text
+end
+
+local ROLE_COLOR_KEY = { tank = "tankColor", healer = "healerColor", dps = "dpsColor" }
+function D.FrameColor(ds, s, frac)
+    if s.companion then return ds.companionColor end
+    if ds.frameColorBy == "health" then return Style.Color(ds, frac) end
+    if ds.frameColorBy == "role" then
+        local k = ROLE_COLOR_KEY[s.role or ""]
+        if k then return ds[k] end
+    end
+    return ds.colorSolid
+end
+
+function Items.frames.Set(it, display, s, now)
+    local ds = display.ds
+    local look = s.look
+    it.state = s
+    it.icon:SetTexture(s.icon or C.DEFAULT_ICON)
+    it.icon:SetDesaturation((s.online == false or s.dead) and 1 or 0)
+    PlaceMarks(it, ds, s)
+    it.name:SetHidden(not ds.showName)
+    if ds.showName then
+        local text = U.FormatTemplate(ds.labelFormat, s, now, ds.timeFormat)
+        if text ~= it.lastName then it.name:SetText(text); it.lastName = text end
+    end
+    it.time:SetHidden(not ds.showTimer)
+    local tc, timerC = TextColors(ds, look)
+    local down = s.online == false or s.dead
+    Style.SetColor(it.name, tc, down and 0.6 or 1)
+    Style.SetColor(it.time, (D.FrameStatusText(s) and not (look and (look.timerColor or look.textColor))) and Style.EXPIRED or timerC)
+    SetHighlight(it, display, s, look)
+    it.control:SetScale(1)
+    SetProc(it, it.control, look and look.proc)
+    local bg = look and look.background
+    if bg then it.track:SetCenterColor(bg[1], bg[2], bg[3], bg[4] or 1); it.customBg = true
+    elseif it.customBg then
+        local t = ds.trackColor
+        it.track:SetCenterColor(t[1], t[2], t[3], t[4] or 1); it.customBg = nil
+    end
+    local mouse = ds.frameMouse and not DT.unlocked
+    if it.mouse ~= mouse then it.control:SetMouseEnabled(mouse); it.mouse = mouse end
+end
+
+function Items.frames.Animate(it, display, now, nowMs)
+    local s, ds = it.state, display.ds
+    if not s then return end
+    local look = s.look
+    local target = U.Clamp((s.pct or 0) / 100, 0, 1)
+    if s.dead or s.online == false then target = 0 end
+    -- health moves smoothly between updates (the engine reads it ~10x a second)
+    local frac = target
+    if it.smooth and it.smoothKey == s.key and it.smoothMs then
+        local dt = math.max(0, math.min(0.25, (nowMs - it.smoothMs) / 1000))
+        frac = it.smooth + (target - it.smooth) * math.min(1, dt * 14)
+        if math.abs(frac - target) < 0.002 then frac = target end
+    end
+    it.smooth, it.smoothKey, it.smoothMs = frac, s.key, nowMs
+    local shown = frac
+    if s.healthVisuals and not s.dead and s.online ~= false then
+        local hv = it.hvProxy
+        if not hv then hv = { healthVisuals = true }; it.hvProxy = hv end
+        hv.max, hv.value, hv.shield, hv.trauma, hv.noHeal = s.max, frac * (s.max or 0), s.shield, s.trauma, s.noHeal
+        shown = ShowHealthVisuals(it, ds, hv) or frac
+    elseif it.hvShown then
+        HideHealthVisuals(it)
+    end
+    it.bar:SetValue(shown)
+    local color
+    if look and look.color then color = look.color
+    elseif s.dead or s.online == false then color = Style.INACTIVE
+    else color = D.FrameColor(ds, s, frac) end
+    it.bar:SetColor(color[1], color[2], color[3], color[4] or 1)
+    if ds.showTimer then
+        local text = (look and s.text) or D.FrameHealthText(ds, s)
+        if text ~= it.lastTimeText then it.time:SetText(text); it.lastTimeText = text end
+    end
+    local alpha = (look and look.alpha) or 1
+    if s.online == false then alpha = alpha * 0.6 end
+    if look and look.pulse then alpha = alpha * Style.PulseAlpha(nowMs, 0.35) end
+    it.control:SetAlpha(alpha)
+    -- out of support range: the bar, its background and the class icon fade; the name and the health stay readable
+    -- (Yarden: faded to 40% as a whole, the names were dark on dark)
+    local fade = (s.inRange == false and not s.isMe and s.online ~= false) and (ds.frameRangeAlpha or 0.4) or 1
+    if fade ~= it.fade then
+        it.fade = fade
+        it.bar:SetAlpha(ds.barAlpha * fade)
+        it.track:SetAlpha(fade)
+        it.icon:SetAlpha(fade)
+        if it.hv then for _, tex in pairs(it.hv) do tex:SetAlpha(fade) end end
+    end
+    if it.glowing then
+        local g = look.glow
+        it.edge:SetEdgeColor(g[1], g[2], g[3], (g[4] or 1) * Style.PulseAlpha(nowMs, 0.3))
+    end
+end
+
+-- On group frames ------------------------------------------------------------
+-- Another tracker's entries shown on each member's group frame (Display/GroupFrames.lua places them): icons like
+-- "above heads" -- an ally missing a buff, your heal on them -- or, with "Show as: a bar along the frame", a thin
+-- bar under the frame running out with the effect (a buff's time left on that member).
+
+Items.onframes = {}
+function Items.onframes.Create(display)
+    local it = Items.icons.Create(display)
+    it.type = "onframes"
+    return it
+end
+Items.onframes.Configure = function(it, display)
+    Items.icons.Configure(it, display)
+    it.size = nil
+    it.name:SetHidden(true)
+end
+function Items.onframes.Set(it, display, s, now)
+    Items.icons.Set(it, display, s, now)
+    it.name:SetHidden(true)
+    it.control:SetScale(1)
+    if not it.placed then it.control:SetHidden(true) end
+end
+Items.onframes.Animate = Items.icons.Animate
+
+Items.framebar = {}
+function Items.framebar.Create(display)
+    local row = WM:CreateControl(nil, display.content, CT_CONTROL)
+    local it = { control = row, type = "framebar" }
+    it.track = WM:CreateControl(nil, row, CT_TEXTURE)
+    it.track:SetAnchorFill()
+    it.track:SetDrawLevel(1)
+    it.fill = WM:CreateControl(nil, row, CT_TEXTURE)
+    it.fill:SetDrawLevel(2)
+    return it
+end
+function Items.framebar.Configure(it, display)
+    local tc = display.ds.trackColor
+    it.track:SetColor(tc[1], tc[2], tc[3], tc[4] or 1)
+    it.configured = display.configVersion
+end
+function Items.framebar.Set(it, display, s, now)
+    it.state = s
+    if not it.placed then it.control:SetHidden(true) end
+end
+function Items.framebar.Animate(it, display, now, nowMs)
+    local s, ds = it.state, display.ds
+    if not s or not it.barW then return end
+    local look = s.look
+    local frac = s.active and Style.Fraction(s, now, ds) or 0
+    local w = math.max(0, math.floor(it.barW * frac + 0.5))
+    it.fill:ClearAnchors()
+    if ds.fillReverse then it.fill:SetAnchor(TOPRIGHT, it.control, TOPRIGHT, 0, 0) else it.fill:SetAnchor(TOPLEFT, it.control, TOPLEFT, 0, 0) end
+    it.fill:SetDimensions(w, it.barH or 3)
+    it.fill:SetHidden(w < 1)
+    local c = (look and look.color) or (s.expired and Style.EXPIRED) or ((not s.active) and Style.INACTIVE) or Style.Color(ds, frac)
+    it.fill:SetColor(c[1], c[2], c[3], c[4] or 1)
+    local alpha = (look and look.alpha) or 1
+    if (look and look.pulse) or Style.ShouldBlink(ds, s, now) then alpha = alpha * Style.PulseAlpha(nowMs, 0.35) end
+    it.control:SetAlpha(alpha)
+end
+
+-- Weave strip ----------------------------------------------------------------
+-- One column per skill you cast (trigger "Weaving", Core/Weave.lua), the newest on the right -- quiet when it's clean,
+-- loud when it's not (5.25.0, Yarden picked it from three drafts: "make it look AMAZING"):
+--   * the skill as a DebuffTracker icon tile; greyed when no light attack went in;
+--   * under it a thin line that only grows with the time lost (empty = on time), in the colour of how it went;
+--   * under that the ms in its colour -- an on-time 0 in the good colour (Yarden: grey "seems neutral rather than
+--     positive"); M / X / Q in red when the light attack
+--     didn't make it; a small blue B tag on the icon's corner for a bash-weave;
+--   * the fight's average as one of DebuffTracker's number tiles at the end of the strip (the Meter display's look: a
+--     dark plate, a coloured line on its left, a gold caption, a big number).
+-- Motion: a new skill's line grows to its length, the average rolls to its new value (like the Meter tiles).
+-- Nothing round it, no header; nothing shown until the first skill of a fight. Empty slots draw nothing.
+-- (5.24.3-5.24.7 were a coloured block with white text under every icon: everything as loud as everything else --
+-- AyDeeS: "you can make it look much better".)
+
+Items.weave = {}
+local WEAVE_QUIET = { 0.60, 0.63, 0.66, 1 }       -- an on-time 0: there, but not asking for attention
+local WEAVE_GROW = 0.22                           -- s: a new line grows in
+
+local function WeaveLineH(ds) return math.max(3, math.floor(ds.iconSize * 0.1 + 0.5)) end
+local function WeaveNumFs(ds) return U.Clamp(math.floor(ds.iconSize * 0.33 + 0.5), 11, 26) end
+-- a column: the icon, 3 px, the line, the number's line
+function D.WeaveCellH(ds) return ds.iconSize + 3 + WeaveLineH(ds) + math.ceil(WeaveNumFs(ds) * 1.3) end
+local function EaseOut3(t) t = U.Clamp(t, 0, 1); return 1 - (1 - t) ^ 3 end
+
+function Items.weave.Create(display)
+    local it = Items.icons.Create(display)
+    it.type = "weave"
+    it.track = WM:CreateControl(nil, it.control, CT_TEXTURE)
+    it.track:SetDrawLevel(2)
+    it.line = WM:CreateControl(nil, it.control, CT_TEXTURE)
+    it.line:SetDrawLevel(3)
+    it.num = Label(it.control, 6, TEXT_ALIGN_CENTER)
+    return it
+end
+
+function Items.weave.Configure(it, display)
+    Items.icons.Configure(it, display)
+    local ds = display.ds
+    for _, c in ipairs({ it.name, it.time, it.stack, it.gauge, it.mark, it.gameFrame, it.alliesIcon, it.allies, it.sweep, it.ghost,
+            it.band, it.bandText }) do
+        c:SetHidden(true)
+    end
+    local w, lh, fs = ds.iconSize, WeaveLineH(ds), WeaveNumFs(ds)
+    it.lineH = lh
+    it.track:ClearAnchors()
+    it.track:SetAnchor(TOPLEFT, it.control, BOTTOMLEFT, 0, 3)
+    it.track:SetDimensions(w, lh)
+    it.track:SetColor(0, 0, 0, 0.55)
+    it.line:ClearAnchors()
+    it.line:SetAnchor(TOPLEFT, it.track, TOPLEFT, 0, 0)
+    it.line:SetHeight(lh)
+    it.num:SetFont(Style.FontAt(ds, fs))
+    it.num:ClearAnchors()
+    it.num:SetAnchor(TOP, it.track, BOTTOM, 0, 0)
+    it.num:SetDimensions(w + 12, math.ceil(fs * 1.3))
+    -- the bash-weave's tag: small, on the icon's top right corner
+    local bs = math.max(11, math.floor(w * 0.32 + 0.5))
+    it.info:SetFont(Style.FontAt(ds, bs))
+    it.info:ClearAnchors()
+    it.info:SetAnchor(TOPRIGHT, it.control, TOPRIGHT, -1, -math.floor(bs * 0.12))
+    it.info:SetDimensions(w, math.ceil(bs * 1.3))
+    it.lineLen, it.lineShown = nil, nil
+end
+
+-- the colour for a time lost: good up to weaveGoodMs, okay half way to weaveSlowMs, slow from it on (blended)
+function D.WeaveColor(ds, delay)
+    local good, slow = ds.weaveGoodMs, ds.weaveSlowMs
+    if delay <= good then return ds.weaveGoodColor end
+    if delay >= slow then return ds.weaveSlowColor end
+    local mid = (good + slow) / 2
+    if delay <= mid then return U.LerpColor(ds.weaveGoodColor, ds.weaveOkColor, (delay - good) / math.max(1, mid - good)) end
+    return U.LerpColor(ds.weaveOkColor, ds.weaveSlowColor, (delay - mid) / math.max(1, slow - mid))
+end
+
+-- the number under the line: the ms (0 = on time or early), the letter when the light attack didn't make it
+function D.WeaveText(s)
+    if s.weaveEmpty or not s.weaveSettled then return "" end
+    if s.weaveLight ~= "ok" then return s.weaveLetter or "" end
+    if not s.weaveDelay then return "" end
+    return tostring((s.weaveDelay <= 1) and 0 or math.floor(s.weaveDelay + 0.5))
+end
+
+function Items.weave.Set(it, display, s, now)
+    local ds = display.ds
+    local look = s.look
+    if it.state == nil or it.state.key ~= s.key then it.bornAt, it.lineShown = now, nil end
+    it.state = s
+    it.control:SetHidden(s.weaveEmpty == true)
+    if s.weaveEmpty then return end
+    local bg = (look and look.background) or ds.iconBg or ICON_BG
+    it.frame:SetCenterColor(bg[1], bg[2], bg[3], bg[4] or 1)
+    local missed = s.weaveSettled and s.weaveLight ~= "ok"
+    local showIcon = ds.weaveIcons and s.icon ~= nil
+    it.icon:SetHidden(not showIcon)
+    if showIcon then
+        it.icon:SetTexture(s.icon)
+        local tint = ds.iconTint
+        it.icon:SetColor(tint[1], tint[2], tint[3], 1)
+        it.icon:SetDesaturation(missed and 0.8 or 0)
+        it.icon:SetAlpha((missed and 0.6 or 1) * (tint[4] or 1))
+    end
+    if look and look.glow then
+        it.glowing = true
+    else
+        it.glowing = false
+        local b = ds.rowBorder and ds.borderColor or nil
+        if b then it.edge:SetEdgeColor(b[1], b[2], b[3], b[4] or 1)
+        else it.edge:SetEdgeColor(0, 0, 0, (ds.borderSize or 2) == 0 and 0 or 0.85) end
+    end
+    -- how it went: the line's length and colour, the number's colour
+    local c, len = nil, 0
+    if s.weaveSettled and not missed and s.weaveDelay then
+        c = D.WeaveColor(ds, s.weaveDelay)
+        len = s.weaveDelay <= ds.weaveGoodMs and 0 or U.Clamp(s.weaveDelay / ds.weaveScaleMs, 0, 1)
+    end
+    if look and look.color then c = look.color end
+    it.lineColor, it.lineTarget = c, len
+    local text = D.WeaveText(s)
+    it.num:SetText(text)
+    local nc
+    if look and look.textColor then nc = look.textColor
+    elseif missed then nc = ds.weaveMissColor
+    elseif s.weaveDelay and s.weaveDelay <= ds.weaveGoodMs then nc = ds.weaveGoodColor     -- on time: good, not just "nothing"
+    else nc = c or WEAVE_QUIET end
+    it.num:SetColor(nc[1], nc[2], nc[3], nc[4] or 1)
+    local bash = s.weaveSettled and s.weaveLight == "ok" and s.weaveBash and (s.weaveLetter or "") ~= ""
+    it.info:SetHidden(not bash)
+    if bash then
+        it.info:SetText(s.weaveLetter)
+        local ic = ds.procColorInfo or CARD.info
+        it.info:SetColor(ic[1], ic[2], ic[3], 1)
+    end
+    it.control:SetScale(1)
+end
+
+function Items.weave.Animate(it, display, now, nowMs)
+    local s, ds = it.state, display.ds
+    if not s or s.weaveEmpty then return end
+    local look = s.look
+    -- the line grows in once the skill is judged
+    local target = it.lineTarget or 0
+    if target > 0 and it.lineColor then
+        if not it.lineShown then it.lineShown = now end
+        local f = EaseOut3((now - it.lineShown) / WEAVE_GROW)
+        local w = math.floor(target * ds.iconSize * f + 0.5)
+        if w ~= it.lineLen then
+            it.lineLen = w
+            it.line:SetWidth(math.max(1, w))
+        end
+        it.line:SetHidden(w < 1)
+        local c = it.lineColor
+        it.line:SetColor(c[1], c[2], c[3], c[4] or 1)
+    else
+        it.line:SetHidden(true)
+        it.lineLen = 0
+    end
+    local alpha = (look and look.alpha) or 1
+    if look and look.pulse then alpha = alpha * Style.PulseAlpha(nowMs, 0.35) end
+    it.control:SetAlpha(alpha)
+    if it.glowing and look and look.glow then
+        local g = look.glow
+        it.edge:SetEdgeColor(g[1], g[2], g[3], (g[4] or 1) * Style.PulseAlpha(nowMs, 0.25))
+    end
+end
+
+-- The average tile: the Meter display's look (a dark plate, a coloured line on its left, a gold caption, a big number
+-- that rolls to its new value).
+local function WeaveTile(self)
+    local t = self.weaveTile
+    if t then return t end
+    t = {}
+    t.plate = Backdrop(self.window, { 0.055, 0.067, 0.082, 0.82 }, { 0.29, 0.32, 0.36, 1 }, 1, 1)
+    t.accent = WM:CreateControl(nil, t.plate, CT_TEXTURE)
+    t.accent:SetDrawLevel(2)
+    t.caption = Label(t.plate, 3, TEXT_ALIGN_LEFT)
+    t.value = Label(t.plate, 3, TEXT_ALIGN_LEFT)
+    self.weaveTile = t
+    return t
+end
+D.WEAVE_TILE_GAP = 10
+function D.WeaveTileW(ds) return math.floor(ds.iconSize * 1.75 + 0.5) end
+
+function Display:WeaveTileUpdate(avg, now)
+    local t = self.weaveTile
+    if not t or t.plate:IsHidden() then return end
+    local ds = self.ds
+    -- the number rolls to its new value
+    if avg then
+        if t.target ~= avg then t.from, t.target, t.since = t.shown or avg, avg, now end
+        local f = EaseOut3((now - (t.since or now)) / 0.35)
+        t.shown = (t.from or avg) + (t.target - (t.from or avg)) * f
+    else
+        t.shown, t.target = nil, nil
+    end
+    local text = t.shown and string.format("%.2fs", t.shown / 1000) or "-"
+    if text ~= t.text then t.value:SetText(text); t.text = text end
+    local c = t.shown and D.WeaveColor(ds, t.shown) or WEAVE_QUIET
+    t.value:SetColor(c[1], c[2], c[3], 1)
+    t.accent:SetColor(c[1], c[2], c[3], 1)
 end
 
 -- Meter --------------------------------------------------------------------
@@ -1352,7 +1944,7 @@ local function NewDisplay()
     self.unlockEdge:SetHidden(true)
     self.unlockTag:SetHidden(true)
 
-    self.pools = { bars = {}, icons = {}, text = {}, alert = {}, heads = {}, meter = {} }
+    self.pools = { bars = {}, icons = {}, text = {}, alert = {}, heads = {}, meter = {}, frames = {}, onframes = {}, framebar = {}, weave = {} }
     self.active = {}
     self.order = {}
     self.configVersion = 0
@@ -1411,21 +2003,31 @@ function Display:Configure(tracker)
     local ds = tracker.display
     self.ds = ds
     self.look = Style.Look(ds)
-    if self.kind ~= ds.type then self:ReleaseAll() end
-    self.kind = ds.type
+    -- "On group frames" shown as a bar along each frame is its own kind of entry
+    local kind = (ds.type == "onframes" and ds.frameShow == "bar") and "framebar" or ds.type
+    if self.kind ~= kind then
+        if self.kind == "onframes" or self.kind == "framebar" then DT.GroupFrames.SetActive(self, false) end
+        if self.kind == "frames" then DT.GroupFrames.FramesGone(self) end
+        self:ReleaseAll()
+    end
+    self.kind = kind
     self.configVersion = self.configVersion + 1
     local look = self.look
     self.rowWidth = ds.width - 2 * look.padX
 
     local bg = ds.background
     self.bg:SetCenterColor(bg[1], bg[2], bg[3], bg[4])
-    local e = look.windowEdge
+    local e = ds.windowEdge or look.windowEdge
     self.bg:SetEdgeColor(e[1], e[2], e[3], e[4])
+    self.bg:SetEdgeTexture(nil, 1, 1, math.max(1, ds.windowEdgeSize or 0))
     local plain = ds.type == "alert" or ds.type == "text"
-    local heads = ds.type == "heads"
+    -- above heads / on group frames: placed on other things, no window of their own
+    local heads = ds.type == "heads" or ds.type == "onframes"
     -- meters are tiles with their own background: the window's only shows behind a header
     -- a fully transparent background: no box at all, its border included (HangryGinger: "just floating text")
-    self.bg:SetHidden(ds.type == "alert" or heads or (ds.type == "meter" and not ds.showHeader) or (bg[4] or 1) <= 0.01)
+    -- (a see-through box with a border of its own keeps the border: WeaveDelays' frame round an empty box)
+    local edgeOnly = ds.windowEdge ~= nil and (ds.windowEdge[4] or 1) > 0.01
+    self.bg:SetHidden(ds.type == "alert" or heads or (ds.type == "meter" and not ds.showHeader) or ((bg[4] or 1) <= 0.01 and not edgeOnly))
     self.window:SetAlpha(ds.alpha)
     self.window:SetScale(heads and 1 or ds.scale)
     self.window:SetDrawLevel(ds.drawLevel or 0)
@@ -1476,6 +2078,16 @@ function Display:HeaderText(tracker, rt)
     local ds = self.ds
     local title = ds.title ~= "" and ds.title or tracker.name
     local up = ds.showUptime and rt and rt.uptime
+    if self.kind == "weave" then
+        -- (the average is the tile at the strip's end: no badge)
+        local avg = nil
+        self.uptime:SetHidden(not avg)
+        self.uptimeBadge:SetHidden(not (avg and self.look.iconFrame))
+        if avg then self.uptime:SetText(string.format("%.2f s", avg / 1000)) end
+        AnchorTitle(self, avg and TITLE_RIGHT_UPTIME or TITLE_RIGHT_PLAIN)
+        self.title:SetText(title)
+        return
+    end
     if self.look.uptimeInTitle then
         if up then title = string.format("%s - %d%%", title, math.floor(up + 0.5)) end
         self.uptime:SetHidden(true)
@@ -1508,7 +2120,8 @@ end
 -- Position entries and size the window.
 function Display:Layout()
     local ds, look = self.ds, self.look
-    if ds.type == "heads" then
+    if self.weaveTile and ds.type ~= "weave" then self.weaveTile.plate:SetHidden(true) end
+    if ds.type == "heads" or ds.type == "onframes" then
         -- a full-screen layer; DT.World places the entries over each ally every frame
         self.header:SetHidden(true)
         self.divider:SetHidden(true)
@@ -1569,6 +2182,52 @@ function Display:Layout()
                 it.control:SetAnchor(TOPLEFT, self.window, TOPLEFT, x, y)
             end
         end
+    elseif ds.type == "weave" then
+        -- columns in rows (slots per row, the newest at the end), the average tile after them
+        local w = ds.iconSize
+        local gap = math.max(1, ds.spacing)
+        local perLine = math.max(1, ds.columns)
+        local lines = math.max(1, math.ceil(n / perLine))
+        local cellH = D.WeaveCellH(ds)
+        local tileW = ds.weaveAverage and D.WeaveTileW(ds) or 0
+        local gridW = perLine * (w + gap) - gap
+        width = gridW + (tileW > 0 and (D.WEAVE_TILE_GAP + tileW) or 0) + 2 * look.padX
+        if hh > 0 then width = math.max(width, 160) end
+        local top = hh + padTop
+        height = top + lines * (cellH + gap) - gap + padBottom
+        for i, it in ipairs(order) do
+            local idx = i - 1
+            local col, row = idx % perLine, math.floor(idx / perLine)
+            it.control:ClearAnchors()
+            it.control:SetAnchor(TOPLEFT, self.window, TOPLEFT, look.padX + col * (w + gap), top + row * (cellH + gap))
+        end
+        local t = WeaveTile(self)
+        t.plate:SetHidden(tileW == 0)
+        if tileW > 0 then
+            -- beside the last row, as tall as an icon
+            local y = top + (lines - 1) * (cellH + gap)
+            t.plate:ClearAnchors()
+            t.plate:SetAnchor(TOPLEFT, self.window, TOPLEFT, look.padX + gridW + D.WEAVE_TILE_GAP, y)
+            t.plate:SetDimensions(tileW, w)
+            t.accent:ClearAnchors()
+            t.accent:SetAnchor(TOPLEFT, t.plate, TOPLEFT, 1, 1)
+            t.accent:SetAnchor(BOTTOMLEFT, t.plate, BOTTOMLEFT, 1, -1)
+            t.accent:SetWidth(3)
+            local cap = math.max(10, math.floor(w * 0.26 + 0.5))
+            local val = math.max(12, math.floor(w * 0.46 + 0.5))
+            t.caption:SetFont(Style.FontAt(ds, cap))
+            t.caption:SetText(DT.L("avg"))
+            local cc = ds.meterCaptionColor or { 0.95, 0.87, 0.64, 1 }
+            t.caption:SetColor(cc[1], cc[2], cc[3], cc[4] or 1)
+            t.caption:ClearAnchors()
+            t.caption:SetAnchor(TOPLEFT, t.plate, TOPLEFT, 9, math.floor(w * 0.06))
+            t.caption:SetDimensions(tileW - 12, math.ceil(cap * 1.3))
+            t.value:SetFont(Style.FontAt(ds, val))
+            t.value:ClearAnchors()
+            t.value:SetAnchor(BOTTOMLEFT, t.plate, BOTTOMLEFT, 9, -math.floor(w * 0.02))
+            t.value:SetDimensions(tileW - 12, math.ceil(val * 1.3))
+            t.text = nil
+        end
     elseif ds.type == "meter" then
         -- rows of "Tiles per line", left to right; Grow says where the next row goes (down / up) or that
         -- tiles fill from the right (left)
@@ -1618,9 +2277,10 @@ function Display:Layout()
         -- a label above each bar takes a line of its own
         local above = (ds.type == "bars" and not ds.vertical and ds.showName and (ds.labelPos == "above" or ds.labelPos == "aboveCenter"))
             and math.ceil(Style.FontSize(ds, h) * 1.35) or 0
-        local step = h + above + ((ds.type == "bars") and math.max(ds.spacing, 0) or 2)
-        -- "Bars per column" (BuffTheGroup's 6 x 2): a new column after that many bars
-        local perCol = (ds.type == "bars" and (ds.barRows or 0) > 0) and ds.barRows or math.max(n, 1)
+        local barLike = ds.type == "bars" or ds.type == "frames"
+        local step = h + above + (barLike and math.max(ds.spacing, 0) or 2)
+        -- "Bars per column" (BuffTheGroup's 6 x 2; group frames: "Frames per column"): a new column after that many
+        local perCol = (barLike and (ds.barRows or 0) > 0) and ds.barRows or math.max(n, 1)
         local cols = math.max(1, math.ceil(n / perCol))
         local rows = math.min(n, perCol)
         local colStep = ds.width - 2 * look.padX + math.max(ds.spacing, 2)
@@ -1663,7 +2323,8 @@ function Display:Render(tracker, states, now, ctx, rt, test)
     for k in pairs(seen) do seen[k] = nil end
     for i = #order, 1, -1 do order[i] = nil end
     self.seen = seen
-    local keepSlots = tracker.display.keepSlots and kind ~= "heads" and kind ~= "alert"
+    local placed = kind == "heads" or kind == "onframes" or kind == "framebar"
+    local keepSlots = tracker.display.keepSlots and not placed and kind ~= "alert" and kind ~= "frames" and kind ~= "weave"
     local drawn = 0
     for i, s in ipairs(states) do
         -- keys must be unique: a repeated key would orphan an item that then stays frozen on screen
@@ -1677,7 +2338,10 @@ function Display:Render(tracker, states, now, ctx, rt, test)
         Items[kind].Set(it, self, s, now)
         -- "Keep a gap for missing entries": a missing entry keeps its place, but nothing is drawn there
         local blank = keepSlots and s.active == false and not s.ready and not s.expired and not s.cooldown
-        it.control:SetHidden(blank)
+        -- above heads, only DT.World shows an icon, once it has placed it over its person (5.21.25: this line showed
+        -- every one again 10 times a second and the world pass hid it every frame -- an icon whose person couldn't be
+        -- placed, e.g. after leaving a battleground, flickered at the last spot it was drawn at -- Yarden)
+        if not placed then it.control:SetHidden(blank or s.weaveEmpty == true) end
         if not blank then drawn = drawn + 1 end
     end
     local oldActive, oldOrder = self.active, self.order
@@ -1702,6 +2366,17 @@ function Display:Render(tracker, states, now, ctx, rt, test)
         self:Animate(true)
         return
     end
+    if kind == "onframes" or kind == "framebar" then
+        -- placed on the group frames at the end of the update (DT.GroupFrames.Place), once every frame is drawn
+        self.unlockEdge:SetHidden(true)
+        self.unlockTag:SetHidden(true)
+        self.window:SetMouseEnabled(false)
+        self.window:SetMovable(false)
+        if #states > 0 then self:Show() else self:Hide() end
+        DT.GroupFrames.SetActive(self, #states > 0)
+        self:Animate(true)
+        return
+    end
     DT.World.SetActive(self, false)
     local unlocked = DT.unlocked
     local clickable = not unlocked and D.ClickToEdit()
@@ -1718,6 +2393,11 @@ function Display:Render(tracker, states, now, ctx, rt, test)
     self.window:SetMouseEnabled(unlocked or clickable)
     self.window:SetMovable(unlocked)
     if visible then self:Show() else self:Hide() end
+    if kind == "frames" then DT.GroupFrames.FramesRendered(self, visible) end
+    if kind == "weave" then
+        self.weaveAvgValue = states[1] and states[1].weaveAvg
+        if not self.header:IsHidden() then self:HeaderText(tracker, rt) end
+    end
     self:Animate(true)
 end
 
@@ -1736,6 +2416,7 @@ function Display:Animate(force)
     end
     local f = Items[self.kind].Animate
     for _, it in ipairs(self.order) do f(it, self, now, nowMs) end
+    if self.kind == "weave" then self:WeaveTileUpdate(self.weaveAvgValue, now) end
 end
 
 -- Visibility goes ONLY through the fragment's hidden reason: the fragment shows the window when one
@@ -1749,6 +2430,8 @@ end
 
 function Display:Hide()
     if self.kind == "heads" then DT.World.SetActive(self, false) end
+    if self.kind == "onframes" or self.kind == "framebar" then DT.GroupFrames.SetActive(self, false) end
+    if self.kind == "frames" then DT.GroupFrames.FramesHidden(self) end
     if self.hidden == true then return end
     self.hidden = true
     self.fragment:SetHiddenForReason("logic", true)
@@ -1756,6 +2439,8 @@ end
 
 function Display:Release()
     DT.World.SetActive(self, false)
+    DT.GroupFrames.SetActive(self, false)
+    DT.GroupFrames.FramesGone(self)
     self:ReleaseAll()
     self:Hide()
     self.tracker, self.ds, self.kind = nil, nil, nil
@@ -1806,7 +2491,7 @@ local function AnchorTarget(t, trackersById)
     end
     local id = t.position.anchorTo
     -- an above-heads tracker has no window of its own to attach to
-    if id ~= "" and trackersById[id] and trackersById[id].display.type ~= "heads" and displays[id] then return displays[id] end
+    if id ~= "" and trackersById[id] and not D.NO_WINDOW[trackersById[id].display.type] and displays[id] then return displays[id] end
     return nil
 end
 
@@ -1838,8 +2523,8 @@ function D.ApplyPositions()
             local w = d.window
             local p = t.position
             w:ClearAnchors()
-            local target = t.display.type ~= "heads" and AnchorTarget(t, byId)
-            if t.display.type == "heads" then
+            local target = not D.NO_WINDOW[t.display.type] and AnchorTarget(t, byId)
+            if D.NO_WINDOW[t.display.type] then
                 w:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 0, 0)
                 w:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, 0, 0)
             elseif target then

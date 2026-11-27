@@ -318,6 +318,80 @@ end
 
 
 ---------------------------------------------------------------------
+-- Abom spoofing
+---------------------------------------------------------------------
+local trackedAboms = {} -- {unitId = index}
+local lastAbomEvents = {} -- {unitId = timeMs}
+local numAboms = 0
+local ABOM_MAX_HP = {
+    [123882576] = 7044070, -- HM
+    [65201356] = 3234192, -- vet
+    [21812840] = 2011820, -- norm
+}
+local function GetAbomMaxHp()
+    local _, maxHp = GetUnitPower("boss1", COMBAT_MECHANIC_FLAGS_HEALTH)
+    return ABOM_MAX_HP[maxHp] or 100
+end
+
+local ABOM_SUMMONED_ID = 150030
+local function OnAbomSummoned(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, targetUnitId)
+    numAboms = numAboms + 1
+    Crutch.TrackUnitForSpoofing(targetUnitId, "Abomination " .. numAboms, "boss" .. (numAboms + 1), GetAbomMaxHp())
+    trackedAboms[targetUnitId] = numAboms + 1
+    Crutch.BossHealthBar.CountDownExtraInfoDuration(numAboms + 1, 0)
+    Crutch.dbgOther("abom " .. numAboms .. " summoned " .. targetUnitId)
+end
+
+local function UntrackAbom(targetUnitId)
+    if (trackedAboms[targetUnitId]) then
+        Crutch.UntrackUnitForSpoofing(targetUnitId)
+        Crutch.BossHealthBar.StopExtraInfoCount(trackedAboms[targetUnitId])
+        Crutch.dbgOther("abom " .. trackedAboms[targetUnitId] .. " died " .. targetUnitId)
+        trackedAboms[targetUnitId] = nil
+    end
+end
+
+local function OnUnitDied(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, targetUnitId)
+    UntrackAbom(targetUnitId)
+end
+
+local function UntrackAllAboms()
+    for unitId, _ in pairs(trackedAboms) do
+        Crutch.UntrackUnitForSpoofing(unitId)
+        trackedAboms[unitId] = nil
+    end
+end
+
+-- TODO: 19.416, 21.471, 20.681
+local function OnAbomSlam(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, targetUnitId)
+    if (not trackedAboms[targetUnitId]) then
+        Crutch.dbgOther("|cFF0000not an abom? " .. targetUnitId)
+        return
+    end
+
+    Crutch.BossHealthBar.CountDownExtraInfoDuration(trackedAboms[targetUnitId], 19400)
+end
+
+-- If no relevant combat events have been received for an abom id for X seconds, treat it as abom died
+local function OnAbomCombatEvent(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, targetUnitId)
+    if (trackedAboms[targetUnitId]) then
+        lastAbomEvents[targetUnitId] = GetGameTimeMilliseconds()
+    end
+end
+
+-- Run every 5 seconds, check if aboms expired
+local function UpdateAboms()
+    local now = GetGameTimeMilliseconds()
+    for unitId, lastTime in pairs(lastAbomEvents) do
+        if (now - lastTime > 8000) then
+            Crutch.dbgOther("|cFF0000abom expired " .. unitId)
+            UntrackAbom(unitId)
+        end
+    end
+end
+
+
+---------------------------------------------------------------------
 ---------------------------------------------------------------------
 local function CleanUp()
     Crutch.InfoPanel.StopCount(RG.PANEL_CURSED_GROUND_INDEX)
@@ -325,6 +399,9 @@ local function CleanUp()
     numBleeds = 0
     ZO_ClearTable(explosions)
     EVENT_MANAGER:UnregisterForUpdate(Crutch.name .. "BahseiInProgress")
+
+    numAboms = 0
+    UntrackAllAboms()
 end
 
 
@@ -369,6 +446,15 @@ function Crutch.RegisterRockgrove()
     if (Crutch.savedOptions.rockgrove.panel.showScythe) then
         Crutch.RegisterForCombatEvent("Scythe", OnScythe, ACTION_RESULT_BEGIN, 150067)
     end
+
+    -- Abom spoofing
+    if (Crutch.savedOptions.experimental) then
+        -- gained duration fires with a different id when coming back from portal. probably best to just remove an abom when there haven't been any events for it in X seconds
+        Crutch.RegisterForCombatEvent("AbomSummoned", OnAbomSummoned, ACTION_RESULT_EFFECT_GAINED, ABOM_SUMMONED_ID)
+        Crutch.RegisterForCombatEvent("AbomDied", OnUnitDied, ACTION_RESULT_DIED)
+        Crutch.RegisterForCombatEvent("AbomSlam", OnAbomSlam, ACTION_RESULT_BEGIN, 149922)
+        Crutch.RegisterForCombatEvent("AbomCombat", OnAbomCombatEvent, nil, nil, nil, COMBAT_UNIT_TYPE_NONE)
+    end
 end
 
 function Crutch.UnregisterRockgrove()
@@ -392,6 +478,10 @@ function Crutch.UnregisterRockgrove()
     Crutch.UnregisterForEffectChanged("DeathTouchLines")
     Crutch.UnregisterForCombatEvent("CursedGround")
     Crutch.UnregisterForCombatEvent("Scythe")
+    Crutch.UnregisterForCombatEvent("AbomSummoned")
+    Crutch.UnregisterForCombatEvent("AbomDied")
+    Crutch.UnregisterForCombatEvent("AbomSlam")
+    Crutch.UnregisterForCombatEvent("AbomCombat")
 
     Crutch.dbgOther("|c88FFFF[CT]|r Unregistered Rockgrove")
 end

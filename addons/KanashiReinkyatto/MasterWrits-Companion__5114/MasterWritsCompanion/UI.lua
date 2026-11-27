@@ -1,4 +1,97 @@
+local L = MWC.L
 MWC.UI = {}
+
+-- The keybinding keeps its first name (MWB_TOGGLE): the game stores the key a player bound under it.
+ZO_CreateStringId("SI_BINDING_NAME_MWB_TOGGLE", L.BINDING_TOGGLE)
+
+-- Texts of the windows' fixed controls (UI.xml carries none: they come from the language file).
+local CONTROL_TEXTS = {
+  MWC_KeyWindowTitle = "KEEP_MATERIALS", MWC_KeyWindowHint = "KEEP_HINT",
+  MWC_TotalsWindowTitle = "SESSION_TOTALS", MWC_TotalsWindowHint = "SESSION_TOTALS_HINT",
+  MWC_WindowKeyItems = "KEEP_MATERIALS", MWC_WindowDeselectUnprofitable = "DESELECT_KEPT",
+  MWC_WindowPanelStatsReset = "RESET_SESSION", MWC_WindowPanelStatsTotals = "BUTTON_SESSION_TOTALS",
+  MWC_WindowPanelTurnInWithdraw = "BUTTON_WITHDRAW_READY", MWC_WindowPanelTurnInStart = "BUTTON_START",
+  MWC_WindowPanelTurnInDeposit = "BUTTON_DEPOSIT_LEFTOVERS", MWC_WindowPanelTurnInImport = "BUTTON_IMPORT",
+  MWC_WindowPanelTurnInNextTitle = "NEXT_STEP",
+  MWC_WindowMaterialsToggle = "BUTTON_MATERIALS", MWC_WindowStatsToggle = "BUTTON_STATS",
+  MWC_WindowTurnInToggle = "BUTTON_TURN_IN", MWC_WindowCraft = "BUTTON_CRAFT", MWC_WindowStop = "BUTTON_STOP",
+  MWC_WindowDepositAll = "BUTTON_DEPOSIT_ALL", MWC_WindowWithdrawAll = "BUTTON_WITHDRAW_ALL",
+  MWC_WindowWithdrawMarked = "BUTTON_WITHDRAW_MARKED", MWC_WindowOpenSealed = "BUTTON_OPEN_SEALED",
+  MWC_WindowDepositWrits = "BUTTON_DEPOSIT_WRITS", MWC_WindowWithdrawSealed = "BUTTON_WITHDRAW_SEALED",
+  MWC_WindowStoreMarked = "BUTTON_STORE_MARKED",
+}
+
+local function ApplyControlTexts()
+  for name, key in pairs(CONTROL_TEXTS) do
+    local control = _G[name]
+    if control and L[key] then
+      control:SetText(L[key])
+    end
+  end
+end
+
+-- Texts that don't fit (longer translations): the font gets smaller step by step until they do. Only text
+-- that overflows is touched, so English keeps its fonts. Buttons always; labels when marked with mwcFit (one-line
+-- labels of a fixed width: wrapped hints must not shrink).
+local FIT_BUTTON_FONT = "$(BOLD_FONT)|%d|soft-shadow-thick"
+local FIT_LABEL_FONT = "$(MEDIUM_FONT)|%d|soft-shadow-thin"
+local FIT_SIZES = { 20, 19, 18, 17, 16, 15, 14, 13, 12 }
+local FIT_BUTTON_PADDING = 14
+
+-- The text's width on one line: a fixed-width label wraps or cuts it, so its rendered width can't tell.
+local function OneLineWidth(label, text)
+  local width = label:GetTextWidth()
+  local ok, full = pcall(label.GetStringWidth, label, text)
+  if ok and type(full) == "number" then
+    width = math.max(width, full / (GetUIGlobalScale and GetUIGlobalScale() or 1))
+  end
+  return width
+end
+
+local function FitText(control, label, room, fontPattern)
+  local text = label:GetText() or ""
+  if text == "" or control.mwcFitText == text then return end
+  control.mwcFitText = text
+  if room <= 0 or OneLineWidth(label, text) <= room then return end
+  local ok, height = pcall(label.GetFontHeight, label)
+  local current = ok and type(height) == "number" and height or 99
+  for _, size in ipairs(FIT_SIZES) do
+    if size < current then
+      control:SetFont(string.format(fontPattern, size))
+      if OneLineWidth(label, text) <= room then return end
+    end
+  end
+end
+
+local function FitButton(button)
+  local label = button.GetLabelControl and button:GetLabelControl()
+  if label then
+    FitText(button, label, button:GetWidth() - FIT_BUTTON_PADDING, FIT_BUTTON_FONT)
+  end
+end
+
+-- Every text button and marked label of our windows, the list rows left out.
+local function FitTextsIn(control)
+  for i = 1, control:GetNumChildren() do
+    local child = control:GetChild(i)
+    if child and child:GetName() ~= "MWC_WindowList" then
+      local kind = child:GetType()
+      if kind == CT_BUTTON then
+        FitButton(child)
+      elseif kind == CT_LABEL and child.mwcFit then
+        FitText(child, child, child:GetWidth(), FIT_LABEL_FONT)
+      else
+        FitTextsIn(child)
+      end
+    end
+  end
+end
+
+local function FitButtons()
+  for _, name in ipairs({ "MWC_Window", "MWC_KeyWindow", "MWC_TotalsWindow" }) do
+    if _G[name] then FitTextsIn(_G[name]) end
+  end
+end
 
 local ROW_TYPE = 1
 local ROW_HEIGHT = 34
@@ -6,7 +99,7 @@ local MATERIAL_ROW_HEIGHT = 26
 local FOOTER_HEIGHT = 56
 -- Narrower would squeeze the name column to nothing once the Set/Style/Trait columns are shown.
 local MIN_WIDTH, MIN_HEIGHT = 1100, 560
-local PANEL_HEIGHTS = { Materials = 285, Stats = 160, TurnIn = 230 }
+local PANEL_HEIGHTS = { Materials = 285, Stats = 160, TurnIn = 252 }
 -- The Materials panel can be resized by dragging the splitter above it; the list keeps at least this much.
 local RESIZABLE_PANELS = { Materials = true }
 local MIN_PANEL_HEIGHT, MIN_LIST_HEIGHT = 140, 100
@@ -16,15 +109,15 @@ local PANEL_GAP = 6
 local REFRESH_DELAY_MS = 400
 -- Same order and icons as the game's craft bag tabs.
 local TABS = {
-  { type = "all", label = "All writs", icon = "inventory_tabicon_all" },
-  { type = "blacksmithing", label = "Blacksmithing", icon = "inventory_tabicon_craftbag_blacksmithing" },
-  { type = "clothier", label = "Clothing", icon = "inventory_tabicon_craftbag_clothing" },
-  { type = "woodworking", label = "Woodworking", icon = "inventory_tabicon_craftbag_woodworking" },
-  { type = "jewelry", label = "Jewelry crafting", icon = "inventory_tabicon_craftbag_jewelrycrafting" },
-  { type = "alchemy", label = "Alchemy", icon = "inventory_tabicon_craftbag_alchemy" },
-  { type = "enchanting", label = "Enchanting", icon = "inventory_tabicon_craftbag_enchanting" },
-  { type = "provisioning", label = "Provisioning", icon = "inventory_tabicon_craftbag_provisioning" },
-  { type = "sealed", label = "Sealed writs", icon = "inventory_tabicon_quest" },
+  { type = "all", label = L.TAB_ALL, icon = "inventory_tabicon_all" },
+  { type = "blacksmithing", label = L.CRAFT_TAB.blacksmithing, icon = "inventory_tabicon_craftbag_blacksmithing" },
+  { type = "clothier", label = L.CRAFT_TAB.clothier, icon = "inventory_tabicon_craftbag_clothing" },
+  { type = "woodworking", label = L.CRAFT_TAB.woodworking, icon = "inventory_tabicon_craftbag_woodworking" },
+  { type = "jewelry", label = L.CRAFT_TAB.jewelry, icon = "inventory_tabicon_craftbag_jewelrycrafting" },
+  { type = "alchemy", label = L.CRAFT_TAB.alchemy, icon = "inventory_tabicon_craftbag_alchemy" },
+  { type = "enchanting", label = L.CRAFT_TAB.enchanting, icon = "inventory_tabicon_craftbag_enchanting" },
+  { type = "provisioning", label = L.CRAFT_TAB.provisioning, icon = "inventory_tabicon_craftbag_provisioning" },
+  { type = "sealed", label = L.TAB_SEALED, icon = "inventory_tabicon_quest" },
 }
 local TAB_ICON_PATH = "esoui/art/inventory/%s_%s.dds"
 -- Tabs touch each other (no dead space between them); each has a little clickable padding instead.
@@ -101,9 +194,9 @@ local function NameWithCounters(group, part)
   local tint = RowTint(group, part)
   local text = tint and Color(TINT_HEX[tint], group.name) or group.name
   if part == "active" then
-    return text .. " " .. Color(C.PURPLE, string.format("(%d quest)", group.activeCount))
+    return text .. " " .. Color(C.PURPLE, string.format(L.ROW_ACTIVE_QUEST, group.activeCount))
   elseif part == "completed" then
-    return text .. " " .. Color(C.GREEN, string.format("(%d turned in)", group.completedCount))
+    return text .. " " .. Color(C.GREEN, string.format(L.ROW_TURNED_IN, group.completedCount))
   elseif part == "closed" then
     return text .. " " .. Color(C.GREY, string.format("(%d %s)", group.closedCount, group.closedState or "unknown"))
   end
@@ -244,8 +337,8 @@ function MWC.UI.OnStyleEnter(row, label)
   local group = row.group
   if not (group and group.styled) then return end
   ZO_Tooltips_ShowTextTooltip(label, TOP, group.mimic
-    and "Crafted with a Crown Mimic Stone instead of the style material. Click to use the style material."
-    or "Crafted with the style material. Click to use a Crown Mimic Stone instead.")
+    and L.MIMIC_ON
+    or L.MIMIC_OFF)
 end
 
 -- TTC adds its lines to tooltips of real bag slots, so prefer an owned copy of the item.
@@ -343,7 +436,7 @@ local function SetupSealedRow(row, data)
   row:GetNamedChild("Name"):SetText(sealed.name
     .. " " .. Color(C.BLUE, "(" .. sealed.inBank .. ")")
     .. " " .. Color(C.YELLOW, "(" .. sealed.inBag .. ")"))
-  SetTypeIcon(row, (GetItemLinkInfo(sealed.link)), "Sealed writ")
+  SetTypeIcon(row, (GetItemLinkInfo(sealed.link)), L.SEALED_WRIT)
   SetGearCells(row, nil, nil)
   local count = string.format("%d/%d", sealed.planned, sealed.inBag)
   row:GetNamedChild("Count"):SetText(sealed.overflow > 0 and Color(C.RED, count) or count)
@@ -423,32 +516,32 @@ function MWC.UI.ShowRowMenu(row)
   if not group then return end
   ClearMenu()
   if row.part ~= "inventory" then
-    AddMenuItem("Link writ in chat", function() MWC.LinkInChat(group.link) end)
+    AddMenuItem(L.MENU_LINK_WRIT, function() MWC.LinkInChat(group.link) end)
     ShowMenu(row)
     return
   end
   if group.queued < group.inventoryCount then
-    AddMenuItem(string.format("Queue all (%d)", group.inventoryCount),
+    AddMenuItem(string.format(L.MENU_QUEUE_ALL, group.inventoryCount),
       function() MWC.Session.SetSelectedCount(group, group.inventoryCount) end)
   end
   if group.recipe then
     local affordable = MWC.Plan.MaxAffordable(group)
-    AddMenuItem(string.format("Queue %d (what materials cover)", affordable),
+    AddMenuItem(string.format(L.MENU_QUEUE_AFFORDABLE, affordable),
       function() MWC.Session.SetSelectedCount(group, affordable) end)
   end
-  AddMenuItem("Withdraw from bank (what fits)", function() MWC.Bank.Withdraw({ group }) end)
-  AddMenuItem("Deposit to bank (writs and crafted items)", function() MWC.Bank.Deposit({ group }) end)
-  AddMenuItem("Link writ in chat", function() MWC.LinkInChat(group.link) end)
+  AddMenuItem(L.MENU_WITHDRAW, function() MWC.Bank.Withdraw({ group }) end)
+  AddMenuItem(L.MENU_DEPOSIT, function() MWC.Bank.Deposit({ group }) end)
+  AddMenuItem(L.MENU_LINK_WRIT, function() MWC.LinkInChat(group.link) end)
   ShowMenu(row)
 end
 
 -- The full set, style and trait names, for cells too narrow to show them.
 local function AddGearLine(group)
   if not group.setName then return end
-  local parts = { "Set: " .. group.setName }
-  if group.styleName then table.insert(parts, "Style: " .. group.styleName) end
-  table.insert(parts, "Trait: " .. (group.traitName or "?"))
-  ItemTooltip:AddLine("MasterWrits: " .. table.concat(parts, "  ·  "), "ZoFontGame", ZO_NORMAL_TEXT:UnpackRGB())
+  local parts = { L.TOOLTIP_SET .. group.setName }
+  if group.styleName then table.insert(parts, L.TOOLTIP_STYLE .. group.styleName) end
+  table.insert(parts, L.TOOLTIP_TRAIT .. (group.traitName or "?"))
+  ItemTooltip:AddLine(L.TOOLTIP_PREFIX .. table.concat(parts, "  ·  "), "ZoFontGame", ZO_NORMAL_TEXT:UnpackRGB())
 end
 
 function MWC.UI.OnRowEnter(row)
@@ -468,12 +561,12 @@ function MWC.UI.OnRowEnter(row)
       end
     end
     local lines = {
-      active = "quest active: hand it in at the Mastercraft Mediator",
-      completed = "turned in this session",
-      closed = row.group.closedState == "abandoned" and "quest abandoned"
-        or "quest left the journal while the addon couldn't see it: handed in or abandoned",
+      active = L.STATE_ACTIVE,
+      completed = L.STATE_COMPLETED,
+      closed = row.group.closedState == "abandoned" and L.STATE_ABANDONED
+        or L.STATE_UNKNOWN,
     }
-    ItemTooltip:AddLine("MasterWrits: " .. lines[row.part], "ZoFontGame", ZO_ColorDef:New(TINT_HEX[RowTint(row.group, row.part)]):UnpackRGB())
+    ItemTooltip:AddLine(L.TOOLTIP_PREFIX .. lines[row.part], "ZoFontGame", ZO_ColorDef:New(TINT_HEX[RowTint(row.group, row.part)]):UnpackRGB())
     AddGearLine(row.group)
   else
     local writ
@@ -486,18 +579,17 @@ function MWC.UI.OnRowEnter(row)
     ItemTooltip:SetBagItem(writ.bag, writ.slot)
     AddGearLine(row.group)
     if row.group.reagentsUnchecked then
-      ItemTooltip:AddLine("MasterWrits: the reagents for this name aren't checked yet: open an alchemy station "
-        .. "and the materials list will be confirmed", "ZoFontGame", ZO_ColorDef:New(C.YELLOW):UnpackRGB())
+      ItemTooltip:AddLine(L.TOOLTIP_PREFIX .. L.TOOLTIP_ALCHEMY_UNCHECKED, "ZoFontGame", ZO_ColorDef:New(C.YELLOW):UnpackRGB())
     end
     if row.group.problem then
-      ItemTooltip:AddLine("MasterWrits: " .. row.group.problem, "ZoFontGame", ZO_ERROR_COLOR:UnpackRGB())
+      ItemTooltip:AddLine(L.TOOLTIP_PREFIX .. row.group.problem, "ZoFontGame", ZO_ERROR_COLOR:UnpackRGB())
     end
     if row.group.kept then
       local names = {}
       for _, link in ipairs(row.group.kept) do
         table.insert(names, "[" .. MWC.ItemName(link) .. "]")
       end
-      ItemTooltip:AddLine("MasterWrits: spends kept " .. table.concat(names, ", "), "ZoFontGame",
+      ItemTooltip:AddLine(L.TOOLTIP_PREFIX .. L.TOOLTIP_SPENDS_KEPT .. table.concat(names, ", "), "ZoFontGame",
         ZO_ColorDef:New(C.ORANGE):UnpackRGB())
     end
   end
@@ -513,10 +605,7 @@ end
 -- Tabs by material kind; every list is ordered by craft, kind, quality, then name.
 local MATERIAL_TABS = { "All", "Base", "Upgrade", "Trait", "Style", "Reagent", "Rune", "Ingredient" }
 local KIND_ORDER = { Base = 1, Upgrade = 2, Trait = 3, Style = 4, Reagent = 5, Rune = 6, Ingredient = 7 }
-local CRAFT_LABEL = {
-  blacksmithing = "Blacksmithing", clothier = "Clothing", woodworking = "Woodworking", jewelry = "Jewelry",
-  alchemy = "Alchemy", enchanting = "Enchanting", provisioning = "Provisioning",
-}
+local CRAFT_LABEL = L.CRAFT
 local materialTabControls = {}
 
 -- Clicking a column header sorts both material lists by it (again: reverses); the corner button restores
@@ -635,9 +724,9 @@ function MWC.UI.ShowMaterialMenu(row)
   local material = row.material
   if not material then return end
   ClearMenu()
-  AddMenuItem(string.format("Skip all writs using this (%d recipes)", #material.groups),
+  AddMenuItem(string.format(L.MENU_SKIP_USING, #material.groups),
     function() MWC.Session.ExcludeGroups(material.groups) end)
-  AddMenuItem("Link in chat", function() MWC.LinkInChat(material.link) end)
+  AddMenuItem(L.MENU_LINK, function() MWC.LinkInChat(material.link) end)
   ShowMenu(row)
 end
 
@@ -645,7 +734,7 @@ local function RefreshMaterialTabs(counts)
   local current = MWC.sv.materialsTab or "All"
   for _, control in ipairs(materialTabControls) do
     local active = control.tabKey == current
-    control:SetText(string.format("%s (%d)", control.tabKey, counts[control.tabKey] or 0))
+    control:SetText(string.format("%s (%d)", L.KIND[control.tabKey] or control.tabKey, counts[control.tabKey] or 0))
     control:SetColor(unpack(active and { 1, 1, 1, 1 } or GOLD))
     control:GetNamedChild("Underline"):SetHidden(not active)
   end
@@ -693,12 +782,12 @@ local function RefreshMaterials(groups)
 
   local text
   if not MWC.Price.Available() then
-    text = Color(C.YELLOW, "TTC not found: no prices.")
+    text = Color(C.YELLOW, L.TTC_MISSING)
   else
-    text = string.format("%s %s g  ·  all materials %s g", Color(C.ORANGE, "Kept"), Number(keyCost), Number(totalCost))
+    text = string.format(L.MATERIALS_COST, Color(C.ORANGE, L.KEPT), Number(keyCost), Number(totalCost))
   end
   if #shortages > 0 then
-    text = text .. Color(C.RED, string.format("  ·  %d missing", #shortages))
+    text = text .. Color(C.RED, string.format(L.MATERIALS_MISSING, #shortages))
   end
   panel:GetNamedChild("MaterialsCost"):SetText(text)
 end
@@ -737,7 +826,7 @@ function MWC.UI.RefreshTotals()
     table.insert(dataList, ZO_ScrollList_CreateDataEntry(ROW_TYPE, { material = material, odd = i % 2 == 1 }))
   end
   ZO_ScrollList_Commit(totalsList)
-  totalsWindow:GetNamedChild("Summary"):SetText(string.format("Spent %s g  ·  left %s g  ·  total %s g",
+  totalsWindow:GetNamedChild("Summary"):SetText(string.format(L.TOTALS_SUMMARY,
     Number(usedCost), Number(leftCost), Number(usedCost + leftCost)))
 end
 
@@ -760,8 +849,8 @@ end
 -- Stats panel ---------------------------------------------------------------
 
 -- Rows: writs, vouchers, materials (TTC gold), gold per voucher. Columns: queued, ready, turned in this session.
-local STAT_ROWS = { "Writs", "Vouchers", "Materials", "Gold per voucher" }
-local STAT_COLUMNS = { "Queued", "Ready", "Turned in" }
+local STAT_ROWS = { L.STAT_WRITS, L.STAT_VOUCHERS, L.STAT_MATERIALS, L.STAT_GOLD_PER_VOUCHER }
+local STAT_COLUMNS = { L.STAT_QUEUED, L.STAT_READY, L.STAT_TURNED_IN }
 local STAT_ROW_HEIGHT, STAT_LABEL_WIDTH, STAT_COLUMN_WIDTH = 22, 150, 120
 local statCells = {}
 
@@ -769,6 +858,7 @@ local function StatCell(grid, row, column)
   local label = WINDOW_MANAGER:CreateControl(nil, grid, CT_LABEL)
   label:SetFont(row == 0 and "ZoFontGameSmall" or "ZoFontGame")
   label:SetDimensions(column == 0 and STAT_LABEL_WIDTH or STAT_COLUMN_WIDTH, STAT_ROW_HEIGHT)
+  label.mwcFit = true
   label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
   label:SetHorizontalAlignment(column == 0 and TEXT_ALIGN_LEFT or TEXT_ALIGN_RIGHT)
   local x = column == 0 and 0 or STAT_LABEL_WIDTH + (column - 1) * STAT_COLUMN_WIDTH
@@ -821,10 +911,10 @@ end
 -- Turn-in panel -----------------------------------------------------------------
 
 local TURN_IN_CRAFTS = { "blacksmithing", "clothier", "woodworking", "jewelry", "alchemy", "enchanting", "provisioning" }
-local TURN_IN_COLUMNS = { { key = "craft", title = "Craft", x = 0, width = 120 },
-  { key = "quest", title = "Quest", x = 125, width = 90 },
-  { key = "bag", title = "In bag", x = 220, width = 60 }, { key = "bank", title = "In bank", x = 285, width = 60 },
-  { key = "notReady", title = "Not ready", x = 350, width = 75 } }
+local TURN_IN_COLUMNS = { { key = "craft", title = L.TI_CRAFT, x = 0, width = 120 },
+  { key = "quest", title = L.TI_QUEST, x = 125, width = 90 },
+  { key = "bag", title = L.TI_BAG, x = 220, width = 60 }, { key = "bank", title = L.TI_BANK, x = 285, width = 60 },
+  { key = "notReady", title = L.TI_NOT_READY, x = 350, width = 75 } }
 local TURN_IN_ROW_HEIGHT = 22
 local turnInCells = {}
 
@@ -832,6 +922,7 @@ local function TurnInCell(parent, row, column)
   local label = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
   label:SetFont(row == 0 and "ZoFontGameSmall" or "ZoFontGame")
   label:SetDimensions(column.width, TURN_IN_ROW_HEIGHT)
+  label.mwcFit = true
   label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
   local left = column.key == "craft" or column.key == "quest"
   label:SetHorizontalAlignment(left and TEXT_ALIGN_LEFT or TEXT_ALIGN_RIGHT)
@@ -855,12 +946,17 @@ local function InitTurnIn()
     end
     turnInCells[craft].craft:SetText(CRAFT_LABEL[craft])
   end
+  -- Holiday writs (Event checkbox on) get a row of their own under the crafts.
+  turnInCells.event = {}
+  for _, column in ipairs(TURN_IN_COLUMNS) do
+    turnInCells.event[column.key] = TurnInCell(tableControl, #TURN_IN_CRAFTS + 1, column)
+  end
+  turnInCells.event.craft:SetText(L.TI_HOLIDAY)
   section:GetNamedChild("NextTitle"):SetColor(unpack(GOLD))
   local auto = section:GetNamedChild("AutoHandIn")
-  ZO_CheckButton_SetLabelText(auto, "Autodelivery")
+  ZO_CheckButton_SetLabelText(auto, L.AUTODELIVERY)
   auto:SetHandler("OnMouseEnter", function(self)
-    ZO_Tooltips_ShowTextTooltip(self, LEFT, "Opening the bank takes the ready writs, closing it starts their quests, "
-      .. "and talking to the Mastercraft Mediator hands them in and starts the next ones.")
+    ZO_Tooltips_ShowTextTooltip(self, LEFT, L.AUTODELIVERY_TOOLTIP)
   end)
   auto:SetHandler("OnMouseExit", ZO_Tooltips_HideTextTooltip)
   ZO_CheckButton_SetCheckState(auto, false)
@@ -871,89 +967,96 @@ end
 -- blue = bank work, orange = press a button here, grey = nothing to do.
 local STEP_COLOR = { wait = C.YELLOW, mediator = C.GREEN, bank = C.BLUE, button = C.ORANGE, idle = C.GREY }
 
-local function NextTurnInStep(totals)
+local function NextTurnInStep(totals, event)
   local activity = MWC.Activity.Current()
   if activity then return activity.detail, "wait" end
   local quests = MWC.TurnIn.ActiveCraftingQuests()
   local startable = MWC.TurnIn.StartableCrafts(allGroups)
+  local bank = totals.bank + event.bank
   if MWC.Bank.IsPlayerBankOpen() then
     local auto = MWC.TurnIn.IsAutoHandIn()
-    if totals.bank > 0 then
-      return auto and string.format("%d ready writs are here: taking what fits.", totals.bank)
-        or string.format("Press Withdraw ready: %d ready writs are here.", totals.bank), "bank"
+    if bank > 0 then
+      return auto and string.format(L.STEP_TAKING, bank)
+        or string.format(L.STEP_PRESS_WITHDRAW, bank), "bank"
     end
-    if totals.bag > 0 then
-      return auto and "Close the bank: the quests start by themselves." or "Close the bank, then press Start quests.", "bank"
+    if totals.bag > 0 or event.bag > 0 then
+      return auto and L.STEP_CLOSE_BANK_AUTO or L.STEP_CLOSE_BANK, "bank"
     end
-    return "Nothing ready to take from the bank.", "idle"
+    return L.STEP_NOTHING_IN_BANK, "idle"
   end
   if startable > 0 and not MWC.TurnIn.IsAutoHandIn() then
-    return string.format("Press Start quests: %d more crafts can start one.", startable), "button"
+    return string.format(L.STEP_START_MORE, startable), "button"
   end
   if quests > 0 then
-    return string.format("Talk to the Mastercraft Mediator: %d quests are ready to hand in.", quests), "mediator"
+    return string.format(L.STEP_MEDIATOR, quests), "mediator"
   end
-  if startable > 0 then return string.format("Press Start quests: %d crafts can start one.", startable), "button" end
+  if startable > 0 then return string.format(L.STEP_START, startable), "button" end
   if totals.bank > 0 then
-    return string.format("Open the bank: %d ready writs are there%s.", totals.bank,
-      MWC.TurnIn.IsAutoHandIn() and ", they are taken at once" or ""), "bank"
+    return string.format(L.STEP_OPEN_BANK, totals.bank,
+      MWC.TurnIn.IsAutoHandIn() and L.STEP_TAKEN_AT_ONCE or ""), "bank"
   end
-  if totals.notReady > 0 then return "Nothing is ready: craft the queued writs first.", "idle" end
-  return "Everything ready is turned in.", "idle"
+  -- Holiday writs in the bank: only once the holiday quest in hand (if any) is dealt with, see EventTurnInStep.
+  if event.bank > 0 and not MWC.TurnIn.EventState() then
+    return string.format(L.STEP_OPEN_BANK_HOLIDAY, event.bank,
+      MWC.TurnIn.IsAutoHandIn() and L.STEP_TAKEN_AT_ONCE or ""), "bank"
+  end
+  if totals.notReady > 0 then return L.STEP_CRAFT_FIRST, "idle" end
+  return L.STEP_ALL_DONE, "idle"
 end
 
 -- The holiday quest's line in the Turn in panel (Event checkbox on), or nil.
 local function EventTurnInStep()
   local state, name = MWC.TurnIn.EventState()
   if state == "starting" then
-    return string.format("Starting the holiday quest of %s…", name)
+    return string.format(L.STEP_EVENT_STARTING, name)
   elseif state == "deliver" then
-    return string.format("Holiday quest ready (%s): hand it in at a writ crate (where daily writs go).", name)
+    return string.format(L.STEP_EVENT_DELIVER, name)
   elseif state == "craft" then
-    return string.format("Holiday quest active (%s): craft its item first.", name)
+    return string.format(L.STEP_EVENT_CRAFT, name)
   elseif state == "ready" then
-    return MWC.TurnIn.IsAutoHandIn() and string.format("Holiday writ ready: %s, its quest starts next.", name)
-      or string.format("Holiday writ ready: %s. Use it, or turn on Autodelivery.", name)
+    return MWC.TurnIn.IsAutoHandIn() and string.format(L.STEP_EVENT_READY_AUTO, name)
+      or string.format(L.STEP_EVENT_READY, name)
   end
 end
 
-local EVENT_SHORT_STEP = { starting = "Starting quest", deliver = "Writ crate", craft = "Craft holiday item",
-  ready = "Holiday writ" }
+local EVENT_SHORT_STEP = { starting = L.SHORT_EVENT_STARTING, deliver = L.SHORT_EVENT_DELIVER,
+  craft = L.SHORT_EVENT_CRAFT, ready = L.SHORT_EVENT_READY }
 
 -- The same advice in two words, for the progress bar: what to do now in the turn-in loop.
-local function ShortTurnInStep(totals)
+local function ShortTurnInStep(totals, event)
   local startable = MWC.TurnIn.StartableCrafts(allGroups)
   if MWC.Bank.IsPlayerBankOpen() then
-    if totals.bank > 0 then return "Withdraw ready" end
-    return startable > 0 and "Close the bank" or "Nothing in the bank"
+    if totals.bank + event.bank > 0 then return L.SHORT_WITHDRAW end
+    return startable > 0 and L.SHORT_CLOSE_BANK or L.SHORT_NOTHING_IN_BANK
   end
-  if startable > 0 and not MWC.TurnIn.IsAutoHandIn() then return "Start quests" end
-  if MWC.TurnIn.ActiveCraftingQuests() > 0 then return "Talk to the Mediator" end
-  if startable > 0 then return "Start quests" end
-  if totals.bank > 0 then return "Open the bank" end
+  if startable > 0 and not MWC.TurnIn.IsAutoHandIn() then return L.SHORT_START end
+  if MWC.TurnIn.ActiveCraftingQuests() > 0 then return L.SHORT_MEDIATOR end
+  if startable > 0 then return L.SHORT_START end
+  if totals.bank > 0 then return L.SHORT_OPEN_BANK end
   local eventStep = EVENT_SHORT_STEP[MWC.TurnIn.EventState() or ""]
   if eventStep then return eventStep end
-  return totals.notReady > 0 and "Craft the rest" or "All turned in"
+  if event.bank > 0 then return L.SHORT_OPEN_BANK end
+  return totals.notReady > 0 and L.SHORT_CRAFT_REST or L.SHORT_ALL_TURNED_IN
 end
 
 -- While the Turn in panel is open, the bar follows the session's hand-ins: turned in / turned in + ready left.
 function MWC.UI.TurnInProgress()
   if MWC.sv.panel ~= "TurnIn" or MWC.sv.tab == "sealed" then return nil end
-  local _, totals = MWC.TurnIn.Counts(allGroups)
+  local _, totals, event = MWC.TurnIn.Counts(allGroups)
   local turned = (MWC.Journal.Completed())
   local active = 0
   for _, group in ipairs(allGroups) do
     active = active + group.activeCount
   end
   local all = turned + active + totals.bag + totals.bank
-  return turned, math.max(all, 1), string.format("%s  ·  %d / %d", ShortTurnInStep(totals), turned, all)
+  return turned, math.max(all, 1), string.format("%s  ·  %d / %d", ShortTurnInStep(totals, event), turned, all)
 end
 
 function MWC.UI.ImportQuests()
   local imported, unmatched = MWC.Journal.ImportQuests(allGroups)
-  MWC.Print("Imported %d quests.", imported)
+  MWC.Print(L.IMPORTED, imported)
   for _, text in ipairs(unmatched) do
-    MWC.Print("Not imported, no matching writ: %s", text)
+    MWC.Print(L.NOT_IMPORTED, text)
   end
   MWC.Marks.Refresh()
   MWC.UI.Refresh()
@@ -983,16 +1086,16 @@ end
 
 local function RefreshTurnIn(groups)
   local section = panel:GetNamedChild("TurnIn")
-  local byCraft, totals = MWC.TurnIn.Counts(groups)
+  local byCraft, totals, event = MWC.TurnIn.Counts(groups)
   local active = MWC.TurnIn.ActiveCrafts()
   local progress = MWC.TurnIn.Progress()
   for _, craft in ipairs(TURN_IN_CRAFTS) do
     local counts = byCraft[craft] or { bag = 0, bank = 0, notReady = 0 }
     local cells = turnInCells[craft]
     if progress and progress.craft == craft and not active[craft] then
-      cells.quest:SetText(Color(C.YELLOW, "starting…"))
+      cells.quest:SetText(Color(C.YELLOW, L.TI_STARTING))
     elseif active[craft] then
-      cells.quest:SetText(Color(C.ORANGE, "active"))
+      cells.quest:SetText(Color(C.ORANGE, L.TI_ACTIVE))
     else
       cells.quest:SetText(Color(C.GREY, "—"))
     end
@@ -1000,12 +1103,24 @@ local function RefreshTurnIn(groups)
     cells.bank:SetText(counts.bank > 0 and Color(C.BLUE, counts.bank) or Color(C.GREY, "0"))
     cells.notReady:SetText(Color(C.GREY, counts.notReady))
   end
+  local eventCells = turnInCells.event
+  for _, cell in pairs(eventCells) do
+    cell:SetHidden(not MWC.sv.showEvent)
+  end
+  if MWC.sv.showEvent then
+    local state = MWC.TurnIn.EventState()
+    eventCells.quest:SetText(state == "starting" and Color(C.YELLOW, L.TI_STARTING)
+      or (state == "deliver" or state == "craft") and Color(C.ORANGE, L.TI_ACTIVE) or Color(C.GREY, "—"))
+    eventCells.bag:SetText(event.bag > 0 and Color(C.GREEN, event.bag) or Color(C.GREY, "0"))
+    eventCells.bank:SetText(event.bank > 0 and Color(C.BLUE, event.bank) or Color(C.GREY, "0"))
+    eventCells.notReady:SetText(Color(C.GREY, event.notReady))
+  end
   local _, questCount, unknown = MWC.TurnIn.ActiveCrafts()
-  section:GetNamedChild("Info"):SetText(string.format("Crafting quests active: %d / 7%s  ·  turned in this session: %d",
-    questCount, unknown > 0 and string.format(" (%d of unknown craft)", unknown) or "", (MWC.Journal.Completed())))
-  MWC.TurnIn.CheckFinished(totals)
+  section:GetNamedChild("Info"):SetText(string.format(L.TURNIN_INFO,
+    questCount, unknown > 0 and string.format(L.TURNIN_UNKNOWN_CRAFT, unknown) or "", (MWC.Journal.Completed())))
+  MWC.TurnIn.CheckFinished(totals, event)
   ZO_CheckButton_SetCheckState(section:GetNamedChild("AutoHandIn"), MWC.TurnIn.IsAutoHandIn())
-  local step, kind = NextTurnInStep(totals)
+  local step, kind = NextTurnInStep(totals, event)
   -- The holiday quest: in place of an idle master writ step, else on its own line under it.
   local eventStep = EventTurnInStep()
   if eventStep and kind == "idle" then
@@ -1015,8 +1130,8 @@ local function RefreshTurnIn(groups)
   end
   local conflicts = MWC.TurnIn.IsAutoHandIn() and MWC.TurnIn.ConflictingAddons() or {}
   if #conflicts > 0 then
-    step = step .. "\n" .. Color(C.RED, "Also hands in at the mediator: " .. table.concat(conflicts, ", ")
-      .. ". Turn one of them off.") .. " " .. Color(C.BLUE, "[Open its settings]")
+    step = step .. "\n" .. Color(C.RED, string.format(L.CONFLICT_PANEL, table.concat(conflicts, ", "))) .. " "
+      .. Color(C.BLUE, L.OPEN_ITS_SETTINGS)
   end
   -- With a warning the text is a link to that addon's setting.
   local nextLabel = section:GetNamedChild("Next")
@@ -1035,7 +1150,7 @@ local function RefreshTurnIn(groups)
   local untracked = #MWC.Journal.UntrackedQuests()
   SetButtonEnabled(section:GetNamedChild("Import"), not busy and untracked > 0)
   local import = section:GetNamedChild("Import")
-  import:SetText(untracked > 0 and string.format("Import quests (%d)", untracked) or "Import quests")
+  import:SetText(untracked > 0 and string.format(L.BUTTON_IMPORT_COUNT, untracked) or L.BUTTON_IMPORT)
   -- Quests outside the session don't reserve their items: make that hard to miss.
   if untracked > 0 then
     import:SetNormalFontColor(ZO_ColorDef:New(C.ORANGE):UnpackRGBA())
@@ -1044,7 +1159,7 @@ local function RefreshTurnIn(groups)
   end
   local startable = MWC.TurnIn.StartableCrafts(groups)
   SetButtonEnabled(section:GetNamedChild("Start"), not bankOpen and not busy and startable > 0)
-  section:GetNamedChild("Start"):SetText(startable > 0 and string.format("Start quests (%d)", startable) or "Start quests")
+  section:GetNamedChild("Start"):SetText(startable > 0 and string.format(L.BUTTON_START_COUNT, startable) or L.BUTTON_START)
 end
 
 -- Layout --------------------------------------------------------------------
@@ -1151,6 +1266,7 @@ local function LayoutActions()
     window:GetNamedChild(name):SetHidden(not visible[name])
   end
   ApplyHeaderTitles()
+  FitButtons()
   LayoutFooter()
 end
 
@@ -1170,9 +1286,10 @@ local function RefreshProgress(totals)
   lastTotals = totals or lastTotals
   local activity = MWC.Activity.Current()
   local outcome = not activity and MWC.Activity.Outcome()
+  if outcome and outcome.warning then outcome = nil end
   local done, total, text
   if outcome then
-    done, total, text = 1, 1, "Stopped: " .. outcome.short
+    done, total, text = 1, 1, L.BAR_STOPPED .. outcome.short
   elseif not activity and MWC.UI.TurnInProgress() then
     done, total, text = MWC.UI.TurnInProgress()
   elseif activity then
@@ -1181,16 +1298,16 @@ local function RefreshProgress(totals)
   elseif MWC.sv.tab == "sealed" then
     if sealedLimit then
       done, total = sealedLimit.planned, sealedLimit.wanted
-      text = string.format("Inventory limit reached: %d of %d fit", done, total)
+      text = string.format(L.BAR_INVENTORY_LIMIT, done, total)
     end
   elseif lastTotals and lastTotals.trackedWrits + lastTotals.completed > 0 then
     -- Handed-in writs of the session count as done, so the bar doesn't go back as writs are turned in.
     done = lastTotals.ready + lastTotals.completed
     total = lastTotals.trackedWrits + lastTotals.completed
     if lastTotals.completed > 0 then
-      text = string.format("Ready %d + turned in %d / %d", lastTotals.ready, lastTotals.completed, total)
+      text = string.format(L.BAR_READY_TURNED, lastTotals.ready, lastTotals.completed, total)
     else
-      text = string.format("Ready %d / %d  ·  %d%%", done, total, zo_round(100 * done / total))
+      text = string.format(L.BAR_READY, done, total, zo_round(100 * done / total))
     end
   end
   local bar, label = window:GetNamedChild("Progress"), window:GetNamedChild("ProgressText")
@@ -1210,13 +1327,29 @@ local function ShowSummary(text)
   local activity = MWC.Activity.Current()
   local outcome = not activity and MWC.Activity.Outcome()
   window:GetNamedChild("Summary"):SetText(activity and activity.detail
-    or outcome and Color(C.RED, outcome.message) or lastSummary)
+    or outcome and Color(outcome.warning and C.ORANGE or C.RED, outcome.message) or lastSummary)
+end
+
+-- The footer line: a note or problem left by the last operation (cut to one line there) is shown whole on hover
+-- and goes away on a click.
+function MWC.UI.OnSummaryEnter(label)
+  local outcome = not MWC.Activity.Current() and MWC.Activity.Outcome()
+  if outcome then
+    ZO_Tooltips_ShowTextTooltip(label, TOP, outcome.message .. L.BAR_CLICK_DISMISS)
+  end
+end
+
+function MWC.UI.OnSummaryClicked()
+  if MWC.Activity.Outcome() and not MWC.Activity.Current() then
+    ZO_Tooltips_HideTextTooltip()
+    MWC.Activity.Dismiss()
+  end
 end
 
 function MWC.UI.OnProgressEnter(bar)
   local outcome = not MWC.Activity.Current() and MWC.Activity.Outcome()
-  if outcome then
-    ZO_Tooltips_ShowTextTooltip(bar, BOTTOM, outcome.message .. " (click to dismiss)")
+  if outcome and not outcome.warning then
+    ZO_Tooltips_ShowTextTooltip(bar, BOTTOM, outcome.message .. L.BAR_CLICK_DISMISS)
   end
 end
 
@@ -1347,10 +1480,10 @@ end
 
 local function SummaryText(totals, hasGroups)
   if not (MWC.sv.includeBag or MWC.sv.includeBank) then
-    return "Select Bag or Bank."
+    return L.SELECT_BAG_OR_BANK
   end
   if not hasGroups then
-    return "No writs found."
+    return L.NO_WRITS
   end
   return MWC.Report.BagLine(totals)
 end
@@ -1371,7 +1504,7 @@ RefreshDeselectButton = function()
   local count = #UnprofitableGroups()
   local button = window:GetNamedChild("DeselectUnprofitable")
   button:SetHidden(count == 0)
-  button:SetText(string.format("Deselect kept (%d)", count))
+  button:SetText(string.format(L.DESELECT_KEPT_COUNT, count))
 end
 
 function MWC.UI.DeselectUnprofitable()
@@ -1413,6 +1546,7 @@ function MWC.UI.Refresh(what)
   end
   if window:IsHidden() then return end
   MWC.Timed("list refresh", MWC.UI.RefreshNow)
+  FitButtons()
 end
 
 -- The list is redrawn like a recycler view with a diff: when the rows are the same ones in the same order (same
@@ -1471,10 +1605,10 @@ function MWC.UI.RefreshNow()
     end
     ShowRows(rows)
     ZO_CheckButton_SetCheckState(window:GetNamedChild("HeaderCheck"), allEnabled)
-    window:GetNamedChild("OpenSealed"):SetText("Open " .. planned)
+    window:GetNamedChild("OpenSealed"):SetText(string.format(L.BUTTON_OPEN_COUNT, planned))
     local bagSize = GetBagSize(BAG_BACKPACK)
     local used = bagSize - GetNumBagFreeSlots(BAG_BACKPACK)
-    ShowSummary(string.format("%d to open  ·  %d in bag  ·  %d in bank  ·  %s", planned, inBag, inBank,
+    ShowSummary(string.format(L.SEALED_SUMMARY, planned, inBag, inBank,
       MWC.Report.BagLine({ used = used, usedAfter = used + planned, bagSize = bagSize, overflow = overflow })))
     sealedLimit = overflow > 0 and { planned = planned, wanted = planned + overflow } or nil
     RefreshProgress(MWC.Plan.Totals({}))
@@ -1688,7 +1822,7 @@ local function InitColumnGrips(header)
     line:SetDrawLayer(DL_OVERLAY)
     grip:SetHandler("OnMouseEnter", function()
       line:SetAlpha(1)
-      ZO_Tooltips_ShowTextTooltip(grip, TOP, "Drag to resize the column. Right-click: default widths.")
+      ZO_Tooltips_ShowTextTooltip(grip, TOP, L.COLUMN_RESIZE_TOOLTIP)
     end)
     grip:SetHandler("OnMouseExit", function()
       line:SetAlpha(0.35)
@@ -1796,14 +1930,15 @@ local function InitList()
   end)
 
   headerTitles.writs = {
-    Name = string.format("Recipe   %s %s %s", Color(C.BLUE, "(bank)"), Color(C.YELLOW, "(bag)"),
-      Color(C.GREEN, "(bag/bank)")),
-    Type = "sortable", QualitySort = "Q", Set = "Set", Style = "Style", Trait = "Trait",
-    Count = "Q", Ready = "Ready", Vouchers = "V",
+    Name = string.format(L.HEADER_RECIPE, Color(C.BLUE, L.HEADER_BANK), Color(C.YELLOW, L.HEADER_BAG),
+      Color(C.GREEN, L.HEADER_BAG_BANK)),
+    Type = "sortable", QualitySort = L.HEADER_QUALITY, Set = L.HEADER_SET, Style = L.HEADER_STYLE,
+    Trait = L.HEADER_TRAIT, Count = L.HEADER_QUEUED, Ready = L.HEADER_READY, Vouchers = L.HEADER_VOUCHERS,
   }
   headerTitles.sealed = {
-    Name = string.format("Sealed writ   %s %s", Color(C.BLUE, "(bank)"), Color(C.YELLOW, "(bag)")),
-    Type = "", QualitySort = "", Set = "", Style = "", Trait = "", Count = "To open", Ready = "Opened", Vouchers = "",
+    Name = string.format(L.HEADER_SEALED, Color(C.BLUE, L.HEADER_BANK), Color(C.YELLOW, L.HEADER_BAG)),
+    Type = "", QualitySort = "", Set = "", Style = "", Trait = "", Count = L.HEADER_TO_OPEN, Ready = L.HEADER_OPENED,
+    Vouchers = "",
   }
   local header = window:GetNamedChild("Header")
   -- The quality strip has no header of its own: a small "Q" label sorts by it, the recipe title moves aside.
@@ -1862,7 +1997,7 @@ local function InitMaterialHeader(header, titles)
   reset:SetAnchor(LEFT, header, LEFT, 0, 0)
   reset:SetNormalTexture("EsoUI/Art/Miscellaneous/list_sortheader_icon_neutral.dds")
   reset:SetHandler("OnClicked", MWC.UI.ResetMaterialsSort)
-  reset:SetHandler("OnMouseEnter", function(self) ZO_Tooltips_ShowTextTooltip(self, TOP, "Default order: craft, kind, best quality first") end)
+  reset:SetHandler("OnMouseEnter", function(self) ZO_Tooltips_ShowTextTooltip(self, TOP, L.MATERIALS_DEFAULT_ORDER) end)
   reset:SetHandler("OnMouseExit", ZO_Tooltips_HideTextTooltip)
   table.insert(materialHeaders, { control = header, titles = titles })
   ApplyMaterialHeaderTitles()
@@ -1879,13 +2014,15 @@ local function InitMaterials()
     SetupMaterialRow(row, data)
   end)
   InitMaterialHeader(panel:GetNamedChild("MaterialsHeader"),
-    { Craft = "Craft", Name = "Material", Need = "Need", Have = "Have", Price = "TTC price", Cost = "Total" })
+    { Craft = L.COLUMN_CRAFT, Name = L.COLUMN_MATERIAL, Need = L.COLUMN_NEED, Have = L.COLUMN_HAVE,
+      Price = L.COLUMN_TTC_PRICE, Cost = L.COLUMN_TOTAL })
   local container = panel:GetNamedChild("MaterialsTabs")
   local previous
   for i, key in ipairs(MATERIAL_TABS) do
     local control = CreateControlFromVirtual("$(parent)Tab", container, "MWC_TextTab", i)
     control.tabKey = key
     control:SetWidth(118)
+    control.mwcFit = true
     control:GetNamedChild("Underline"):SetColor(unpack(GOLD))
     if previous then
       control:SetAnchor(LEFT, previous, RIGHT, 0, 0)
@@ -1910,7 +2047,8 @@ local function InitTotals()
     SetupTotalsRow(row, data)
   end)
   InitMaterialHeader(totalsWindow:GetNamedChild("Header"),
-    { Craft = "Craft", Name = "Material", Need = "Used / total", Have = "Left", Price = "TTC price", Cost = "Total cost" })
+    { Craft = L.COLUMN_CRAFT, Name = L.COLUMN_MATERIAL, Need = L.COLUMN_USED_TOTAL, Have = L.COLUMN_LEFT,
+      Price = L.COLUMN_TTC_PRICE, Cost = L.COLUMN_TOTAL_COST })
   if MWC.sv.totalsLeft then
     totalsWindow:ClearAnchors()
     totalsWindow:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, MWC.sv.totalsLeft, MWC.sv.totalsTop)
@@ -1920,21 +2058,138 @@ end
 -- The addon's windows draw on the highest tier and layer (UI.xml), which put the game's tooltips and the
 -- right-click menu under them. Those are raised to the same tier and layer one level higher, so they show above
 -- the windows they belong to (and above every other window, as tooltips should).
+-- Drawing order ---------------------------------------------------------------------------------------------
+-- Our windows draw on the highest tier and layer, above the game's UI: main window 1 < Keep materials,
+-- Session totals 2. Tooltips and menus go above them (10). Game windows are otherwise never changed for good:
+-- only while one the addon opened itself is up (see WithDialogOnTop), and put back exactly afterwards.
+local LEVEL_MAIN, LEVEL_SMALL, LEVEL_OWN_DIALOG, LEVEL_POPUP = 1, 2, 9, 10
+
+local function SetLevel(control, level)
+  control:SetDrawTier(DT_HIGH)
+  control:SetDrawLayer(DL_OVERLAY)
+  control:SetDrawLevel(level)
+end
+
 local function RaisePopups()
   for _, name in ipairs({ "ItemTooltip", "InformationTooltip", "ComparativeTooltip1", "ComparativeTooltip2",
       "PopupTooltip", "ZO_Menu" }) do
     local control = _G[name]
     local owner = control and control.GetOwningWindow and control:GetOwningWindow()
     if owner then
-      owner:SetDrawTier(DT_HIGH)
-      owner:SetDrawLayer(DL_OVERLAY)
-      owner:SetDrawLevel(10)
+      SetLevel(owner, LEVEL_POPUP)
     end
   end
 end
 
+function MWC.UI.ApplyLayers()
+  SetLevel(MWC_Window, LEVEL_MAIN)
+  SetLevel(MWC_KeyWindow, LEVEL_SMALL)
+  SetLevel(MWC_TotalsWindow, LEVEL_SMALL)
+end
+
+-- RULE: every game dialog the addon opens itself (a confirmation...) is shown through MWC.UI.WithDialogOnTop,
+-- so it is never under our windows. While it is up, the game's dialog windows and whatever top-level window
+-- became visible after `show` are lifted above ours; once all of them are closed, each gets back exactly the
+-- tier, layer and level it had. Game windows that aren't dialogs (mail, the browser link prompt) are opened
+-- with our window hidden instead.
+local SETTLE_CHECKS_MS = { 0, 100, 300, 700, 1500 }
+local WATCH_MS, WATCH_LIMIT_MS = 300, 600000
+local raised = {}
+
+local function VisibleTopLevels()
+  local visible = {}
+  for i = 1, GuiRoot:GetNumChildren() do
+    local child = GuiRoot:GetChild(i)
+    if child and not child:IsHidden() then
+      visible[child] = true
+    end
+  end
+  return visible
+end
+
+local function Raise(control)
+  local name = control:GetName() or ""
+  if raised[control] or name:find("^MWC_") then return end
+  raised[control] = { control:GetDrawTier(), control:GetDrawLayer(), control:GetDrawLevel() }
+  MWC.Log("Dialog on top: %s", name)
+  SetLevel(control, LEVEL_OWN_DIALOG)
+end
+
+local function RestoreRaised()
+  for control, was in pairs(raised) do
+    control:SetDrawTier(was[1])
+    control:SetDrawLayer(was[2])
+    control:SetDrawLevel(was[3])
+  end
+  raised = {}
+end
+
+local function IsDialogWindow(control)
+  local name = control:GetName() or ""
+  return name:find("Dialog", 1, true) and not name:find("Gamepad", 1, true)
+end
+
+function MWC.UI.WithDialogOnTop(show)
+  local before = VisibleTopLevels()
+  show()
+  local function RaiseNew()
+    for control in pairs(VisibleTopLevels()) do
+      if not before[control] or IsDialogWindow(control) then Raise(control) end
+    end
+  end
+  for _, delay in ipairs(SETTLE_CHECKS_MS) do
+    zo_callLater(RaiseNew, delay)
+  end
+  -- Levels go back only after the last check, and only once everything raised is closed again.
+  local waited = 0
+  local name = MWC.name .. "DialogWatch"
+  EVENT_MANAGER:UnregisterForUpdate(name)
+  EVENT_MANAGER:RegisterForUpdate(name, WATCH_MS, function()
+    waited = waited + WATCH_MS
+    if waited < WATCH_LIMIT_MS then
+      if waited <= SETTLE_CHECKS_MS[#SETTLE_CHECKS_MS] then return end
+      for control in pairs(raised) do
+        if not control:IsHidden() then return end
+      end
+    end
+    EVENT_MANAGER:UnregisterForUpdate(name)
+    RestoreRaised()
+  end)
+end
+
+-- Feedback (the letter next to the title): an in-game mail to the author on their megaserver (offered only
+-- there: mail can't reach another server), or the comments on the addon's ESOUI page.
+local FEEDBACK_TO, FEEDBACK_SERVER = "@KanashiReinkyatto", "EU Megaserver"
+local FEEDBACK_URL = "https://www.esoui.com/downloads/info5114-MasterWritsCompanion.html#comments"
+
+local function MailAuthors()
+  -- The mail window is a game window: ours would cover it.
+  MWC.UI.Hide()
+  local subject = "MasterWrits Companion " .. MWC.VERSION
+  local ok = MAIL_SEND and MAIL_SEND.ComposeMailTo and pcall(MAIL_SEND.ComposeMailTo, MAIL_SEND, FEEDBACK_TO, subject)
+  if not ok then
+    SCENE_MANAGER:Show("mailSend")
+  end
+end
+
+function MWC.UI.ShowFeedbackMenu(control)
+  ZO_Tooltips_HideTextTooltip()
+  ClearMenu()
+  if GetWorldName() == FEEDBACK_SERVER then
+    AddMenuItem(L.FEEDBACK_MAIL, MailAuthors)
+  end
+  AddMenuItem(L.FEEDBACK_ESOUI, function()
+    -- The game's link prompt can't be lifted reliably: our window steps aside for it.
+    MWC.UI.Hide()
+    RequestOpenUnsafeURL(FEEDBACK_URL)
+  end)
+  ShowMenu(control)
+end
+
 function MWC.UI.Init()
+  ApplyControlTexts()
   RaisePopups()
+  MWC.UI.ApplyLayers()
   window = MWC_Window
   list = window:GetNamedChild("List")
   panel = window:GetNamedChild("Panel")
@@ -1948,12 +2203,12 @@ function MWC.UI.Init()
   InitTotals()
   InitTurnIn()
   InitStats()
-  InitCheckbox("IncludeBag", "Bag", "includeBag")
-  InitCheckbox("IncludeBank", "Bank", "includeBank")
-  InitCheckbox("ShowSkipped", "Skipped", "showSkipped", true)
-  InitCheckbox("ShowCompleted", "Completed", "showCompleted", true)
+  InitCheckbox("IncludeBag", L.CHECK_BAG, "includeBag")
+  InitCheckbox("IncludeBank", L.CHECK_BANK, "includeBank")
+  InitCheckbox("ShowSkipped", L.CHECK_SKIPPED, "showSkipped", true)
+  InitCheckbox("ShowCompleted", L.CHECK_COMPLETED, "showCompleted", true)
   -- Holiday writs come into the plan itself (the bags are read again).
-  InitCheckbox("ShowEvent", "Event", "showEvent")
+  InitCheckbox("ShowEvent", L.CHECK_EVENT, "showEvent")
   LayoutToolbar()
   LayoutPanel()
   LayoutActions()

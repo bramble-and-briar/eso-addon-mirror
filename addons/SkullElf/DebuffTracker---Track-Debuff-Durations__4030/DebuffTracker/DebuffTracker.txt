@@ -1,10 +1,10 @@
 ## Title: DebuffTracker
 ## Author: SkullElf
-## Version: 5.21.24
-## AddOnVersion: 52124
-## APIVersion: 101050 101051
-## Description: Track anything: buffs, debuffs, missing effects, procs, cooldowns and resources as bars, icons, text or big alerts - with rules, sounds, load conditions, profiles, a preset library, an effect recorder and live in-game editing.
-## OptionalDependsOn: LibAddonMenu-2.0 LibSets
+## Version: 5.25.6
+## AddOnVersion: 52506
+## APIVersion: 101051
+## Description: Track buffs, debuffs, procs and cooldowns your way. /dt to open, /dt credits for credits.
+## OptionalDependsOn: LibAddonMenu-2.0 LibSets LibSetDetection
 ## SavedVariables: DebuffTrackerSavedVars
 
 Core/Namespace.lua
@@ -19,8 +19,10 @@ Core/TabTarget.lua
 Core/Quickslot.lua
 Core/Combat.lua
 Core/Resources.lua
+Core/Group.lua
 Core/Ticks.lua
 Core/GlobalCooldown.lua
+Core/Weave.lua
 Data/Procs.lua
 Core/Procs.lua
 Core/Triggers.lua
@@ -31,6 +33,7 @@ Core/Stats.lua
 Display/Style.lua
 Display/Displays.lua
 Display/World.lua
+Display/GroupFrames.lua
 Display/Marker.lua
 Display/Announcer.lua
 Display/Unlock.lua

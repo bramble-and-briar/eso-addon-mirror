@@ -626,6 +626,10 @@ function fights:Fold(fight, endT)
     if ADDON.bosses then
         ADDON.bosses.FoldInto(fight, record)
     end
+    -- character -> PSN-ID for the players in it
+    if ADDON.names then
+        ADDON.names.FoldInto(record)
+    end
     return record
 end
 

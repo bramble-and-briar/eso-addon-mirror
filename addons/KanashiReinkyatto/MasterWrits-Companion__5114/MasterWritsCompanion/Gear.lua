@@ -234,7 +234,7 @@ end
 -- "Craft a Rubedite Dagger; Quality: ..." -> "Rubedite Dagger"
 function MWC.Gear.ItemName(writLink)
   local text = GenerateMasterWritBaseText(writLink) or ""
-  return text:match("Craft an? (.-);") or text:match("^[^\n]*")
+  return MWC.WritItemName(text, MWC.L.GEAR_NAME_PATTERN)
 end
 
 -- Whether the character knows a style (motif) for the writ's piece. Motifs come in chapters (one per piece).

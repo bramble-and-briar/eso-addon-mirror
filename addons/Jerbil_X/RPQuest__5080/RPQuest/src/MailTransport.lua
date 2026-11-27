@@ -81,6 +81,7 @@ function MailTransport:Initialize()
             if evType == "QUEST_COMPLETED" and type(payload) == "table" then
                 if Addon.QuestRepository:GetSetting("autoSendCompletionMail")
                     and payload.role == Addon.Constants.QUEST_ROLE.RECEIVED
+                    and not payload.isTutorial
                     and not payload.completionReported then
                     local sender = self:NormalizeDisplayName(payload.senderDisplayName)
                     if sender ~= "" then
@@ -91,7 +92,7 @@ function MailTransport:Initialize()
                     end
                 end
             elseif evType == "QUEST_REJECTED" and type(payload) == "table" then
-                if payload.role == Addon.Constants.QUEST_ROLE.RECEIVED then
+                if payload.role == Addon.Constants.QUEST_ROLE.RECEIVED and not payload.isTutorial then
                     local sender = self:NormalizeDisplayName(payload.senderDisplayName)
                     if sender ~= "" then
                         local ok, errKey = self:SendRejectionReport(payload)
@@ -101,7 +102,7 @@ function MailTransport:Initialize()
                     end
                 end
             elseif evType == "QUEST_ACCEPTED" and type(payload) == "table" then
-                if payload.role == Addon.Constants.QUEST_ROLE.RECEIVED then
+                if payload.role == Addon.Constants.QUEST_ROLE.RECEIVED and not payload.isTutorial then
                     local sender = self:NormalizeDisplayName(payload.senderDisplayName)
                     if sender ~= "" then
                         local ok, errKey = self:SendAcceptanceReport(payload)
@@ -113,6 +114,7 @@ function MailTransport:Initialize()
             elseif evType == "QUEST_FAILED" and type(payload) == "table" then
                 if Addon.QuestRepository:GetSetting("autoSendCompletionMail")
                     and Addon.QuestRepository:GetQuestLifecycle(payload) == Addon.Constants.QUEST_LIFECYCLE.RECEIVED
+                    and not payload.isTutorial
                     and not payload.failureReported then
                     local sender = self:NormalizeDisplayName(payload.senderDisplayName)
                     if sender ~= "" then
@@ -307,7 +309,7 @@ function MailTransport:ScheduleSendTimeout(delayMs, gen, doneCount)
     end, delayMs)
 end
 
-function MailTransport:FormatSendFailureMessage(to, reason)
+function MailTransport:FormatSendFailureMessage(to, reason, partialInfo)
     local detail
     if reason == MAIL_SEND_RESULT_CANT_SEND_TO_SELF or reason == "ERR_MAIL_SELF_RECIPIENT" then
         detail = Addon.Locale:Get("ERR_MAIL_SELF_RECIPIENT")
@@ -326,14 +328,24 @@ function MailTransport:FormatSendFailureMessage(to, reason)
         detail = Addon.Locale:Get("ERR_MAIL_API_UNAVAILABLE")
     end
     local target = (type(to) == "string" and to ~= "") and to or "?"
+    if type(partialInfo) == "table" then
+        return Addon.Locale:Get(
+            "ALERT_MAIL_SEND_PARTIAL_FAILED",
+            partialInfo.failedPart,
+            partialInfo.totalParts,
+            target,
+            partialInfo.delivered,
+            detail
+        )
+    end
     return Addon.Locale:Get("ALERT_MAIL_SEND_FAILED", target, detail)
 end
 
-function MailTransport:NotifySendError(to, reason)
+function MailTransport:NotifySendError(to, reason, partialInfo)
     if reason == MAIL_SEND_RESULT_CANCELED then
         return
     end
-    local message = self:FormatSendFailureMessage(to, reason)
+    local message = self:FormatSendFailureMessage(to, reason, partialInfo)
     if Addon.Announcements and Addon.Announcements.ShowAlert then
         Addon.Announcements:ShowAlert(message, true)
     end
@@ -341,6 +353,7 @@ function MailTransport:NotifySendError(to, reason)
         to = to,
         reason = reason,
         message = message,
+        partialInfo = partialInfo,
     })
 end
 
@@ -378,6 +391,9 @@ function MailTransport:OnMailboxClosed()
     self._openedMailbox = false
     if self._isSending then
         self:AbortSendQueue("MAILBOX_CLOSED")
+    end
+    if Addon.MailInbox and Addon.MailInbox.OnMailboxClosed then
+        Addon.MailInbox:OnMailboxClosed()
     end
 end
 
@@ -542,7 +558,7 @@ function MailTransport:EnqueueResultMail(quest, subjectPrefix, code, resultType)
 end
 
 function MailTransport:SendCompletionReport(quest)
-    if type(quest) ~= "table" or not quest.completed then
+    if type(quest) ~= "table" or quest.isTutorial or not quest.completed then
         return false, "ERR_INVALID_CODE"
     end
     local rpqc1Code, err = Addon.QuestRepository:ExportCompletionCode(quest.id)
@@ -553,7 +569,7 @@ function MailTransport:SendCompletionReport(quest)
 end
 
 function MailTransport:SendRejectionReport(quest)
-    if type(quest) ~= "table" then
+    if type(quest) ~= "table" or quest.isTutorial then
         return false, "ERR_INVALID_CODE"
     end
     local rpqc1Code, err = Addon.QuestRepository:ExportRejectionCode(quest)
@@ -564,7 +580,7 @@ function MailTransport:SendRejectionReport(quest)
 end
 
 function MailTransport:SendAcceptanceReport(quest)
-    if type(quest) ~= "table" then
+    if type(quest) ~= "table" or quest.isTutorial then
         return false, "ERR_INVALID_CODE"
     end
     local rpqc1Code, err = Addon.QuestRepository:ExportAcceptanceCode(quest)
@@ -575,7 +591,7 @@ function MailTransport:SendAcceptanceReport(quest)
 end
 
 function MailTransport:SendFailureReport(quest)
-    if type(quest) ~= "table" or not quest.failed then
+    if type(quest) ~= "table" or quest.isTutorial or not quest.failed then
         return false, "ERR_INVALID_CODE"
     end
     local rpqc1Code, err = Addon.QuestRepository:ExportFailureCode(quest)
@@ -599,7 +615,7 @@ function MailTransport:OnMailSendSuccess(_playerName)
             questId = self._currentSendItem.failureQuestId,
             to = self._currentSendItem.to,
         })
-    elseif self._currentSendItem and self._currentSendItem.sentQuestId then
+    elseif self._currentSendItem and self._currentSendItem.sentQuestId and (self._sendFailCount or 0) == 0 then
         Addon.QuestRepository:MarkPreparedQuestSent(self._currentSendItem.sentQuestId, self._currentSendItem.to)
     end
     self._currentSendItem = nil
@@ -619,10 +635,18 @@ function MailTransport:OnMailSendFailed(reason)
         return
     end
     local target = (self._currentSendItem and self._currentSendItem.to) or self._currentSendTarget
+    local partialInfo = nil
+    if (self._sendTotal or 0) > 1 and (self._sendSuccessCount or 0) > 0 then
+        partialInfo = {
+            failedPart = (self._sendDone or 0) + 1,
+            totalParts = self._sendTotal,
+            delivered = self._sendSuccessCount,
+        }
+    end
     self._currentSendItem = nil
     self._sendDone = self._sendDone + 1
     self._sendFailCount = self._sendFailCount + 1
-    self:NotifySendError(target, reason)
+    self:NotifySendError(target, reason, partialInfo)
     self:DispatchNextQueuedMail()
 end
 

@@ -1,10 +1,17 @@
 ## Title: Node Runner
 ## Description: A timed ESO gathering survival game. Keep moving, keep gathering, and see how long you can keep the Harvest Clock alive.
-## APIVersion: 101049 101050
-## Author: SugaComa
-## Version: 0.1.0-test1
+## APIVersion: 101051 101052
+## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
+## Version: 0.2.1
 ## SavedVariables: NodeRunner_SV
-## DependsOn: LibSTARSConnect
+## DependsOn: DragonWall
+
+; DISCLAIMER:
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
 
 Core/Config.lua
 Core/State.lua

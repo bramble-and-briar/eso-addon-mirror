@@ -1,3 +1,4 @@
+local L = MWC.L
 -- Keep materials: the materials, traits and styles the user does not want to spend; writs that would spend
 -- them are marked orange. The choice is stored per account, forever (not part of the writ session).
 MWC.KeyItems = {}
@@ -157,15 +158,15 @@ local ROW_TYPE, ROW_HEIGHT = 1, 28
 local GOLD = { 0.77, 0.76, 0.62, 1 }
 local TAB_ICON_PATH = "esoui/art/inventory/%s_%s.dds"
 local TABS = {
-  { type = "blacksmithing", label = "Blacksmithing", icon = "inventory_tabicon_craftbag_blacksmithing" },
-  { type = "clothier", label = "Clothing", icon = "inventory_tabicon_craftbag_clothing" },
-  { type = "woodworking", label = "Woodworking", icon = "inventory_tabicon_craftbag_woodworking" },
-  { type = "jewelry", label = "Jewelry crafting", icon = "inventory_tabicon_craftbag_jewelrycrafting" },
-  { type = "alchemy", label = "Alchemy", icon = "inventory_tabicon_craftbag_alchemy" },
-  { type = "enchanting", label = "Enchanting", icon = "inventory_tabicon_craftbag_enchanting" },
-  { type = "provisioning", label = "Provisioning", icon = "inventory_tabicon_craftbag_provisioning" },
+  { type = "blacksmithing", label = L.CRAFT_TAB.blacksmithing, icon = "inventory_tabicon_craftbag_blacksmithing" },
+  { type = "clothier", label = L.CRAFT_TAB.clothier, icon = "inventory_tabicon_craftbag_clothing" },
+  { type = "woodworking", label = L.CRAFT_TAB.woodworking, icon = "inventory_tabicon_craftbag_woodworking" },
+  { type = "jewelry", label = L.CRAFT_TAB.jewelry, icon = "inventory_tabicon_craftbag_jewelrycrafting" },
+  { type = "alchemy", label = L.CRAFT_TAB.alchemy, icon = "inventory_tabicon_craftbag_alchemy" },
+  { type = "enchanting", label = L.CRAFT_TAB.enchanting, icon = "inventory_tabicon_craftbag_enchanting" },
+  { type = "provisioning", label = L.CRAFT_TAB.provisioning, icon = "inventory_tabicon_craftbag_provisioning" },
 }
-local HEADER_TITLES = { On = "On", Name = "Item", Detail = "Trait/Style", Kind = "Kind", QualityText = "Quality", Price = "TTC price" }
+local HEADER_TITLES = L.KEEP_HEADER
 local SORT_VALUES = {
   On = function(entry) return entry.enabled and 1 or 0 end,
   Name = function(entry) return zo_strlower(entry.name) end,
@@ -224,7 +225,7 @@ local function SetupRow(row, entry)
   row:GetNamedChild("Icon"):SetTexture((GetItemLinkInfo(entry.link)))
   row:GetNamedChild("Name"):SetText(color:Colorize("[" .. entry.name .. "]"))
   row:GetNamedChild("Detail"):SetText(entry.detail)
-  row:GetNamedChild("Kind"):SetText(entry.kind)
+  row:GetNamedChild("Kind"):SetText(L.KIND[entry.kind] or entry.kind)
   row:GetNamedChild("QualityText"):SetText(color:Colorize(GetString("SI_ITEMQUALITY", entry.quality)))
   row:GetNamedChild("Price"):SetText(entry.price and ZO_CommaDelimitNumber(zo_round(entry.price)) or "—")
 end

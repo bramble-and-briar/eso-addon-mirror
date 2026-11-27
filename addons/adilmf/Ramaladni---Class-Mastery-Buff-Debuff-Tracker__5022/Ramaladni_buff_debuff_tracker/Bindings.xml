@@ -2,10 +2,10 @@
     <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
         <Category name="Ramaladni">
             <Action name="RAMALADNI_TOGGLE_SETTINGS">
-                <Down>RamaladniKeybinds.ToggleSettings()</Down>
+                <Down>RamaladniMastery.Keybinds.ToggleSettings()</Down>
             </Action>
             <Action name="RAMALADNI_TOGGLE_HUD">
-                <Down>RamaladniKeybinds.ToggleHud()</Down>
+                <Down>RamaladniMastery.Keybinds.ToggleHud()</Down>
             </Action>
         </Category>
     </Layer>

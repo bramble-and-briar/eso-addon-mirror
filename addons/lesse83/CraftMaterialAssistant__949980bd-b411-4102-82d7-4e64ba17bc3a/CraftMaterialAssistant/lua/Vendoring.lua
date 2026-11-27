@@ -13,12 +13,17 @@ function CMA:OnStoreOpen()
             local _, stackCount = GetItemInfo(bagid, slotIndex)
             if stackCount > 0 then
                 local itemLink = GetItemLink(bagid, slotIndex)
-                local sellPrice = GetItemSellValueWithBonuses(bagid, slotIndex)
-                local itemTotalGold = sellPrice * stackCount
-
-                totalGoldEarned = totalGoldEarned + itemTotalGold
-                table.insert(vendoredItems, itemLink .. " (" .. itemTotalGold .. "g)")
-                SellInventoryItem(bagid, slotIndex, stackCount)
+                local itemQuality = GetItemLinkFunctionalQuality(itemLink)
+                if itemQuality > ITEM_DISPLAY_QUALITY_ARTIFACT then
+                    self:SendChatMessage("Prevented selling of " .. itemLink .. ". Was marked to sell but not selling 'Gold' quality items.")
+                else
+                    local sellPrice = GetItemSellValueWithBonuses(bagid, slotIndex)
+                    local itemTotalGold = sellPrice * stackCount
+                    
+                    totalGoldEarned = totalGoldEarned + itemTotalGold
+                    table.insert(vendoredItems, itemLink .. " (" .. itemTotalGold .. "g)")
+                    SellInventoryItem(bagid, slotIndex, stackCount)
+                end
             end
             -- end
         end

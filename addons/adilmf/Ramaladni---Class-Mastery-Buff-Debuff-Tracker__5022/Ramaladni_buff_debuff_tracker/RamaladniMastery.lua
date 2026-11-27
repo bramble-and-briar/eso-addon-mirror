@@ -3,20 +3,57 @@
 -- Candidate effect IDs are NOT treated as proof that ESO emits them.
 -- Runtime only displays values observed through ESO unit/effect API.
 RamaladniMastery={byKey={},byClass={},classes={},all={},modules={}}
-RamaladniMastery.classes[#RamaladniMastery.classes+1]={id="Dragonknight",name="Рыцарь-дракон / Dragonknight"}
-RamaladniMastery.byClass["Dragonknight"]={}
-RamaladniMastery.classes[#RamaladniMastery.classes+1]={id="Nightblade",name="Клинок ночи / Nightblade"}
-RamaladniMastery.byClass["Nightblade"]={}
-RamaladniMastery.classes[#RamaladniMastery.classes+1]={id="Sorcerer",name="Чародей / Sorcerer"}
-RamaladniMastery.byClass["Sorcerer"]={}
-RamaladniMastery.classes[#RamaladniMastery.classes+1]={id="Templar",name="Храмовник / Templar"}
-RamaladniMastery.byClass["Templar"]={}
-RamaladniMastery.classes[#RamaladniMastery.classes+1]={id="Warden",name="Хранитель / Warden"}
-RamaladniMastery.byClass["Warden"]={}
-RamaladniMastery.classes[#RamaladniMastery.classes+1]={id="Necromancer",name="Некромант / Necromancer"}
-RamaladniMastery.byClass["Necromancer"]={}
-RamaladniMastery.classes[#RamaladniMastery.classes+1]={id="Arcanist",name="Арканист / Arcanist"}
-RamaladniMastery.byClass["Arcanist"]={}
+local M=RamaladniMastery
+local GetDisplayName = GetDisplayName
+local GetWorldName = GetWorldName
+local HasMaxRankInAllClassSkillLines = HasMaxRankInAllClassSkillLines
+local IsSkillAbilityPurchased = IsSkillAbilityPurchased
+local SKILLS_DATA_MANAGER = SKILLS_DATA_MANAGER
+local ZO_SavedVars = ZO_SavedVars
+local d = d
+local ipairs = ipairs
+local math = math
+local pairs = pairs
+local select = select
+local string = string
+local tonumber = tonumber
+local tostring = tostring
+local type = type
+local COMBAT_MECHANIC_FLAGS_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE
+local EVENT_ACTION_SLOT_ABILITY_USED = EVENT_ACTION_SLOT_ABILITY_USED
+local EVENT_MANAGER = EVENT_MANAGER
+local EVENT_PLAYER_ACTIVATED = EVENT_PLAYER_ACTIVATED
+local EVENT_POWER_UPDATE = EVENT_POWER_UPDATE
+local EVENT_SKILL_POINTS_CHANGED = EVENT_SKILL_POINTS_CHANGED
+local GetCurrentCharacterId = GetCurrentCharacterId
+local GetFrameTimeSeconds = GetFrameTimeSeconds
+local GetNumSkillAbilities = GetNumSkillAbilities
+local GetNumSkillLines = GetNumSkillLines
+local GetSkillAbilityId = GetSkillAbilityId
+local GetSkillAbilityInfo = GetSkillAbilityInfo
+local GetSlotAbilityCost = GetSlotAbilityCost
+local GetSlotBoundId = GetSlotBoundId
+local GetUnitClassId = GetUnitClassId
+local GetUnitName = GetUnitName
+local GetUnitPower = GetUnitPower
+local REGISTER_FILTER_POWER_TYPE = REGISTER_FILTER_POWER_TYPE
+local REGISTER_FILTER_UNIT_TAG = REGISTER_FILTER_UNIT_TAG
+local SKILL_TYPE_CLASS = SKILL_TYPE_CLASS
+local SLASH_COMMANDS = SLASH_COMMANDS
+M.classes[#M.classes+1]={id="Dragonknight",name="Рыцарь-дракон / Dragonknight"}
+M.byClass["Dragonknight"]={}
+M.classes[#M.classes+1]={id="Nightblade",name="Клинок ночи / Nightblade"}
+M.byClass["Nightblade"]={}
+M.classes[#M.classes+1]={id="Sorcerer",name="Чародей / Sorcerer"}
+M.byClass["Sorcerer"]={}
+M.classes[#M.classes+1]={id="Templar",name="Храмовник / Templar"}
+M.byClass["Templar"]={}
+M.classes[#M.classes+1]={id="Warden",name="Хранитель / Warden"}
+M.byClass["Warden"]={}
+M.classes[#M.classes+1]={id="Necromancer",name="Некромант / Necromancer"}
+M.byClass["Necromancer"]={}
+M.classes[#M.classes+1]={id="Arcanist",name="Арканист / Arcanist"}
+M.byClass["Arcanist"]={}
 -- v0.9.2: Class Mastery runtime and per-character profile ownership.
 -- This module owns character-specific settings and special passive mechanics.
 -- The tracker module only supplies ESO event/time state to these hooks.
@@ -31,9 +68,66 @@ local function CopySaved(value)
   return new
 end
 
+-- Read the actual saved account before ZO_SavedVars creates defaults.
+-- Opening the legacy account via NewAccountWide(nil namespace) can clear
+-- nested world namespaces when the parent has no version.
+local function GetRawAccount()
+  local root=RamaladniTrackerSaved
+  if type(root)~='table' then return nil end
+  local profile=root.Default
+  if type(profile)~='table' then return nil end
+  local user=profile[GetDisplayName()]
+  if type(user)~='table' then return nil end
+  local account=user['$AccountWide']
+  if type(account)=='table' then return account end
+end
+local function HasSavedSettings(account)
+  return type(account)=='table' and
+    (type(account.characterProfiles)=='table' or type(account.entries)=='table' or
+     type(account.window)=='table' or type(account.learned)=='table' or
+     account.nextId~=nil or account.legacyAssignedCharacter~=nil)
+end
+local function HasWorldSettings(account)
+  return type(account)=='table' and
+    (account.__ramaladniWorldInitialized==true or HasSavedSettings(account))
+end
+
+-- Keep the v1.0.1b world namespace layout. Import a legacy account only
+-- when no world already owns settings; otherwise its origin is ambiguous.
+-- Preserve the old data for backup/manual recovery, including empty lists.
+function M.LoadWorldAccount(defaults)
+  local world=GetWorldName()
+  local legacy=GetRawAccount()
+  local import=legacy and legacy.version==1 and
+    not legacy.__ramaladniLegacyMigrationWorld and HasSavedSettings(legacy)
+  if import then
+    for key,value in pairs(legacy) do
+      if key==world then
+        if HasWorldSettings(value) then import=false; break end
+      elseif type(value)=='table' and
+        (value.__ramaladniWorldInitialized==true or
+         (value.version==1 and HasSavedSettings(value))) then
+        import=false; break
+      end
+    end
+  end
+  local account=ZO_SavedVars:NewAccountWide('RamaladniTrackerSaved',1,world,defaults)
+  if import then
+    for _,field in ipairs({'characterProfiles','legacyAssignedCharacter',
+                           'entries','nextId','window','learned'}) do
+      local value=legacy[field]
+      if value~=nil then account[field]=CopySaved(value) end
+    end
+    legacy.__ramaladniLegacyMigrationWorld=world
+    account.__ramaladniMigratedFromLegacy=true
+  end
+  account.__ramaladniWorldInitialized=true
+  return account
+end
+
 local lead
 local InitLeadTracking
-function RamaladniMastery.SelectCharacterProfile(account,defaults)
+function M.SelectCharacterProfile(account,defaults)
   -- Defer event wiring until the player is in the world; profiles are loaded
   -- earlier. The tracker will create HUD widgets after player activation.
   if not lead.initRegistered then
@@ -44,10 +138,10 @@ function RamaladniMastery.SelectCharacterProfile(account,defaults)
     end)
   end
   if type(account)~='table' then return CopySaved(defaults) end
-  local id=GetCurrentCharacterId and GetCurrentCharacterId()
+  local id=GetCurrentCharacterId()
   if not id or tostring(id)=='' or tostring(id)=='0' then
     -- Character ID is preferred: names can change; fallback only for old API.
-    id=(GetUnitName and GetUnitName('player')) or 'unknown-character'
+    id=(GetUnitName('player')) or 'unknown-character'
   end
   local key=tostring(id)
   if type(account.characterProfiles)~='table' then account.characterProfiles={} end
@@ -102,25 +196,61 @@ lead={initialized=false,initRegistered=false,debug=false,lastPower=nil,
             stormRank2=nil,passiveOwned=nil,lastError=nil}
 local function LeadNow() return GetFrameTimeSeconds() end
 local function LeadPrint(message)
-  if d then d('|c6FD6FFRamaladni Mastery|r '..message) end
+  d('|c6FD6FFRamaladni Mastery|r '..message)
 end
 local skillCache={}
+-- The committed class-mastery selection is shared by HUD and class modules.
+-- ESO's own skill line cache deliberately marks the player's mastery line
+-- active even on a subclassed build; enforce the native UI eligibility rule.
+local masterySelection
+local currentModule
+function M.RefreshActiveMasteries()
+  local manager=SKILLS_DATA_MANAGER
+  if not manager:IsDataReady() or manager:IsGatingEventUpdates() then return nil end
+  local selected,unknown={},{}
+  local count=manager:GetNumActiveClassSkillLines()
+  if count==0 then return nil end -- skill data not populated yet
+  if manager:GetNumPlayerClassActiveSkillLines()==count and HasMaxRankInAllClassSkillLines() then
+    -- Match the purchased passive itself, never a generic proc or aura ID.
+    local ids={}
+    for _,meta in ipairs(M.all) do ids[meta.passiveId]=meta end
+    for i=1,manager:GetNumActiveClassMasterySkillLines() do
+      local line=manager:GetActiveClassMasterySkillLine(i)
+      for _,skill in line:SkillIterator() do
+        if skill:IsPassive() and IsSkillAbilityPurchased(skill:GetIndices()) then
+          local meta
+          for rank=1,skill:GetNumRanks() do
+            local id=skill:GetRankData(rank):GetAbilityId()
+            if ids[id] then meta=ids[id];break end
+          end
+          if meta and SKILL_CLASS_IDS[meta.class]==line:GetClassId() then
+            selected[meta.key]=skill:GetCurrentRank()
+          else
+            unknown[#unknown+1]=skill:GetCurrentProgressionData():GetAbilityId()
+          end
+        end
+      end
+    end
+  end
+  masterySelection=selected
+  return selected,unknown
+end
 local function SkillState(meta,force)
+  if meta and masterySelection then
+    local rank=masterySelection[meta.key]
+    return rank~=nil,rank
+  end
   if not meta then return false,nil end
   local now=LeadNow()
   local key=meta.key
   local cached=skillCache[key]
   if not force and cached and now-cached.time<3 then return cached.bought,cached.rank end
   local wanted=meta.passiveId
-  local classId=GetUnitClassId and GetUnitClassId('player')
+  local classId=GetUnitClassId('player')
   local expected=SKILL_CLASS_IDS[meta.class]
   if type(classId)=='number' and expected and classId~=expected then
     skillCache[key]={time=now,bought=false}
     return false,nil
-  end
-  if not (SKILL_TYPE_CLASS and GetNumSkillLines and GetNumSkillAbilities and
-          GetSkillAbilityId and GetSkillAbilityInfo) then
-    return nil,nil -- API unavailable; never claim a proc is active
   end
   for line=1,GetNumSkillLines(SKILL_TYPE_CLASS) do
     for i=1,GetNumSkillAbilities(SKILL_TYPE_CLASS,line) do
@@ -142,13 +272,12 @@ local function SkillState(meta,force)
   return nil,nil
 end
 -- Small public wrapper used ONLY by the isolated Templar module.
-function RamaladniMastery.TemplarSkillState(key)
-  return SkillState(RamaladniMastery.byKey[key])
+function M.TemplarSkillState(key)
+  return SkillState(M.byKey[key])
 end
 -- v0.9.16 NIGHTBLADE ONLY: Above and Beyond has NO timed proc.
 local function CurrentUltimate()
-  if not (GetUnitPower and POWERTYPE_ULTIMATE) then return nil end
-  local value=GetUnitPower('player',POWERTYPE_ULTIMATE)
+  local value=GetUnitPower('player',COMBAT_MECHANIC_FLAGS_ULTIMATE)
   return type(value)=='number' and value or nil
 end
 local function ClearTriggerState()
@@ -182,20 +311,19 @@ local function ConfirmUltimate(pending,pre,after,now)
 end
 -- Only an actual action spending ULTIMATE is eligible. A normal spell such as
 -- Быстрый клич can fire EVENT_ACTION_SLOT_ABILITY_USED, but NOT a decrease in
--- POWERTYPE_ULTIMATE. The latter is mandatory to confirm the trigger.
+-- COMBAT_MECHANIC_FLAGS_ULTIMATE. The latter is mandatory to confirm the trigger.
 local function OnUltimateUsed(_,slot)
-  if type(slot)~='number' or not GetSlotAbilityCost or
-     not COMBAT_MECHANIC_FLAGS_ULTIMATE then return end
+  if type(slot)~='number' then return end
   local cost=tonumber(GetSlotAbilityCost(slot,COMBAT_MECHANIC_FLAGS_ULTIMATE)) or 0
   if cost<=0 then return end
-  local dk=GetUnitClassId and GetUnitClassId('player')==1
-  local arc=GetUnitClassId and GetUnitClassId('player')==117
-  local storm2=dk and ((RamaladniMastery.modules.Dragonknight or {}).HasStormVoiceRank2 or function() return nil end)(true) or false
-  local leadBought=dk and storm2==true and SkillState(RamaladniMastery.byKey[LEAD_FROM_FRONT],true)==true
-  local boomBought=dk and storm2==true and SkillState(RamaladniMastery.byKey[BOOMING_VOICE],true)==true
-  local abilityId=GetSlotBoundId and GetSlotBoundId(slot) or 0
-  local abyssBought=arc and ((RamaladniMastery.modules.Arcanist or {}).IsClassUltimate or function() return false end)(abilityId) and
-    SkillState(RamaladniMastery.byKey[ABYSSAL_EMERGENCE],true)==true
+  local dk=GetUnitClassId('player')==1
+  local arc=GetUnitClassId('player')==117
+  local storm2=dk and M.modules.Dragonknight.HasStormVoiceRank2(true) or false
+  local leadBought=dk and storm2==true and SkillState(M.byKey[LEAD_FROM_FRONT],true)==true
+  local boomBought=dk and storm2==true and SkillState(M.byKey[BOOMING_VOICE],true)==true
+  local abilityId=GetSlotBoundId(slot) or 0
+  local abyssBought=arc and M.modules.Arcanist.IsClassUltimate(abilityId) and
+    SkillState(M.byKey[ABYSSAL_EMERGENCE],true)==true
   lead.passiveOwned=leadBought
   lead.stormRank2=storm2
   if not (leadBought or boomBought or abyssBought) then
@@ -219,7 +347,7 @@ local function OnUltimateUsed(_,slot)
        tostring(id),tostring(cost),tostring(current))) end
 end
 local function OnLeadPowerUpdate(_,unitTag,_,powerType,powerValue)
-  if unitTag~='player' or powerType~=POWERTYPE_ULTIMATE or
+  if unitTag~='player' or powerType~=COMBAT_MECHANIC_FLAGS_ULTIMATE or
      type(powerValue)~='number' then return end
   local now=LeadNow()
   local prev=lead.lastPower
@@ -271,9 +399,9 @@ local function LeadDebugCommand(input)
     return
   end
   local now=LeadNow()
-  local leadBought=SkillState(RamaladniMastery.byKey[LEAD_FROM_FRONT],true)
-  local boomBought=SkillState(RamaladniMastery.byKey[BOOMING_VOICE],true)
-  local storm2=((RamaladniMastery.modules.Dragonknight or {}).HasStormVoiceRank2 or function() return nil end)(true)
+  local leadBought=SkillState(M.byKey[LEAD_FROM_FRONT],true)
+  local boomBought=SkillState(M.byKey[BOOMING_VOICE],true)
+  local storm2=M.modules.Dragonknight.HasStormVoiceRank2(true)
   local c=lead.confirmed
   LeadPrint(string.format('Storm Voice II=%s Lead=%s Booming=%s bank=%s pending=%s',
     tostring(storm2),tostring(leadBought),tostring(boomBought),tostring(lead.lastPower),
@@ -286,8 +414,38 @@ end
 local function InvalidateSkillCache()
   skillCache={}
   lead.stormCheck=nil
-  if RamaladniMastery.modules.Arcanist and RamaladniMastery.modules.Arcanist.Invalidate then
-    RamaladniMastery.modules.Arcanist.Invalidate()
+  if M.modules.Arcanist and M.modules.Arcanist.Invalidate then
+    M.modules.Arcanist.Invalidate()
+  end
+end
+
+-- Names encode event and filter values. A retained name keeps the existing
+-- callback; each reconciliation only adds/removes the difference.
+function M.NewEventSet()
+  local active={}
+  return function(build)
+    local wanted={}
+    local ok=true
+    local function Add(name,event,handler,...)
+      wanted[name]=true
+      if active[name] then return end
+      if not EVENT_MANAGER:RegisterForEvent(name,event,handler) then
+        ok=false; d('Ramaladni: event registration failed: '..name); return
+      end
+      if select('#',...)>0 and not EVENT_MANAGER:AddFilterForEvent(name,event,...) then
+        EVENT_MANAGER:UnregisterForEvent(name,event)
+        ok=false; d('Ramaladni: event filter failed: '..name); return
+      end
+      active[name]=event
+    end
+    build(Add)
+    for name,event in pairs(active) do
+      if not wanted[name] then
+        EVENT_MANAGER:UnregisterForEvent(name,event)
+        active[name]=nil
+      end
+    end
+    return ok
   end
 end
 
@@ -298,22 +456,22 @@ local function HideState(state)
   state.timerEstimated=false
   state.stacks=0
 end
-RamaladniMastery.shared={SkillState=SkillState,LeadNow=LeadNow,HideState=HideState,
+M.shared={SkillState=SkillState,LeadNow=LeadNow,HideState=HideState,
                           LeadPrint=LeadPrint,lead=lead}
 -- Compatible public API used by the main HUD, unchanged function signatures.
-function RamaladniMastery.IsLandslideLearned()
-  return SkillState(RamaladniMastery.byKey['Dragonknight:Inexorable Descent'],true)
+function M.IsLandslideLearned()
+  return SkillState(M.byKey['Dragonknight:Inexorable Descent'],true)
 end
-function RamaladniMastery.UpdateWidgetExtras(entry,widget,now)
+function M.UpdateWidgetExtras(entry,widget,now)
   if not widget or not widget.win then return end
   local key=entry and entry.kind=='mastery' and entry.masteryKey
   if widget.nbShareGroup then widget.nbShareGroup:SetHidden(key~='Nightblade:Share the Spoils') end
   if type(key)=='string' and key:sub(1,11)=='Nightblade:' then
-    local mod=RamaladniMastery.modules.Nightblade
+    local mod=M.modules.Nightblade
     if mod and mod.UpdateWidgetExtras then return mod.UpdateWidgetExtras(entry,widget,now) end
   end
   if key=='Sorcerer:Sphere of Influence' then
-    local mod=RamaladniMastery.modules.Sorcerer
+    local mod=M.modules.Sorcerer
     if mod and mod.UpdateWidgetExtras then return mod.UpdateWidgetExtras(entry,widget,now) end
   end
   if widget.sphereShieldLabel then widget.sphereShieldLabel:SetHidden(true) end
@@ -323,26 +481,55 @@ function RamaladniMastery.UpdateWidgetExtras(entry,widget,now)
   end
 end
 
+local syncLeadEvents=M.NewEventSet()
+local leadSelection={}
+local function SyncLeadEvents(selected)
+  local wanted=selected[LEAD_FROM_FRONT] or selected[BOOMING_VOICE] or selected[ABYSSAL_EMERGENCE]
+  local previous=leadSelection[LEAD_FROM_FRONT] or leadSelection[BOOMING_VOICE] or leadSelection[ABYSSAL_EMERGENCE]
+  if wanted and not previous then
+    lead.lastPower=CurrentUltimate()
+    lead.recentDrop=nil
+  end
+  -- Never carry a removed mastery into a later activation. Retained
+  -- masteries keep their own confirmed timer and correlation state.
+  for key,flag in pairs({[LEAD_FROM_FRONT]='lead',[BOOMING_VOICE]='booming',[ABYSSAL_EMERGENCE]='abyssal'}) do
+    if not selected[key] then
+      if lead.confirmed then lead.confirmed[flag]=false end
+      if lead.pending then
+        local pendingFlag=flag=='lead' and 'leadBought' or (flag=='booming' and 'boomBought' or 'abyssalBought')
+        lead.pending[pendingFlag]=false
+      end
+    end
+  end
+  if not wanted then ClearTriggerState();lead.recentDrop=nil end
+  syncLeadEvents(function(Add)
+    if wanted then
+      Add('RamaladniMastery_Ability',EVENT_ACTION_SLOT_ABILITY_USED,OnUltimateUsed)
+      Add('RamaladniMastery_UltPower',EVENT_POWER_UPDATE,OnLeadPowerUpdate,
+        REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_POWER_TYPE,COMBAT_MECHANIC_FLAGS_ULTIMATE)
+    end
+  end)
+  leadSelection=selected
+end
+function M.SyncActiveEvents()
+  if not lead.initialized or not masterySelection then return end
+  SyncLeadEvents(masterySelection)
+  if currentModule and currentModule.SyncEvents then currentModule.SyncEvents(masterySelection) end
+end
 InitLeadTracking=function()
   if lead.initialized then return end
   lead.initialized=true
-  lead.lastPower=CurrentUltimate()
-  EVENT_MANAGER:RegisterForEvent('RamaladniMastery_Ability',EVENT_ACTION_SLOT_ABILITY_USED,OnUltimateUsed)
-  EVENT_MANAGER:RegisterForEvent('RamaladniMastery_UltPower',EVENT_POWER_UPDATE,OnLeadPowerUpdate)
-  EVENT_MANAGER:AddFilterForEvent('RamaladniMastery_UltPower',EVENT_POWER_UPDATE,
-    REGISTER_FILTER_UNIT_TAG,'player',REGISTER_FILTER_POWER_TYPE,POWERTYPE_ULTIMATE)
-  if EVENT_SKILL_POINTS_CHANGED then
-    EVENT_MANAGER:RegisterForEvent('RamaladniMastery_SkillChanges',EVENT_SKILL_POINTS_CHANGED,InvalidateSkillCache)
-  end
+  EVENT_MANAGER:RegisterForEvent('RamaladniMastery_SkillChanges',EVENT_SKILL_POINTS_CHANGED,InvalidateSkillCache)
   SLASH_COMMANDS['/rmlead']=LeadDebugCommand
-  local classId=GetUnitClassId and GetUnitClassId('player')
+  local classId=GetUnitClassId('player')
   local current=nil
   for class,id in pairs(SKILL_CLASS_IDS) do if id==classId then current=class end end
-  local mod=current and RamaladniMastery.modules[current]
-  if mod and mod.Init then mod.Init() end
+  currentModule=current and M.modules[current]
+  if currentModule and currentModule.Init then currentModule.Init() end
+  M.SyncActiveEvents()
 end
 
-function RamaladniMastery.OnObservedEffect(entry,meta,state,change,start,finish,stacks,source,actualId,now)
+function M.OnObservedEffect(entry,meta,state,change,start,finish,stacks,source,actualId,now)
   if not meta then return end
   -- No mastery can be activated by a buff if it is *known* not to be learned.
   -- Unknown ownership is handled conservatively by DisplayAmount.
@@ -366,7 +553,7 @@ function RamaladniMastery.OnObservedEffect(entry,meta,state,change,start,finish,
     return
   end
   if meta.key=='Dragonknight:Inexorable Descent' then
-    local mod=RamaladniMastery.modules.Dragonknight
+    local mod=M.modules.Dragonknight
     if mod and mod.OnObservedEffect then
       return mod.OnObservedEffect(entry,meta,state,change,start,finish,stacks,source,actualId,now)
     end
@@ -397,19 +584,19 @@ function RamaladniMastery.OnObservedEffect(entry,meta,state,change,start,finish,
     if actualId==candidate then ownProc=true;break end
   end
   if not ownProc then HideState(state);return end
-  local mod=RamaladniMastery.modules.Necromancer
+  local mod=M.modules.Necromancer
   if meta.key=='Necromancer:Nothing Wasted' and mod and mod.OnObservedEffect then
     return mod.OnObservedEffect(entry,meta,state,change,start,finish,stacks,source,actualId,now)
   end
 end
 -- Future class-specific calculations can be added HERE, without modifying
 -- the main tracker again. Returning true means this module handled the value.
-function RamaladniMastery.DisplayAmount(entry,state,now)
+function M.DisplayAmount(entry,state,now)
   if not entry then return false,nil end
   local key=entry.masteryKey
-  local meta=RamaladniMastery.byKey[key]
+  local meta=M.byKey[key]
   if not meta then return false,nil end
-  local module=RamaladniMastery.modules[meta.class]
+  local module=M.modules[meta.class]
   if module and module.Display then
     local handled,amount=module.Display(key,state,now)
     if handled then return true,amount end

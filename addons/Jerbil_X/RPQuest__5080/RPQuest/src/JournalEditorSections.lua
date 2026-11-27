@@ -148,15 +148,32 @@ function EditorSections.BuildBaseFields(tab, formParent, panelName)
     tab.recipientCharBg = recipientCharBg
     tab.recipientCharEdit = recipientCharEdit
 
+    local lblSenderChar = WINDOW_MANAGER:CreateControl(panelName .. "_LblInputSenderChar", formParent, CT_LABEL)
+    lblSenderChar:SetAnchor(TOPLEFT, formParent, TOPLEFT, 0, 228)
+    if lblSenderChar.SetFont then lblSenderChar:SetFont("ZoFontGameBold") end
+    lblSenderChar:SetText(Addon.Locale:Get("LABEL_INPUT_SENDER_CHAR"))
+    tab.lblInputSenderChar = lblSenderChar
+
+    local senderCharDropdown = WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_SenderCharDropdown", formParent, "ZO_ComboBox")
+    senderCharDropdown:SetDimensions(250, 28)
+    senderCharDropdown:SetAnchor(TOPLEFT, formParent, TOPLEFT, 0, 250)
+    tab.senderCharDropdown = senderCharDropdown
+
+    local senderCharCombo = ZO_ComboBox_ObjectFromContainer(senderCharDropdown)
+    if senderCharCombo then
+        senderCharCombo:SetSortsItems(false)
+        tab.senderCharComboBox = senderCharCombo
+    end
+
     local lblQuestIcon = WINDOW_MANAGER:CreateControl(panelName .. "_LblQuestIcon", formParent, CT_LABEL)
-    lblQuestIcon:SetAnchor(TOPLEFT, formParent, TOPLEFT, 0, 228)
+    lblQuestIcon:SetAnchor(TOPLEFT, formParent, TOPLEFT, 260, 228)
     if lblQuestIcon.SetFont then lblQuestIcon:SetFont("ZoFontGameBold") end
     lblQuestIcon:SetText(Addon.Locale:Get("LABEL_QUEST_ICON"))
     tab.lblQuestIcon = lblQuestIcon
 
     local iconDropdown = WINDOW_MANAGER:CreateControlFromVirtual(panelName .. "_QuestIconDropdown", formParent, "ZO_ComboBox")
-    iconDropdown:SetDimensions(510, 28)
-    iconDropdown:SetAnchor(TOPLEFT, formParent, TOPLEFT, 0, 250)
+    iconDropdown:SetDimensions(250, 28)
+    iconDropdown:SetAnchor(TOPLEFT, formParent, TOPLEFT, 260, 250)
     tab.questIconDropdown = iconDropdown
 
     local iconCombo = ZO_ComboBox_ObjectFromContainer(iconDropdown)
@@ -385,6 +402,16 @@ end
 function EditorSections.BuildDiscoveryControls(tab, discBody, panelName)
     local CreateIconButton = Addon.JournalWidgets.CreateIconButton
 
+    local function MoveSelectedDiscovery(delta)
+        local idx = tab.selectedDiscoveryIndex
+        if not idx then return end
+        local _, newIdx = Addon.QuestRepository:MoveDraftDiscoveryPoint(idx, delta)
+        if newIdx then
+            tab.selectedDiscoveryIndex = newIdx
+            tab:RefreshEditorPane()
+        end
+    end
+
     tab.btnCaptureDiscovery = CreateIconButton(
         panelName .. "_BtnCaptureDiscovery", discBody, 28,
         "/esoui/art/buttons/plus_up.dds",
@@ -448,10 +475,37 @@ function EditorSections.BuildDiscoveryControls(tab, discBody, panelName)
         end
     )
     tab.btnClearDiscoveries:SetAnchor(TOPLEFT, discBody, TOPLEFT, 478, 0)
+
+    tab.btnMoveDiscoveryUp = CreateIconButton(
+        panelName .. "_BtnMoveDiscoveryUp", discBody, 28,
+        "/esoui/art/buttons/large_uparrow_up.dds",
+        "/esoui/art/buttons/large_uparrow_down.dds",
+        "/esoui/art/buttons/large_uparrow_over.dds",
+        "/esoui/art/buttons/large_uparrow_disabled.dds",
+        Addon.Locale:Get("TOOLTIP_MOVE_DISCOVERY_UP"),
+        function()
+            MoveSelectedDiscovery(-1)
+        end
+    )
+    tab.btnMoveDiscoveryUp:SetAnchor(TOPLEFT, discBody, TOPLEFT, 444, 36)
+
+    tab.btnMoveDiscoveryDown = CreateIconButton(
+        panelName .. "_BtnMoveDiscoveryDown", discBody, 28,
+        "/esoui/art/buttons/large_downarrow_up.dds",
+        "/esoui/art/buttons/large_downarrow_down.dds",
+        "/esoui/art/buttons/large_downarrow_over.dds",
+        "/esoui/art/buttons/large_downarrow_disabled.dds",
+        Addon.Locale:Get("TOOLTIP_MOVE_DISCOVERY_DOWN"),
+        function()
+            MoveSelectedDiscovery(1)
+        end
+    )
+    tab.btnMoveDiscoveryDown:SetAnchor(TOPLEFT, discBody, TOPLEFT, 478, 36)
 end
 
 function EditorSections.BuildDiscoveryInputs(tab, discBody, panelName)
     local CreateEditBox = Addon.JournalWidgets.CreateEditBoxWithBackdrop
+    local CreateCheckButton = Addon.JournalWidgets.CreateCheckButton
 
     local function SetDiscRad(radius)
         local draft = Addon.QuestRepository:GetDraft()
@@ -472,8 +526,29 @@ function EditorSections.BuildDiscoveryInputs(tab, discBody, panelName)
         SetDiscRad(radiusVal)
     end)
 
+    tab.chkDiscoveryRequired = CreateCheckButton(
+        panelName .. "_ChkDiscoveryRequired", discBody,
+        Addon.Locale:Get("CHK_OBJECTIVE_REQUIRED"),
+        function(isChecked)
+            local idx = tab.selectedDiscoveryIndex
+            if idx then
+                Addon.QuestRepository:UpdateDraftDiscoveryPoint(idx, { required = isChecked })
+            end
+        end
+    )
+    tab.chkDiscoveryRequired:SetAnchor(TOPLEFT, discBody, TOPLEFT, 232, 40)
+
+    tab.chkDiscoverySequential = CreateCheckButton(
+        panelName .. "_ChkDiscoverySequential", discBody,
+        Addon.Locale:Get("CHK_DISCOVERY_SEQUENTIAL"),
+        function(isChecked)
+            Addon.QuestRepository:UpdateDraftFields({ sequentialDiscoveries = isChecked })
+        end
+    )
+    tab.chkDiscoverySequential:SetAnchor(TOPLEFT, discBody, TOPLEFT, 2, 72)
+
     local lblDiscoveryMsg = WINDOW_MANAGER:CreateControl(panelName .. "_LblDiscoveryMsg", discBody, CT_LABEL)
-    lblDiscoveryMsg:SetAnchor(TOPLEFT, discBody, TOPLEFT, 0, 72)
+    lblDiscoveryMsg:SetAnchor(TOPLEFT, discBody, TOPLEFT, 0, 100)
     if lblDiscoveryMsg.SetFont then lblDiscoveryMsg:SetFont("ZoFontGameBold") end
     lblDiscoveryMsg:SetText(Addon.Locale:Get("LABEL_DISCOVERY_MSG"))
     tab.lblDiscoveryMsg = lblDiscoveryMsg
@@ -493,7 +568,7 @@ function EditorSections.BuildDiscoveryInputs(tab, discBody, panelName)
             end
         end
     )
-    discMsgBg:SetAnchor(TOPLEFT, discBody, TOPLEFT, 0, 94)
+    discMsgBg:SetAnchor(TOPLEFT, discBody, TOPLEFT, 0, 122)
     tab.discoveryMsgBg = discMsgBg
     tab.discoveryMsgEdit = discMsgEdit
 end
@@ -566,6 +641,7 @@ end
 
 function EditorSections.BuildDialogueInputs(tab, dlgBody, panelName)
     local CreateEditBox = Addon.JournalWidgets.CreateEditBoxWithBackdrop
+    local CreateCheckButton = Addon.JournalWidgets.CreateCheckButton
 
     local lblLastNpc = WINDOW_MANAGER:CreateControl(panelName .. "_LblLastNpc", dlgBody, CT_LABEL)
     lblLastNpc:SetDimensions(506, 22)
@@ -577,11 +653,25 @@ function EditorSections.BuildDialogueInputs(tab, dlgBody, panelName)
     lblSelectedNpc:SetDimensions(506, 22)
     lblSelectedNpc:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 4, 58)
     if lblSelectedNpc.SetFont then lblSelectedNpc:SetFont("ZoFontGameBold") end
+    if lblSelectedNpc.SetMaxLineCount then lblSelectedNpc:SetMaxLineCount(1) end
+    if lblSelectedNpc.SetWrapMode then lblSelectedNpc:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
     lblSelectedNpc:SetHidden(true)
     tab.lblSelectedNpc = lblSelectedNpc
 
+    tab.chkDialogueRequired = CreateCheckButton(
+        panelName .. "_ChkDialogueRequired", dlgBody,
+        Addon.Locale:Get("CHK_OBJECTIVE_REQUIRED"),
+        function(isChecked)
+            local idx = tab.selectedDialogueIndex
+            if idx then
+                Addon.QuestRepository:UpdateDraftDialogue(idx, { required = isChecked })
+            end
+        end
+    )
+    tab.chkDialogueRequired:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 2, 84)
+
     local lblClue = WINDOW_MANAGER:CreateControl(panelName .. "_LblInputClue", dlgBody, CT_LABEL)
-    lblClue:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 88)
+    lblClue:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 112)
     if lblClue.SetFont then lblClue:SetFont("ZoFontGameBold") end
     lblClue:SetText(Addon.Locale:Get("LABEL_INPUT_CLUE"))
     tab.lblInputClue = lblClue
@@ -596,12 +686,12 @@ function EditorSections.BuildDialogueInputs(tab, dlgBody, panelName)
             end
         end
     )
-    clueBg:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 110)
+    clueBg:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 134)
     tab.clueBg = clueBg
     tab.clueEdit = clueEdit
 
     local lblDlgResponse = WINDOW_MANAGER:CreateControl(panelName .. "_LblDlgResponse", dlgBody, CT_LABEL)
-    lblDlgResponse:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 150)
+    lblDlgResponse:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 174)
     if lblDlgResponse.SetFont then lblDlgResponse:SetFont("ZoFontGameBold") end
     lblDlgResponse:SetText(Addon.Locale:Get("LABEL_DIALOGUE_RESPONSE"))
     tab.lblDlgResponse = lblDlgResponse
@@ -616,13 +706,13 @@ function EditorSections.BuildDialogueInputs(tab, dlgBody, panelName)
             end
         end
     )
-    dlgResponseBg:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 172)
+    dlgResponseBg:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 0, 196)
     tab.dlgResponseBg = dlgResponseBg
     tab.dlgResponseEdit = dlgResponseEdit
 
     local lblCapturedDialogues = WINDOW_MANAGER:CreateControl(panelName .. "_LblCapturedDialogues", dlgBody, CT_LABEL)
-    lblCapturedDialogues:SetDimensions(510, 28)
-    lblCapturedDialogues:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 4, 232)
+    lblCapturedDialogues:SetDimensions(506, 40)
+    lblCapturedDialogues:SetAnchor(TOPLEFT, dlgBody, TOPLEFT, 4, 256)
     if lblCapturedDialogues.SetFont then lblCapturedDialogues:SetFont("ZoFontGame") end
     tab.lblCapturedDialogues = lblCapturedDialogues
 end

@@ -19,6 +19,12 @@
             <Action name="FURYGMT_RECRUIT_NEXT">
                 <Down>FurysGuildToolset.Recruit.KeyNext()</Down>
             </Action>
+            <Action name="FURYGMT_RECRUIT_NEXTAD">
+                <Down>FurysGuildToolset.Recruit.KeyNextAd()</Down>
+            </Action>
+            <Action name="FURYGMT_CONGRATS">
+                <Down>FurysGuildToolset.Milestones.KeyCongrats()</Down>
+            </Action>
         </Category>
     </Layer>
 </Bindings>

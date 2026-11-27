@@ -33,7 +33,7 @@ function Wayfinder.InitSettings()
 		name               = "|cD9A441Wayfinder|r",
 		displayName        = "|cD9A441Wayfinder|r",
 		author             = "|cFF77CCKanashiReinkyatto|r",
-		version            = "1.1",
+		version            = "1.2.0",
 		slashCommand       = "/wayfinder",
 		registerForRefresh = true,
 	}
@@ -76,13 +76,12 @@ function Wayfinder.InitSettings()
 				{
 					type    = "slider",
 					name    = "Update interval (seconds)",
-					tooltip = "How often the list is refreshed while the map is open. Lowering this value can affect performance on lower-end systems.",
+					tooltip = "How often the addon rescans your group/friends/guilds for this list, including while hovering pins on the map. Lowering this value can affect performance on lower-end systems.",
 					min     = 1,
 					max     = 30,
 					step    = 1,
 					getFunc = function() return Wayfinder.SV.mapButtonPollIntervalSec end,
 					setFunc = function(v) Wayfinder.SV.mapButtonPollIntervalSec = v end,
-					disabled = function() return not Wayfinder.SV.enableMapButton end,
 				},
 				{
 					type    = "checkbox",

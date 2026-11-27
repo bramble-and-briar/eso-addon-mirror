@@ -1,8 +1,8 @@
 ## Title: High Achiever
 ## Description: Shows the achievements for wherever you are. Arrive in a zone, delve, dungeon or trial and a panel tells you how many achievements this character has done there, which one is closest, and which ones give a title, dye, mount, pet or other reward. Open it from Settings > Add-Ons > High Achiever: every achievement here sorted closest first with its progress and next step, a rewards list and what you've already done. Press X to pin one to the game's on-screen tracker. Find it useful? Gold donations by in-game mail to @DextrousDigits (Xbox NA or EU) are very welcome.
 ## Author: DextrousDigits
-## Version: 0.1.0
-## AddOnVersion: 1
+## Version: 0.2.0
+## AddOnVersion: 2
 ## APIVersion: 101051
 ## SavedVariables: ESOCHighAchiever_SV
 ## DependsOn: LibHarvensAddonSettings

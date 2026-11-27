@@ -1,0 +1,58 @@
+<GuiXml>
+    <Controls>
+        <!-- 1.34.0 Raffle draw show: countdown, spinning names, winner reveal. Shown only when
+             "Draw show" is ticked in the raffle settings. Drag to move; Esc or X closes it. -->
+        <TopLevelControl name="FurysGuildToolset_RaffleShow" hidden="true" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH">
+            <Dimensions x="760" y="400" />
+            <Anchor point="CENTER" offsetY="-80" />
+            <OnHide>FurysGuildToolset.Raffle:ShowClosed()</OnHide>
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="0F0E1F" edgeColor="4A3D99" alpha="1">
+                    <AnchorFill />
+                    <Edge edgeSize="2" />
+                </Backdrop>
+                <Texture name="$(parent)Bar" color="F2C94C">
+                    <Dimensions y="5" />
+                    <Anchor point="TOPLEFT" offsetX="6" offsetY="6" />
+                    <Anchor point="TOPRIGHT" offsetX="-6" offsetY="6" />
+                </Texture>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-12" offsetY="18" />
+                    <OnClicked>FurysGuildToolset.Raffle:HideShow()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Close (Esc). Winners not shown yet are printed in your chat.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Title" font="$(ANTIQUE_FONT)|30|soft-shadow-thick" color="A08CFF" horizontalAlignment="CENTER">
+                    <Dimensions x="680" />
+                    <Anchor point="TOP" offsetY="22" />
+                </Label>
+                <Label name="$(parent)Prize" font="ZoFontWinH3" color="B4B0D8" horizontalAlignment="CENTER">
+                    <Dimensions x="700" />
+                    <Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetY="8" />
+                </Label>
+                <Label name="$(parent)Big" font="$(ANTIQUE_FONT)|64|soft-shadow-thick" color="F2C94C" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                    <Dimensions x="720" y="120" />
+                    <Anchor point="TOP" relativeTo="$(parent)Prize" relativePoint="BOTTOM" offsetY="14" />
+                </Label>
+                <Label name="$(parent)Sub" font="ZoFontWinH2" color="ECEAF8" horizontalAlignment="CENTER">
+                    <Dimensions x="700" />
+                    <Anchor point="TOP" relativeTo="$(parent)Big" relativePoint="BOTTOM" offsetY="6" />
+                </Label>
+                <Button name="$(parent)Next" inherits="ZO_DefaultButton" text="Next winner" hidden="true">
+                    <Dimensions x="180" y="30" />
+                    <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOM" offsetX="-6" offsetY="-22" />
+                    <OnClicked>FurysGuildToolset.Raffle:ShowNext()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Starts the countdown for the next winner.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
+                <Button name="$(parent)Done" inherits="ZO_DefaultButton" text="Close" hidden="true">
+                    <Dimensions x="180" y="30" />
+                    <Anchor point="BOTTOMLEFT" relativePoint="BOTTOM" offsetX="6" offsetY="-22" />
+                    <OnClicked>FurysGuildToolset.Raffle:HideShow()</OnClicked>
+                    <OnMouseEnter>FurysGuildToolset.Report.ShowTip(self, "Closes the draw show (Esc does the same). The winners stay on the Raffle tab.")</OnMouseEnter>
+                    <OnMouseExit>FurysGuildToolset.Report.HideTip()</OnMouseExit>
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

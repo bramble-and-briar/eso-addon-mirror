@@ -30,7 +30,7 @@
     "PithkaLocalizer"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4258/",
-  "fingerprint": "81155c29f5178180cfd55a1130a72eb4842adc67db1867fc762f64f2997c03c7",
+  "fingerprint": "bc04fae3fc1db5876dea7bddc06d087e5368b6752b1d4386c1abcc93e27260c3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15082.png",
     "https://cdn-eso.mmoui.com/preview/pvw15080.png",
@@ -45,11 +45,11 @@
   "source_id": "4258",
   "source_url": "https://www.esoui.com/downloads/info4258-PithkaLocalizer.html",
   "stats": {
-    "downloads": 1328,
+    "downloads": 1608,
     "favorites": 0,
-    "monthly_downloads": 64
+    "monthly_downloads": 99
   },
   "title": "Pithka Localizer",
-  "updated_at": 1781198377000,
-  "version": "4.0.2"
+  "updated_at": 1795734752000,
+  "version": "4.0.4"
 }

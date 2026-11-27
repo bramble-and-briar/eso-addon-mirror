@@ -1,7 +1,7 @@
 -- Zera UI: PC keyboard combat HUD.
 local ADDON = "ZeraUI"
 local Tracker = ZeraUITracker
-local A = { slots = {}, nativeAlpha = {}, nativeAlphaWatch = {}, nativeAlphaCount = 0, nativeWatchCount = 0, animated = {}, animCount = 0, procSlots={}, procCount = 0, loopSlots={}, loopCount = 0, pressAnims={}, pressCount = 0, togglePulses={}, togglePulseCount = 0, iconTransitions={}, iconTransCount = 0, fillSlots={}, fillCount = 0, lastSynergy = nil, hotkeys = {}, hudVisualGen = 0 }
+local A = { slots = {}, nativeAlpha = {}, nativeAlphaWatch = {}, nativeAlphaCount = 0, nativeWatchCount = 0, animated = {}, animCount = 0, procSlots={}, procCount = 0, loopSlots={}, loopCount = 0, loopExits={}, loopExitCount = 0, pressAnims={}, pressCount = 0, togglePulses={}, togglePulseCount = 0, iconTransitions={}, iconTransCount = 0, fillSlots={}, fillCount = 0, lastSynergy = nil, hotkeys = {}, hudVisualGen = 0 }
 local TWO_PI = 2 * math.pi
 local GOLD_LOOP_UV = {}
 for f=0,31 do
@@ -226,6 +226,68 @@ local function clearFlash(slot)
         paint(slot.glow,A.settings.glowColor); paint(slot.wave,A.settings.glowColor); paint(slot.burst,A.settings.glowColor); slot.whipFlash=nil
     end
     mapSet(A.animated,slot,nil,"animCount")
+    if slot.hideWhenAnimDone and not A.loopExits[slot] and not A.loopSlots[slot] then
+        slot.hideWhenAnimDone=nil
+        A:SetSlotBoxHidden(slot,true)
+    end
+end
+function A:SetSlotBoxHidden(s,hidden)
+    hidden=not not hidden
+    if s.slotBoxHidden==hidden then return end
+    s.slotBoxHidden=hidden
+    s.container:SetHidden(hidden)
+    if hidden then
+        if self.animated[s] and not s.flashExpiry then clearFlash(s) end
+        if self.skillTooltipOwner==s.container then self:ClearSkillTooltip(s.container) end
+    end
+end
+function A:SyncInactiveSlotBoxes(now)
+    if self.preview or not self.categories then return end
+    local hideIdle=self.settings.hideInactiveIdle and self.categories[2]~=nil
+    if not hideIdle then
+        for row=1,2 do
+            if self.categories[row] then
+                for i=1,5 do
+                    local s=self.slots[row][i]
+                    s.hideWhenAnimDone=nil
+                    self:SetSlotBoxHidden(s,false)
+                end
+            end
+        end
+        return
+    end
+    now=now or GetFrameTimeMilliseconds()
+    for row=1,2 do
+        local cat=self.categories[row]
+        if cat then
+            local isActive=cat==self.active
+            for i=1,5 do
+                local s=self.slots[row][i]
+                if isActive then
+                    s.hideWhenAnimDone=nil
+                    self:SetSlotBoxHidden(s,false)
+                else
+                    local hasState=s.abilityId~=nil and (s.hasActiveDisplay==true
+                        or (s.effectEnd~=nil and s.effectEnd>now)
+                        or self.loopSlots[s]~=nil
+                        or self.procSlots[s]~=nil
+                        or s.toggled==true
+                        or (s.lastCastEvent~=nil and now-s.lastCastEvent<=150))
+                    local hasAnim=s.abilityId~=nil and ((self.animated[s]~=nil and s.flashExpiry==true) or self.loopExits[s]~=nil)
+                    if hasState then
+                        s.hideWhenAnimDone=nil
+                        self:SetSlotBoxHidden(s,false)
+                    elseif hasAnim then
+                        s.hideWhenAnimDone=true
+                        self:SetSlotBoxHidden(s,false)
+                    else
+                        s.hideWhenAnimDone=nil
+                        self:SetSlotBoxHidden(s,true)
+                    end
+                end
+            end
+        end
+    end
 end
 -- Pressed-button feedback: the icon and its duration fill sink a few pixels
 -- into the frame and a pale bevel fades out (about 200 ms). Geometry is only
@@ -314,16 +376,26 @@ local function makeSlot(parent,x,y)
     s.proc:SetHidden(true)
     s.toggleGlow=texture(p,PATH.."toggleglow.dds",SIZE,SIZE,0,0,6)
     s.toggleGlow:SetHidden(true)
-    -- Solid gold edge under the travelling loop light: makes the warning
-    -- readable at a glance instead of a thin moving highlight only.
-    -- Two stacked glow lines give a thick border that glows outward and
-    -- leaves the icon itself untinted.
-    s.goldBase=texture(p,PATH.."glow.dds",SIZE+34,SIZE+34,-17,-17,6)
-    s.goldBase:SetColor(1,.76,.22,1); s.goldBase:SetHidden(true)
-    s.goldBase2=texture(p,PATH.."glow.dds",SIZE+30,SIZE+30,-15,-15,6)
-    s.goldBase2:SetColor(1,.76,.22,1); s.goldBase2:SetHidden(true)
-    s.goldLoop=texture(p,PATH.."goldloop.dds",82,82,-9,-9,7)
-    s.goldLoop:SetTextureCoords(0,1/8,0,1/4); s.goldLoop:SetHidden(true)
+    -- Champagne-gold loop (radiant bezel + burning inner wash + soft outer aura
+    -- + bold protruding white-gold linear streak on the bezel), paired with
+    -- rounded DL_OVERLAY entry-slam / giant exit-shockwave rings and an additive icon flash.
+    local uv0=GOLD_LOOP_UV[0]
+    s.goldLoop=texture(p,PATH.."goldloop.dds",SIZE+40,SIZE+40,-20,-20,7)
+    s.goldLoop:SetTextureCoords(uv0[1],uv0[2],uv0[3],uv0[4]); s.goldLoop:SetHidden(true)
+    s.goldLoopSize=SIZE+40
+    s.goldSnap=texture(p,PATH.."goldsnap.dds",SIZE+40,SIZE+40,0,0,6)
+    s.goldSnap:SetDrawLayer(DL_OVERLAY or DL_CONTROLS)
+    s.goldSnap:ClearAnchors(); s.goldSnap:SetAnchor(CENTER,p,TOPLEFT,SIZE/2,SIZE/2)
+    s.goldSnap:SetHidden(true)
+    local exitSize=math.floor(SIZE*95/64+.5)
+    s.goldExit=texture(p,PATH.."goldexit.dds",exitSize,exitSize,0,0,7)
+    s.goldExit:SetDrawLayer(DL_OVERLAY or DL_CONTROLS)
+    s.goldExit:ClearAnchors(); s.goldExit:SetAnchor(CENTER,p,TOPLEFT,SIZE/2,SIZE/2)
+    s.goldExit:SetHidden(true)
+    s.goldExitSize=exitSize
+    s.goldFlash=texture(p,PATH.."goldflash.dds",INNER,INNER,INSET,INSET,8)
+    s.goldFlash:SetColor(1,.99,.97,1); s.goldFlash:SetAlpha(0); s.goldFlash:SetHidden(true)
+    if TEX_BLEND_MODE_ADD and s.goldFlash.SetBlendMode then s.goldFlash:SetBlendMode(TEX_BLEND_MODE_ADD) end
     -- Pale bevel shown while the button is pressed in.
     s.pressRing=texture(p,PATH.."procglow.dds",SIZE+10,SIZE+10,-5,-5,8)
     s.pressRing:SetColor(.95,.90,.76,1); s.pressRing:SetAlpha(0); s.pressRing:SetHidden(true)
@@ -812,7 +884,7 @@ function A:BindSkillTooltip(control,slot,category)
     control:SetMouseEnabled(false)
     control:SetHandler("OnMouseEnter",function(c) self:ShowSkillTooltip(c) end)
     control:SetHandler("OnMouseExit",function(c) self:ClearSkillTooltip(c) end)
-    control:SetHandler("OnHide",function(c) self:ClearSkillTooltip(c) end)
+    control:SetHandler("OnEffectivelyHidden",function(c) self:ClearSkillTooltip(c) end)
 end
 function A:SyncSkillTooltips()
     if not self.skillTooltipControls then return end
@@ -896,7 +968,8 @@ function A:ApplyVisibility(sceneOnly)
         -- Slot changes coalesced while the HUD was hidden (skills window).
         if self.slotRefreshPending and not self.preview then self:RefreshSlots(true) end
         self:ResetExpiryState()
-        if self.preview then self:UpdatePreview() end
+        if self.preview then self:UpdatePreview()
+        elseif self.settings.hideInactiveIdle then self:SyncInactiveSlotBoxes() end
         self.updating = true
         self:SyncWerewolfMode()
         self:RefreshSynergy()
@@ -955,11 +1028,13 @@ function A:ResetExpiryState()
         slot.appearanceDirty=true
         slot.expiryActive={}
         slot.whipTimerKind=nil
+        slot.hideWhenAnimDone=nil
+        if not self.preview then slot.hasActiveDisplay=nil end
         if slot.whipFlash then clearFlash(slot) end
-        if slot.goldLoop then slot.goldLoop:SetAlpha(1) end
-        if slot.goldLoop then self:SetGoldLoop(slot,false) end
+        if slot.goldLoop then self:SetGoldLoop(slot,false); slot.goldLoop:SetAlpha(1) end
         if slot.timer and not slot.abilityId and not self.preview then clearEmptySlot(self,slot) end
     end end
+    if not self.preview and not self.settings.hideInactiveIdle then self:SyncInactiveSlotBoxes() end
 end
 function A:ResetCorpseState()
     for _,row in ipairs(self.slots) do for _,slot in ipairs(row) do slot.corpseBlocked=nil; slot.targetBlocked=nil; slot.targetBlockReason=nil; slot.resourceBlocked=nil; slot.requirementBlocked=nil; slot.appearanceHasStack=nil; slot.appearanceDirty=true end end
@@ -982,7 +1057,7 @@ end
 function A:StyleIcon(slot,desaturation,alpha,instant)
     if slot.desatTarget==desaturation and slot.alphaTarget==alpha and not (instant and self.iconTransitions[slot]) and (self.settings.swapFade and self.settings.animations or not self.iconTransitions[slot]) then return end
     slot.desatTarget,slot.alphaTarget=desaturation,alpha
-    if instant or not self.settings.swapFade or not self.settings.animations or slot.desatNow==nil then
+    if instant or slot.slotBoxHidden or not self.settings.swapFade or not self.settings.animations or slot.desatNow==nil then
         slot.desatNow,slot.alphaNow=desaturation,alpha
         slot.icon:SetDesaturation(desaturation); slot.icon:SetAlpha(alpha); mapSet(self.iconTransitions,slot,nil,"iconTransCount")
     else
@@ -1304,10 +1379,12 @@ function A:UpdateSlotAppearance(s,slot,category,now,sample)
     self:StyleIcon(s,disabled and 1 or (active and 0 or self.settings.inactiveDesaturation),
         disabled and self.settings.unavailableAlpha or (active and 1 or self.settings.inactiveAlpha),changed or self.swapPending~=nil)
     if disabled and changed then
-        -- A real cast may consume the last corpse. Allow that confirmed cast
-        -- to finish its flash, but do not flash a blocked press or expiry.
-        if not s.lastCastEvent or GetFrameTimeMilliseconds()-s.lastCastEvent>self.settings.pressMs then clearFlash(s) end
-        self:SetProc(s,false); self:SetGoldLoop(s,false); if not s.fillHidden then s.fillHidden=true; s.fill:SetHidden(true) end; mapSet(self.fillSlots,s,nil,"fillCount")
+        -- A real cast may consume the last corpse or Bound Armaments stacks.
+        -- Allow that confirmed cast to finish its flash / golden loop exit,
+        -- but do not animate a blocked press or expiry.
+        local recentCast=s.lastCastEvent and now-s.lastCastEvent<=750 or false
+        if not s.lastCastEvent or now-s.lastCastEvent>self.settings.pressMs then clearFlash(s) end
+        self:SetProc(s,false); self:SetGoldLoop(s,false,active and recentCast or false); if not s.fillHidden then s.fillHidden=true; s.fill:SetHidden(true) end; mapSet(self.fillSlots,s,nil,"fillCount")
     end
 end
 -- Skill tooltip durations are read only when a binding changes or a cast is
@@ -1349,6 +1426,7 @@ function A:RefreshBarPresentation()
             if category~=self.active and not self:SkillOption(s,"loopInactive") then self:SetGoldLoop(s,false) end
         end
     end
+    if self.settings.hideInactiveIdle then self:SyncInactiveSlotBoxes() end
     setIcon(self.ultimate,8,self.active)
     setIcon(self.secondary,8,self.otherCategory)
     local hovered=self.skillTooltipOwner
@@ -1448,7 +1526,11 @@ function A:RefreshSlot(s,i,category,force,settled,verifyOnly)
         self.tracker:ObservePowerLashSlot(i+2,category,GetFrameTimeMilliseconds(),category==self.active,raw or 0)
     end
     if rebound~=false or s.appearanceDirty or (settled and category==self.active) then
-        if rebound~=false then s.container:SetHidden(false) end
+        if rebound~=false then
+            local hideInactive=self.settings.hideInactiveIdle and self.categories and self.categories[2]~=nil and category~=self.active
+            if not hideInactive then s.hideWhenAnimDone=nil; self:SetSlotBoxHidden(s,false)
+            elseif not s.abilityId then s.hasActiveDisplay=false; s.hideWhenAnimDone=nil; self:SetSlotBoxHidden(s,true) end
+        end
         self:UpdateSlotAppearance(s,i+2,category)
         if category~=self.active and not self:SkillOption(s,"loopInactive") then self:SetGoldLoop(s,false) end
     end
@@ -1525,7 +1607,7 @@ function A:RefreshSlots(deferBindings,snapshot)
                     if self:RefreshSlot(s,i,category,force or rankAffected(s),settled,verifyList and not marked) then bindingsUpdated=true
                     elseif modifierDirty then self:CacheSkillDuration(s) end
                 end
-            else s.container:SetHidden(true); mapSet(self.fillSlots,s,nil,"fillCount"); mapSet(self.iconTransitions,s,nil,"iconTransCount"); s.desatTarget=nil; s.track=nil; s.trackKey=nil; s.skillDuration=nil; s.corpseBlocked=nil; s.targetBlocked=nil; s.targetBlockReason=nil; s.resourceBlocked=nil; s.requirementBlocked=nil; s.appearanceHasStack=nil; s.boundCategory=nil; s.boundRaw=nil; s.targetKind=nil; s.expiryActive={}; s.timerWholeSec=nil; s.timerTextMode=nil; s.stackCacheGen=nil; s.auxCacheValue=nil; s.skillOptGen=nil; s.lastTargetCountGen=nil; self:SetProc(s,false); self:SetGoldLoop(s,false); self:SetToggle(s,false) end
+            else self:SetSlotBoxHidden(s,true); s.hideWhenAnimDone=nil; s.hasActiveDisplay=nil; mapSet(self.fillSlots,s,nil,"fillCount"); mapSet(self.iconTransitions,s,nil,"iconTransCount"); s.desatTarget=nil; s.track=nil; s.trackKey=nil; s.skillDuration=nil; s.corpseBlocked=nil; s.targetBlocked=nil; s.targetBlockReason=nil; s.resourceBlocked=nil; s.requirementBlocked=nil; s.appearanceHasStack=nil; s.boundCategory=nil; s.boundRaw=nil; s.targetKind=nil; s.expiryActive={}; s.timerWholeSec=nil; s.timerTextMode=nil; s.stackCacheGen=nil; s.auxCacheValue=nil; s.skillOptGen=nil; s.lastTargetCountGen=nil; self:SetProc(s,false); self:SetGoldLoop(s,false); self:SetToggle(s,false) end
         end
         local state=self.slots[row][6]
         if category then
@@ -1580,6 +1662,7 @@ function A:RefreshSlots(deferBindings,snapshot)
     end
     self:RefreshQuickslotBinding()
     if not self.swapPending and self.externalIconsPending then self:RefreshExternalIcons() end
+    if force and self.settings.hideInactiveIdle then self:SyncInactiveSlotBoxes() end
     -- A weapon swap or changed skill must not leave the previous slot's description.
     local hovered=self.skillTooltipOwner
     if hovered then
@@ -1815,7 +1898,7 @@ function A:PressedSlot(slot)
     target.lastPress=now
     if slot<8 then startPress(target) end
     if target.lastCastEvent and now-target.lastCastEvent<90 then return end
-    flash(target)
+    if not (slot<8 and self.loopSlots[target]) then flash(target) end
 end
 function A:OnCast(slot)
     if not self.settings.enabled or self.preview then return end
@@ -1853,9 +1936,17 @@ function A:OnCast(slot)
         self:CacheSkillDuration(trackingSlot)
         self.tracker:OnCast(trackingSlot,now)
     end
+    -- Consuming an instant-cast Crystal Fragments proc or stack-ready bow/dagger
+    -- skill (Merciless Resolve / Relentless Focus / Bound Armaments) exits the
+    -- golden loop immediately at 0 ms with the giant 2.22x outward ring shockwave.
+    local consumedGoldLoop=slot<8 and trackingSlot.abilityKey==abilityKey and self.loopSlots[target]~=nil and (trackingSlot.fragProc or trackingSlot.stackReadyAt~=nil)
+    if consumedGoldLoop then
+        if self.procSlots[target] and not self.tracker:ProcActive(trackingSlot,now) then self:SetProc(target,false) end
+        self:SetGoldLoop(target,false,true)
+    end
     -- A successful cast must not restart the animation already started on key down.
     if not target.lastPress or now-target.lastPress>500 then
-        flash(target)
+        if not consumedGoldLoop and not (slot<8 and self.loopSlots[target]) then flash(target) end
         if slot<8 then startPress(target) end
     end
     target.lastCastEvent=now
@@ -1974,27 +2065,72 @@ end
 -- Golden fade-out for widget tiles (set HUD): the action bar's expiry flash.
 function A:FlashWidget(w) flash(w,true) end
 -- Also drives set widget tiles, which have no proc highlight (slot.proc).
-function A:SetGoldLoop(slot,active)
+function A.ClearGoldFx(_,slot,hideSnap)
+    if slot.goldExit and slot.goldExitShown then slot.goldExit:SetHidden(true); slot.goldExit:SetAlpha(0); slot.goldExitShown=false; slot.goldExitDim=nil; slot.goldExitAlpha=0 end
+    if hideSnap and slot.goldSnap and slot.goldSnapShown then slot.goldSnap:SetHidden(true); slot.goldSnap:SetAlpha(0); slot.goldSnapShown=false; slot.goldSnapDim=nil; slot.goldSnapAlpha=0 end
+    if slot.goldFlash and slot.goldFlashShown then slot.goldFlash:SetHidden(true); slot.goldFlash:SetAlpha(0); slot.goldFlashShown=false; slot.goldFlashHold=nil end
+end
+function A:SetGoldLoop(slot,active,playExit)
     if active then
+        if self.loopExits[slot] then
+            mapSet(self.loopExits,slot,nil,"loopExitCount")
+            self:ClearGoldFx(slot,true)
+        end
         if not self.loopSlots[slot] then
-            mapSet(self.loopSlots,slot,GetFrameTimeMilliseconds(),"loopCount"); slot.loopFrame=nil
-            slot.goldLoop:SetTextureCoords(0,1/8,0,1/4)
-            slot.goldLoop:SetHidden(false); if slot.proc then slot.proc:SetHidden(true) end
-            if slot.goldBase then slot.goldBase:SetHidden(false); slot.goldBase2:SetHidden(false); slot.goldBaseAlpha=nil end
+            mapSet(self.loopSlots,slot,GetFrameTimeMilliseconds(),"loopCount")
+            slot.loopFrame=nil; slot.loopAlpha=nil; slot.loopEntryDone=nil
+            local uv0=GOLD_LOOP_UV[0]
+            slot.goldLoop:SetTextureCoords(uv0[1],uv0[2],uv0[3],uv0[4])
+            if slot.proc then slot.proc:SetHidden(true) end
+            if self.preview or not self.updating or not (slot.goldSnap and slot.goldFlash) then
+                slot.loopEntryDone=true; slot.goldLoopShown=true
+                slot.goldLoop:SetAlpha(1); slot.goldLoop:SetHidden(false)
+            else
+                -- Entry ignition: 0-60 ms radiant white icon burst + 28-155 ms rounded
+                -- DL_OVERLAY frame slamming inward (1.46x -> 1.00x) at full brightness into impact flare.
+                slot.goldLoop:SetAlpha(0); slot.goldLoop:SetHidden(true); slot.goldLoopShown=false
+                slot.goldFlash:SetColor(1,.99,.97,1); slot.goldFlash:SetAlpha(.98); slot.goldFlash:SetHidden(false)
+                slot.goldFlashShown=true; slot.goldFlashHold=true
+                local startDim=math.floor((slot.goldLoopSize or (SIZE+40))*1.46+.5)
+                slot.goldSnap:SetDimensions(startDim,startDim); slot.goldSnap:SetAlpha(0); slot.goldSnap:SetHidden(true)
+                slot.goldSnapDim=startDim; slot.goldSnapShown=false; slot.goldSnapAlpha=0
+            end
         end
     elseif self.loopSlots[slot] then
-        mapSet(self.loopSlots,slot,nil,"loopCount"); slot.goldLoop:SetHidden(true)
-        if slot.goldBase then slot.goldBase:SetHidden(true); slot.goldBase2:SetHidden(true) end
-        if slot.proc then slot.proc:SetHidden(not self.procSlots[slot]) end; slot.loopFrame=nil
+        mapSet(self.loopSlots,slot,nil,"loopCount")
+        if slot.proc then slot.proc:SetHidden(not self.procSlots[slot]) end
+        slot.loopFrame=nil; slot.loopAlpha=nil; slot.loopEntryDone=nil
+        if slot.goldSnap and slot.goldSnapShown then slot.goldSnap:SetHidden(true); slot.goldSnap:SetAlpha(0); slot.goldSnapShown=false; slot.goldSnapDim=nil; slot.goldSnapAlpha=0 end
+        if playExit and self.settings.animations and self.updating and not self.preview and slot.goldExit and slot.goldFlash then
+            -- Exit burst when a golden-loop skill is used: replace overlapping press
+            -- wave with a 340 ms giant rounded DL_OVERLAY ring (1.00x -> 2.22x) flying
+            -- over neighboring slots while residual bezel glow + icon flash fade out.
+            mapSet(self.loopExits,slot,GetFrameTimeMilliseconds(),"loopExitCount")
+            if self.animated[slot] then clearFlash(slot) end
+            slot.goldLoop:SetAlpha(.90); slot.goldLoop:SetHidden(false); slot.goldLoopShown=true
+            local baseExit=slot.goldExitSize or math.floor(SIZE*95/64+.5)
+            slot.goldExit:SetDimensions(baseExit,baseExit); slot.goldExit:SetAlpha(1); slot.goldExit:SetHidden(false)
+            slot.goldExitDim=baseExit; slot.goldExitShown=true; slot.goldExitAlpha=1
+            slot.goldFlash:SetColor(1,.97,.86,1); slot.goldFlash:SetAlpha(.98); slot.goldFlash:SetHidden(false)
+            slot.goldFlashShown=true; slot.goldFlashHold=true
+        else
+            slot.goldLoop:SetHidden(true); slot.goldLoop:SetAlpha(1); slot.goldLoopShown=false
+            if self.loopExits[slot] then mapSet(self.loopExits,slot,nil,"loopExitCount") end
+            self:ClearGoldFx(slot,false)
+        end
+    elseif not playExit and self.loopExits[slot] then
+        mapSet(self.loopExits,slot,nil,"loopExitCount")
+        slot.goldLoop:SetHidden(true); slot.goldLoop:SetAlpha(1); slot.goldLoopShown=false
+        self:ClearGoldFx(slot,true)
     end
 end
-function A:SkillLoopReady(s,stack,loopT,nw,whipKind,cat,active)
+function A:SkillLoopReady(s,stack,loopT,nw,whipKind,cat,active,procReady)
     if whipKind=="balance" or whipKind=="immune" or whipKind=="cooldown" or s.noExpiryGlow or not self.settings.animations or
         s.toggleGroup=="banner" or s.unavailable or s.iconHidden then return false end
     syncSlotOptions(s)
     if cat~=active and not s.optLoopInactive then return false end
-    -- Power Lash: the golden loop for as long as its charges last.
-    if whipKind=="charges" then return true end
+    -- Power Lash charges and Crystal Fragments instant-cast proc light the golden loop.
+    if whipKind=="charges" or procReady then return true end
     if s.stackReadyAt then
         return not nw and not s.isCharge and stack>=s.stackReadyAt
     end
@@ -2468,6 +2604,7 @@ function A:ShowTargetCount(slot,value)
     end
 end
 function A:AuxiliaryCount(slot,value)
+    value=value or ""
     if slot.auxCacheValue==value and slot.auxCacheGen==self.hudVisualGen and slot.auxCacheFontGen==self.fontGeneration then return end
     local landslide=value:sub(1,2)=="L:" and value:match("^L:(%d+)$") or nil
     if landslide then self:EnsureLandslide(slot) end
@@ -2692,6 +2829,7 @@ function A:UpdateSkillTimers(now,active)
     local decSec=cfg.decimalSeconds
     local hudGen,fontGen=self.hudVisualGen,self.fontGeneration
     local studioTest=self.studioTest
+    local hideIdle=cfg.hideInactiveIdle and not self.preview and self.categories[2]~=nil
     for row=1,2 do
         local cat=self.categories[row]
         if cat then for i=1,5 do
@@ -2699,6 +2837,11 @@ function A:UpdateSkillTimers(now,active)
             local s=self.slots[row][i]
             if not s.abilityId then
                 if s.appearanceDirty then self:UpdateSlotAppearance(s,slot,cat,now,sample) end
+                if hideIdle then
+                    s.hasActiveDisplay=false; s.hideWhenAnimDone=nil
+                    local hide=cat~=active
+                    if s.slotBoxHidden~=hide then self:SetSlotBoxHidden(s,hide) end
+                end
             else
             -- Reticle validity remains responsive on the active row even when
             -- a native event is missing (e.g. death or attackability change).
@@ -2860,10 +3003,13 @@ function A:UpdateSkillTimers(now,active)
             if stack~=0 or s.stackCacheCount~=0 or s.stackCacheGen~=hudGen or s.stackCacheFontGen~=fontGen then
                 setStack(s,stack)
             end
+            local auxVisible=false
             if s.landslideSlot or s.externalCountEffect or s.landslideLabel or s.auxCount then
                 -- Previously allocated badges must still receive an empty
                 -- value when settings/skill bindings disable their source.
-                self:AuxiliaryCount(s,tracker:AuxCount(s,now))
+                local aux=tracker:AuxCount(s,now)
+                self:AuxiliaryCount(s,aux)
+                auxVisible=aux~=nil and aux~=""
             end
             local targets=tracker.targetsEnabled and s.targetEffect and not s.groundNoTargetCount and s.toggleGroup~="banner" and whipKind~="charges" and tracker:TargetCount(s,now) or 0
             local targetVal=(targets>1 or (targets==1 and (s.topRightTimer or cfg.showSingleTarget or (s.groupBuffCount and cfg.showSingleGroupBuff)))) and targets or 0
@@ -2878,15 +3024,24 @@ function A:UpdateSkillTimers(now,active)
             -- is handled by the existing one-shot expiry flash.
             -- A phase chain warns for its last phase, not each promotion.
             local loopT=s.chain and seconds(tracker:ChainRemaining(s,now)) or t
+            local fragReady=s.fragProc and procActive or false
             local loop=false
             if cfg.animations and not toggled and not s.unavailable and not s.iconHidden and not s.noExpiryGlow
                 and s.toggleGroup~="banner" and whipKind~="balance" and whipKind~="immune" and whipKind~="cooldown"
-                and (loopT>0 or stack>0 or whipKind=="charges") then
-                loop=self:SkillLoopReady(s,stack,loopT,nw,whipKind,cat,active)
+                and (loopT>0 or stack>0 or whipKind=="charges" or fragReady) then
+                loop=self:SkillLoopReady(s,stack,loopT,nw,whipKind,cat,active,fragReady)
             end
             local nwWarn=nw and cfg.animations and cfg.nwWarning and not s.iconHidden and nwLeft>0 and nwLeft<=cfg.nwWarnSeconds*1000
             local showLoop=loop or nwWarn
-            if showLoop or self.loopSlots[s] then self:SetGoldLoop(s,showLoop) end
+            if showLoop and self.loopExits[s] and s.lastCastEvent and now-s.lastCastEvent<=340 then showLoop=false end
+            if showLoop or self.loopSlots[s] then
+                if not showLoop and self.loopSlots[s]~=nil and cat~=active then syncSlotOptions(s) end
+                local exitAnim=not showLoop and self.loopSlots[s]~=nil and not self.preview and self.updating and cfg.animations
+                    and not s.iconHidden and (cat==active or s.optLoopInactive)
+                    and (s.lastCastEvent and now-s.lastCastEvent<=750) or false
+                self:SetGoldLoop(s,showLoop,exitAnim)
+            end
+            local extraVisible=false
             for index=2,3 do
                 local label=s.extraTimers[index]
                 -- A hidden, already cleared corner without a configured or
@@ -2905,6 +3060,7 @@ function A:UpdateSkillTimers(now,active)
                 if whipKind=="charges" or index==promoted then left=0 end
                 if index==nwIndex then left,extraDuration,approx=nwLeft,nil,false end
                 local visible=phase~=nil and phase~=false or (left and left>0 or false)
+                if visible then extraVisible=true end
                 if index~=nwIndex and s.expiryActive[index] and not visible then expired=true end
                 -- A chain's next phase moving to the centre is not an expiry.
                 s.expiryActive[index]=index~=nwIndex and visible and not s.chain and index~=promote
@@ -2944,13 +3100,35 @@ function A:UpdateSkillTimers(now,active)
                 end
                 end
             end
+            local passiveVisible=false
             if s.vampirePassiveSlot or s.arcanistPassiveSlot or s.passiveBadges then
                 local left,span,extra,extraSpan,kind=tracker:GetPassiveBadges(s,now)
                 self:ShowPassiveBadges(s,left,span,extra,extraSpan,kind)
+                passiveVisible=(left and left>0) or (extra and extra>0) or false
             end
             -- Transition only: refreshes, empty slots, bar swaps and rule edits
             -- never continuously trigger expiry glow.
             if expired and self.updating and not s.unavailable and s.toggleGroup~="banner" and not s.noExpiryGlow and whipKind~="balance" and whipKind~="immune" and whipKind~="cooldown" and not s.focusRequired and not s.stackReadyAt then flash(s,true) end
+            if hideIdle then
+                local stackVisible=stack>0 and (s.isCharge and cfg.showCharges or not s.isCharge and cfg.showStacks) or false
+                local hasDisplay=(remain>0 or extraVisible or stackVisible or toggled or showProc or showLoop or self.loopSlots[s]~=nil or targetVal>0 or auxVisible or passiveVisible or testing or (cat~=active and s.lastCastEvent~=nil and now-s.lastCastEvent<=150)) and true or false
+                s.hasActiveDisplay=hasDisplay
+                if cat~=active then
+                    if hasDisplay then
+                        s.hideWhenAnimDone=nil
+                        if s.slotBoxHidden then self:SetSlotBoxHidden(s,false) end
+                    elseif (self.animated[s]~=nil and s.flashExpiry==true) or self.loopExits[s]~=nil then
+                        s.hideWhenAnimDone=true
+                        if s.slotBoxHidden then self:SetSlotBoxHidden(s,false) end
+                    else
+                        s.hideWhenAnimDone=nil
+                        if not s.slotBoxHidden then self:SetSlotBoxHidden(s,true) end
+                    end
+                else
+                    s.hideWhenAnimDone=nil
+                    if s.slotBoxHidden then self:SetSlotBoxHidden(s,false) end
+                end
+            end
             end
         end end
     end
@@ -3201,16 +3379,121 @@ function A:Render(now)
         for slot,start in pairs(self.loopSlots) do
             local elapsed=now-start
             if elapsed<0 then elapsed=0 end
-            local frame=math.floor((elapsed%period)*32/period)
-            if slot.loopFrame~=frame then
-                local uv=GOLD_LOOP_UV[frame]
-                slot.goldLoop:SetTextureCoords(uv[1],uv[2],uv[3],uv[4])
-                slot.loopFrame=frame
-                if slot.goldBase then
-                    -- Gentle breathing in step with the loop, sampled on each
-                    -- of its 32 sprite frames rather than on every game frame.
-                    local a=math.floor((.78+.22*math.cos(elapsed*TWO_PI/breathDenom))*40+.5)/40
-                    if slot.goldBaseAlpha~=a then slot.goldBase:SetAlpha(a); slot.goldBase2:SetAlpha(a*.8); slot.goldBaseAlpha=a end
+            if not slot.loopEntryDone then
+                -- Phase 1 (0..260 ms): radiant additive white-to-gold icon ignition burst.
+                if slot.goldFlash then
+                    if elapsed<260 then
+                        if not slot.goldFlashShown then slot.goldFlash:SetHidden(false); slot.goldFlashShown=true end
+                        if elapsed<60 then
+                            if not slot.goldFlashHold then slot.goldFlash:SetColor(1,.99,.97,1); slot.goldFlash:SetAlpha(.98); slot.goldFlashHold=true end
+                        else
+                            local p=(elapsed-60)/200
+                            slot.goldFlashHold=false
+                            slot.goldFlash:SetColor(1,.99-.14*p,.97-.50*p,1)
+                            slot.goldFlash:SetAlpha(.98*(1-p)^1.65)
+                        end
+                    elseif slot.goldFlashShown then
+                        slot.goldFlash:SetHidden(true); slot.goldFlash:SetAlpha(0); slot.goldFlashShown=false; slot.goldFlashHold=nil
+                    end
+                end
+                -- Phase 2 (28..220 ms): rounded DL_OVERLAY champagne frame slamming inward (1.46x -> 1.00x)
+                -- at full brightness until impact at 155 ms, then settling with impact flare.
+                if slot.goldSnap then
+                    if elapsed>=28 and elapsed<220 then
+                        local baseSize=slot.goldLoopSize or (SIZE+40)
+                        local scale,sa
+                        if elapsed<155 then
+                            local p=(elapsed-28)/127
+                            scale=1.46-.46*(1-(1-p)^2.2)
+                            sa=elapsed<48 and (elapsed-28)/20 or 1
+                        else
+                            scale=1
+                            sa=(1-(elapsed-155)/65)*.90
+                        end
+                        local dim=math.floor(baseSize*scale+.5)
+                        if not slot.goldSnapShown then slot.goldSnap:SetHidden(false); slot.goldSnapShown=true end
+                        if slot.goldSnapDim~=dim then slot.goldSnap:SetDimensions(dim,dim); slot.goldSnapDim=dim end
+                        if slot.goldSnapAlpha~=sa then slot.goldSnap:SetAlpha(sa); slot.goldSnapAlpha=sa end
+                    elseif slot.goldSnapShown then
+                        slot.goldSnap:SetHidden(true); slot.goldSnap:SetAlpha(0); slot.goldSnapShown=false; slot.goldSnapAlpha=0
+                    end
+                end
+                -- Phase 3 (142 ms+): steady crisp champagne-gold loop locks on at slam impact.
+                if elapsed>=142 then
+                    if not slot.goldLoopShown then slot.goldLoop:SetHidden(false); slot.goldLoopShown=true end
+                    local frame=math.floor((elapsed%breathDenom)*32/breathDenom)
+                    if frame>31 then frame=31 end
+                    if slot.loopFrame~=frame then
+                        local uv=GOLD_LOOP_UV[frame]
+                        slot.goldLoop:SetTextureCoords(uv[1],uv[2],uv[3],uv[4])
+                        slot.loopFrame=frame
+                    end
+                    local la=elapsed<170 and (elapsed-142)/28 or 1
+                    local a=la*(.95+.05*math.cos(elapsed*TWO_PI/breathDenom))
+                    slot.goldLoop:SetAlpha(a); slot.loopAlpha=a
+                end
+                if elapsed>=260 then
+                    self:ClearGoldFx(slot,true)
+                    if not slot.goldLoopShown then slot.goldLoop:SetHidden(false); slot.goldLoopShown=true end
+                    slot.loopEntryDone=true; slot.loopAlpha=nil
+                end
+            else
+                local frame=math.floor((elapsed%breathDenom)*32/breathDenom)
+                if frame>31 then frame=31 end
+                if slot.loopFrame~=frame then
+                    local uv=GOLD_LOOP_UV[frame]
+                    slot.goldLoop:SetTextureCoords(uv[1],uv[2],uv[3],uv[4])
+                    slot.loopFrame=frame
+                    local a=math.floor((.95+.05*math.cos(elapsed*TWO_PI/breathDenom))*40+.5)/40
+                    if slot.loopAlpha~=a then slot.goldLoop:SetAlpha(a); slot.loopAlpha=a end
+                end
+            end
+        end
+    end
+    if self.loopExitCount>0 then
+        for slot,start in pairs(self.loopExits) do
+            local elapsed=now-start
+            if elapsed<0 then elapsed=0 end
+            if elapsed>=340 then
+                self:ClearGoldFx(slot,false)
+                if slot.goldLoop and slot.goldLoopShown then slot.goldLoop:SetHidden(true); slot.goldLoop:SetAlpha(1); slot.goldLoopShown=false end
+                mapSet(self.loopExits,slot,nil,"loopExitCount")
+                if slot.hideWhenAnimDone and not (self.animated[slot] and slot.flashExpiry) and not self.loopSlots[slot] then
+                    slot.hideWhenAnimDone=nil
+                    self:SetSlotBoxHidden(slot,true)
+                end
+            else
+                if slot.goldFlash then
+                    if elapsed<135 then
+                        if not slot.goldFlashShown then slot.goldFlash:SetHidden(false); slot.goldFlashShown=true end
+                        if elapsed<42 then
+                            if not slot.goldFlashHold then slot.goldFlash:SetColor(1,.97,.86,1); slot.goldFlash:SetAlpha(.98); slot.goldFlashHold=true end
+                        else
+                            local fp=(elapsed-42)/93
+                            slot.goldFlashHold=false
+                            slot.goldFlash:SetColor(1,.97-.14*fp,.86-.42*fp,1)
+                            slot.goldFlash:SetAlpha(.98*(1-fp)^1.65)
+                        end
+                    elseif slot.goldFlashShown then
+                        slot.goldFlash:SetHidden(true); slot.goldFlash:SetAlpha(0); slot.goldFlashShown=false; slot.goldFlashHold=nil
+                    end
+                end
+                if slot.goldLoop then
+                    if elapsed<135 then
+                        if not slot.goldLoopShown then slot.goldLoop:SetHidden(false); slot.goldLoopShown=true end
+                        slot.goldLoop:SetAlpha(.90*(1-elapsed/135)^1.45)
+                    elseif slot.goldLoopShown then
+                        slot.goldLoop:SetHidden(true); slot.goldLoop:SetAlpha(1); slot.goldLoopShown=false
+                    end
+                end
+                if slot.goldExit then
+                    local p=elapsed/340
+                    local scale=1+1.22*(1-(1-p)^2.2)
+                    local sa=p<.45 and 1 or ((1-p)/.55)^1.25
+                    local dim=math.floor((slot.goldExitSize or math.floor(SIZE*95/64+.5))*scale+.5)
+                    if not slot.goldExitShown then slot.goldExit:SetHidden(false); slot.goldExitShown=true end
+                    if slot.goldExitDim~=dim then slot.goldExit:SetDimensions(dim,dim); slot.goldExitDim=dim end
+                    if slot.goldExitAlpha~=sa then slot.goldExit:SetAlpha(sa); slot.goldExitAlpha=sa end
                 end
             end
         end
@@ -3461,7 +3744,11 @@ end
 -- Visual row order: logical rows stay bound to PRIMARY (1) and BACKUP (2) so
 -- weapon swaps never rebind slots or reset timers; only container offsets swap.
 local function visualRow(self,row)
-    if not self.preview and self.settings.activeBarOnTop and self.activeRow==2 and self.categories and self.categories[2] then
+    local pos=self.settings.activeBarPosition
+    if pos~="Top" and pos~="Bottom" then return row end
+    if not self.preview and (not self.categories or not self.categories[2]) then return row end
+    local activeRow=self.preview and 1 or self.activeRow
+    if (pos=="Top" and activeRow==2) or (pos=="Bottom" and activeRow==1) then
         return 3-row
     end
     return row
@@ -3510,7 +3797,7 @@ function A:PositionArrow()
     local w=5*s.skillSize+4*s.gapX
     local left=111+(328-w)/2+s.gridX
     local top=36+s.gridY
-    local arrowRow=self.preview and 1 or visualRow(self,self.activeRow)
+    local arrowRow=visualRow(self,self.preview and 1 or self.activeRow)
     local rowTop=top+(arrowRow-1)*(s.skillSize+s.gapY)
     reposition(self.arrow,self.root,left-17,rowTop+(s.skillSize-20)/2)
     local off=not s.showArrow or (not self.preview and self.categories and not self.categories[2])
@@ -3706,21 +3993,23 @@ function A:UpdatePreview()
     self:PositionElements()
     for r=1,2 do for i=1,5 do
         local slot=self.slots[r][i]
+        local hideSample=r==2 and self.settings.hideInactiveIdle and (i==1 or i==3) or false
         local toggleSample=r==2 and i==5
-        local sample=toggleSample and 0 or (i==2 and 2.5 or i==3 and .8 or i*3+r)
+        local sample=(toggleSample or hideSample) and 0 or (i==2 and 2.5 or i==3 and .8 or i*3+r)
         self:SetToggle(slot,toggleSample)
-        local hideFill=toggleSample or not self.settings.showFill
-        slot.container:SetHidden(false); slot.fillHidden=hideFill; slot.fill:SetHidden(hideFill)
+        local hideFill=toggleSample or hideSample or not self.settings.showFill
+        slot.hideWhenAnimDone=nil
+        self:SetSlotBoxHidden(slot,hideSample); slot.fillHidden=hideFill; slot.fill:SetHidden(hideFill)
         slot.fill:SetHeight(INNER*(.25+i*.12)); paint(slot.fill,self.settings.fillColor)
         self:StyleIcon(slot,r==2 and self.settings.inactiveDesaturation or 0,r==2 and self.settings.inactiveAlpha or 1,true)
         setText(slot.timer,timeText(sample)); setTint(slot.timer,sample)
         slot.isCharge=(r==1 and i==4)
-        setStack(slot,slot.isCharge and 2 or (i==2 and (r==1 and 3 or 2) or 0))
+        setStack(slot,hideSample and 0 or (slot.isCharge and 2 or (i==2 and (r==1 and 3 or 2) or 0)))
         self:AuxiliaryCount(slot,"")
         if slot.passiveBadges then self:ShowPassiveBadges(slot,0,0,0,0,nil) end
-        self:ShowTargetCount(slot,self.settings.showTargets and i==1 and "4" or "")
-        self:SetProc(slot,self.settings.procHighlight and i==5 and r==1)
-        self:SetGoldLoop(slot,self.settings.animations and (r==1 or self.settings.loopInactive) and not toggleSample and
+        self:ShowTargetCount(slot,self.settings.showTargets and not hideSample and i==1 and "4" or "")
+        self:SetProc(slot,self.settings.procHighlight and not hideSample and i==5 and r==1)
+        self:SetGoldLoop(slot,self.settings.animations and not hideSample and (r==1 or self.settings.loopInactive) and not toggleSample and
             ((self.settings.expiryLoop and sample>0 and sample<=self.settings.loopSeconds) or
              (self.settings.stackLoop and i==2 and 3>=self.settings.loopStacks)))
         for j=2,3 do
@@ -3784,7 +4073,7 @@ function A:ApplySettings()
     if not self.settings.enabled then self.preview=false; self.previewWasDisabled=nil end
     if self.preview then self:UpdatePreview() end
     restoreNative()
-    self:RefreshSlots(); self:RefreshSynergy(); self:ApplyVisibility()
+    self:RefreshSlots(); self:SyncInactiveSlotBoxes(); self:RefreshSynergy(); self:ApplyVisibility()
     if self.setCooldowns then self.setCooldowns:ApplyConfig() end
     if self.effectHUD then self.effectHUD:ApplyConfig() end
     self:SyncWidgetScales()
@@ -3827,7 +4116,9 @@ function A:ApplyScopedVisual(scope)
         if self.PositionCustomBars then self:PositionCustomBars() end
         for _,label in ipairs(self.hotkeys) do labelHidden(label,not self.settings.showHotkeys) end
         self.quick.container:SetHidden(not self.settings.showQuickslot)
-        if self.preview then self:UpdatePreview() end
+        if self.preview then self:UpdatePreview()
+        elseif not self.settings.hideInactiveIdle then self:SyncInactiveSlotBoxes()
+        elseif self.updating and not self.gamepadSuspended then self:Tick() end
         self:SyncWidgetScales()
         if self.editing and self.UpdateEditHandles then self:UpdateEditHandles() end
         if self.editing and self.RefreshEditReadout then self:RefreshEditReadout(true) end

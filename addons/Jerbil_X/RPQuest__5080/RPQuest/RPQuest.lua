@@ -25,6 +25,7 @@ function Addon:Initialize()
     Addon.DiscoveryTracker:Initialize()
     Addon.DialogueInjector:Initialize()
     Addon.WorldMapArea:Initialize()
+    Addon.CompassAreaGlow:Initialize()
     if Addon.MailTransport then
         Addon.MailTransport:Initialize()
     end

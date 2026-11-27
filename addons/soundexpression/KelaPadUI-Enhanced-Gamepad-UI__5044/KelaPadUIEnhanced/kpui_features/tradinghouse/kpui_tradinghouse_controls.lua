@@ -87,6 +87,33 @@ local function LayoutFooterRows(footer, hasSecondRow)
 	footer:SetHeight(footer:GetNamedChild("Divider"):GetHeight() + rows * footer:GetNamedChild("Recomend"):GetFontHeight())
 end
 
+-- Master Merchant gets a column of its own in the main table, built here so
+-- the frozen XML needs no change: a label to the left of ATT, with the label
+-- that used to end at ATT now ending at it. `follower` is the sibling anchored
+-- to the left of ATT (the row's "Stat", or the footer's "AVG" at -10).
+local MM_COLUMN_WIDTH = 80
+
+local function GetMMColumn(container, follower, followerOffsetX)
+	local label = container:GetNamedChild("MM")
+	if not label then
+		local att = container:GetNamedChild("ATT")
+		label = CreateControl(container:GetName() .. "MM", container, CT_LABEL)
+		label:SetFont(att:GetFont())
+		label:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+		label:SetVerticalAlignment(TEXT_VERTICAL_ALIGN_CENTER)
+		label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+		label:SetWidth(MM_COLUMN_WIDTH)
+		label:SetAnchor(TOPRIGHT, att, TOPLEFT, 0, 0)
+		local nextLabel = container:GetNamedChild(follower)
+		nextLabel:ClearAnchors()
+		if follower == "Stat" then
+			nextLabel:SetAnchor(LEFT)
+		end
+		nextLabel:SetAnchor(TOPRIGHT, label, TOPLEFT, followerOffsetX or 0, 0)
+	end
+	return label
+end
+
 function KPUI_MainInfo_OnInitialize(control)
 	control.SetItemInfo = function(priceInfoTTC, priceInfoATT, currentScene, selectedData, stackCount)
 		local colors = kpuiConst.Colors
@@ -102,7 +129,24 @@ function KPUI_MainInfo_OnInitialize(control)
 			end
 			return "N/A"
 		end
-							
+
+		local priceInfoMM = priceInfoTTC.Providers and priceInfoTTC.Providers.MM
+		local showMM = priceInfoMM ~= nil and priceInfoMM.Available
+		-- A Master Merchant figure of 0 is a value it does not have.
+		local function formatMM(value)
+			if not showMM or not priceInfoMM.Has or not value or value == 0 then
+				return "N/A"
+			end
+			return KelaLocalizedFormatNumber(value)
+		end
+		local function setMM(row, text)
+			if showMM then
+				local label = GetMMColumn(row, "Stat")
+				label:SetColor(ZO_SELECTED_TEXT:UnpackRGBA())
+				label:SetText(text)
+			end
+		end
+
 		local lastControl
 		local strAmountCount = GetString(KELA_TRADING_AMOUNTCOUNT)
 		local strAvgPrice = GetString(KELA_TRADING_AVGPRICE)
@@ -112,6 +156,7 @@ function KPUI_MainInfo_OnInitialize(control)
 		control:GetNamedChild("Header"):GetNamedChild("Stat"):SetText(GetString(KELA_TRADING_INDICATOR_SALES_OFFERS))
 		control:GetNamedChild("Header"):GetNamedChild("ATT"):SetText(colors.COLOR_ATT:Colorize("ATT"))
 		control:GetNamedChild("Header"):GetNamedChild("TTC"):SetText(colors.COLOR_TTC:Colorize("TTC"))
+		setMM(control:GetNamedChild("Header"), colors.COLOR_MM:Colorize("MM"))
 		lastControl = control:GetNamedChild("Header")
 
 		IsMasterWrit = (priceInfoATT.Vouchers ~= 0)
@@ -124,6 +169,7 @@ function KPUI_MainInfo_OnInitialize(control)
 			rowEntryCount:GetNamedChild("Stat"):SetText(GetString(KELA_TRADING_ENTRYCOUNT))
 			rowEntryCount:GetNamedChild("ATT"):SetText(formatProvider(priceInfoATT, priceInfoATT.EntryCount))
 			rowEntryCount:GetNamedChild("TTC"):SetText(formatProvider(priceInfoTTC, priceInfoTTC.EntryCount))
+			setMM(rowEntryCount, formatMM(priceInfoMM and priceInfoMM.EntryCount))
 			rowEntryCount:SetHidden(false)
 			lastControl = rowEntryCount
 		else
@@ -146,6 +192,7 @@ function KPUI_MainInfo_OnInitialize(control)
 		rowAmountCount:GetNamedChild("Stat"):SetText(strAmountCount)
 		rowAmountCount:GetNamedChild("ATT"):SetText(formatProvider(priceInfoATT, priceInfoATT.AmountCount))
 		rowAmountCount:GetNamedChild("TTC"):SetText(formatProvider(priceInfoTTC, priceInfoTTC.AmountCount))
+		setMM(rowAmountCount, formatMM(priceInfoMM and priceInfoMM.AmountCount))
 		lastControl = rowAmountCount
 		
 		local rowMin = GetControl(control:GetName().."rowMin")
@@ -155,6 +202,7 @@ function KPUI_MainInfo_OnInitialize(control)
 		rowMin:GetNamedChild("Stat"):SetText(GetString(KELA_TRADING_MINPRICE))
 		rowMin:GetNamedChild("ATT"):SetText(formatProvider(priceInfoATT, priceInfoATT.Min))
 		rowMin:GetNamedChild("TTC"):SetText(formatProvider(priceInfoTTC, priceInfoTTC.Min))
+		setMM(rowMin, formatMM(priceInfoMM and priceInfoMM.Min))
 		lastControl = rowMin
 		
 		local rowMax = GetControl(control:GetName().."rowMax")
@@ -164,6 +212,7 @@ function KPUI_MainInfo_OnInitialize(control)
 		rowMax:GetNamedChild("Stat"):SetText(GetString(KELA_TRADING_MAXPRICE))
 		rowMax:GetNamedChild("ATT"):SetText(formatProvider(priceInfoATT, priceInfoATT.Max))
 		rowMax:GetNamedChild("TTC"):SetText(formatProvider(priceInfoTTC, priceInfoTTC.Max))
+		setMM(rowMax, formatMM(priceInfoMM and priceInfoMM.Max))
 		lastControl = rowMax
 		
 		local rowVoucherPrice = GetControl(control:GetName().."rowVoucherPrice")
@@ -174,6 +223,7 @@ function KPUI_MainInfo_OnInitialize(control)
 			rowVoucherPrice:GetNamedChild("Stat"):SetText(GetString(KELA_TRADING_VOUCHERPRICE))
 			rowVoucherPrice:GetNamedChild("ATT"):SetText(formatProvider(priceInfoATT, priceInfoATT.Avg))
 			rowVoucherPrice:GetNamedChild("TTC"):SetText("N/A")
+			setMM(rowVoucherPrice, "N/A")
 			rowVoucherPrice:SetHidden(false)
 			lastControl = rowVoucherPrice
 		else
@@ -187,16 +237,16 @@ function KPUI_MainInfo_OnInitialize(control)
 		rowAvg:GetNamedChild("Stat"):SetText(strAvgPrice)
 		rowAvg:GetNamedChild("ATT"):SetText(formatProvider(priceInfoATT, priceInfoATT.Avg * multiplier))
 		rowAvg:GetNamedChild("TTC"):SetText(formatProvider(priceInfoTTC, priceInfoTTC.Avg))
+		setMM(rowAvg, formatMM(priceInfoMM and priceInfoMM.Avg))
 		lastControl = rowAvg
 
-		local valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTTC, suggestedATT, suggestedAVG, suggestedTTCStack, suggestedATTStack, suggestedAVGStack, suggestedTTCWrit, suggestedATTWrit, suggestedAVGWrit 
+		local valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTTC, suggestedATT, suggestedAVG, suggestedTTCStack, suggestedATTStack, suggestedAVGStack, suggestedTTCWrit, suggestedATTWrit, suggestedAVGWrit, _, _, suggestedMM, suggestedMMStack, suggestedMMWrit
 		
 		if selectedData and (currentScene == "GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS" or currentScene == "GAMEPAD_TRADING_HOUSE_LISTINGS") then
-			valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTTC, suggestedATT, suggestedAVG, suggestedTTCStack, suggestedATTStack, suggestedAVGStack, suggestedTTCWrit, suggestedATTWrit, suggestedAVGWrit = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, selectedData, currentScene, stackCount)
+			valueEffectDeal, effectOfDeal, colorEffectDeal, suggestedTTC, suggestedATT, suggestedAVG, suggestedTTCStack, suggestedATTStack, suggestedAVGStack, suggestedTTCWrit, suggestedATTWrit, suggestedAVGWrit, _, _, suggestedMM, suggestedMMStack, suggestedMMWrit = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, selectedData, currentScene, stackCount)
 			if not effectOfDeal then effectOfDeal = "" end
 		else
-			local _
-			_, _, _, suggestedTTC, suggestedATT, suggestedAVG, suggestedTTCStack, suggestedATTStack, suggestedAVGStack, suggestedTTCWrit, suggestedATTWrit, suggestedAVGWrit = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, selectedData, nil, stackCount)
+			_, _, _, suggestedTTC, suggestedATT, suggestedAVG, suggestedTTCStack, suggestedATTStack, suggestedAVGStack, suggestedTTCWrit, suggestedATTWrit, suggestedAVGWrit, _, _, suggestedMM, suggestedMMStack, suggestedMMWrit = KelaGetEffectOfDeal (priceInfoTTC, priceInfoATT, selectedData, nil, stackCount)
 		end
 		
 		local footer = control:GetNamedChild("Footer")
@@ -204,10 +254,13 @@ function KPUI_MainInfo_OnInitialize(control)
 		footer:SetAnchor(TOPLEFT, lastControl, BOTTOMLEFT)
 		footer:SetAnchor(TOPRIGHT, lastControl, BOTTOMRIGHT)
 		SetupFooterLayout(footer)
-		local bothProviders = priceInfoTTC.Available and priceInfoATT.Available
-		local hasAverage = bothProviders and suggestedATT ~= 0 and suggestedTTC ~= 0
-		local hasAverageStack = bothProviders and suggestedATTStack ~= 0 and suggestedTTCStack ~= 0
-		local hasAverageWrit = bothProviders and suggestedATTWrit ~= 0 and suggestedTTCWrit ~= 0
+		-- An average needs two sources with a price.
+		local function priced(a, b, c)
+			return ((a ~= 0 and 1 or 0) + (b ~= 0 and 1 or 0) + ((c or 0) ~= 0 and 1 or 0)) > 1
+		end
+		local hasAverage = priced(suggestedATT, suggestedTTC, suggestedMM)
+		local hasAverageStack = priced(suggestedATTStack, suggestedTTCStack, suggestedMMStack)
+		local hasAverageWrit = priced(suggestedATTWrit, suggestedTTCWrit, suggestedMMWrit)
 		local suggestedAVGText = hasAverage and (KelaLocalizedFormatNumber(suggestedAVG).." ~") or "N/A"
 		local suggestedAVGStackText = hasAverageStack and (KelaLocalizedFormatNumber(suggestedAVGStack).." ~") or "N/A"
 		local suggestedAVGWritText = hasAverageWrit and (KelaLocalizedFormatNumber(suggestedAVGWrit).." ~") or "N/A"
@@ -215,6 +268,23 @@ function KPUI_MainInfo_OnInitialize(control)
 		control:GetNamedChild("Footer"):GetNamedChild("ATT"):SetText(colors.COLOR_ATT:Colorize(formatProvider(priceInfoATT, suggestedATT)))
 		control:GetNamedChild("Footer"):GetNamedChild("TTC"):SetText(colors.COLOR_TTC:Colorize(formatProvider(priceInfoTTC, suggestedTTC)))
 		control:GetNamedChild("Footer"):GetNamedChild("AVG"):SetText(suggestedAVGText)
+		local mmFooterStack
+		if showMM then
+			local mmFooter = GetMMColumn(footer, "AVG", -10)
+			mmFooter:SetColor(colors.COLOR_MM:UnpackRGBA())
+			mmFooter:SetText(formatMM(suggestedMM))
+			mmFooterStack = footer:GetNamedChild("MMStack")
+			if not mmFooterStack then
+				mmFooterStack = CreateControl(footer:GetName() .. "MMStack", footer, CT_LABEL)
+				mmFooterStack:SetFont(mmFooter:GetFont())
+				mmFooterStack:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+				mmFooterStack:SetVerticalAlignment(TEXT_VERTICAL_ALIGN_CENTER)
+				mmFooterStack:SetWidth(MM_COLUMN_WIDTH)
+				mmFooterStack:SetAnchor(TOPLEFT, mmFooter, BOTTOMLEFT, 0, 0)
+			end
+			mmFooterStack:SetColor(colors.COLOR_MM:UnpackRGBA())
+			mmFooterStack:SetHidden(true)
+		end
 		if IsMasterWrit then
 			control:GetNamedChild("Footer"):GetNamedChild("RecomendStack"):SetHidden(false)
 			control:GetNamedChild("Footer"):GetNamedChild("ATTStack"):SetHidden(false)
@@ -224,6 +294,10 @@ function KPUI_MainInfo_OnInitialize(control)
 			control:GetNamedChild("Footer"):GetNamedChild("ATTStack"):SetText(colors.COLOR_ATT:Colorize(formatProvider(priceInfoATT, suggestedATTWrit)))
 			control:GetNamedChild("Footer"):GetNamedChild("TTCStack"):SetText(colors.COLOR_TTC:Colorize(formatProvider(priceInfoTTC, suggestedTTCWrit)))
 			control:GetNamedChild("Footer"):GetNamedChild("AVGStack"):SetText(suggestedAVGWritText)
+			if mmFooterStack then
+				mmFooterStack:SetText(formatMM(suggestedMMWrit))
+				mmFooterStack:SetHidden(false)
+			end
 		elseif stackCount > 1 then
 			control:GetNamedChild("Footer"):GetNamedChild("RecomendStack"):SetHidden(false)
 			control:GetNamedChild("Footer"):GetNamedChild("ATTStack"):SetHidden(false)
@@ -233,6 +307,10 @@ function KPUI_MainInfo_OnInitialize(control)
 			control:GetNamedChild("Footer"):GetNamedChild("ATTStack"):SetText(colors.COLOR_ATT:Colorize(formatProvider(priceInfoATT, suggestedATTStack)))
 			control:GetNamedChild("Footer"):GetNamedChild("TTCStack"):SetText(colors.COLOR_TTC:Colorize(formatProvider(priceInfoTTC, suggestedTTCStack)))
 			control:GetNamedChild("Footer"):GetNamedChild("AVGStack"):SetText(suggestedAVGStackText)
+			if mmFooterStack then
+				mmFooterStack:SetText(formatMM(suggestedMMStack))
+				mmFooterStack:SetHidden(false)
+			end
 		else 
 			control:GetNamedChild("Footer"):GetNamedChild("RecomendStack"):SetHidden(true)
 			control:GetNamedChild("Footer"):GetNamedChild("ATTStack"):SetHidden(true)

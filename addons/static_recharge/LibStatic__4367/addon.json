@@ -8,8 +8,8 @@
   "category_id": "53",
   "compatibility": [
     {
-      "name": "Season One",
-      "version": "12.1.0"
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
     }
   ],
   "content_id": "esoui:4367",
@@ -18,7 +18,7 @@
     "LibStatic"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4367/",
-  "fingerprint": "0f4fdfcbff30feb4b79518b8ed40722ef58ba0bbeecf542f5f5d147e8a82a94b",
+  "fingerprint": "b31da36064da3a6a5346a1aba1dcee10e8185e8b2a1b027ff18c9b4fdbdf4b5d",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4367",
   "source_url": "https://www.esoui.com/downloads/info4367-LibStatic.html",
   "stats": {
-    "downloads": 5408,
+    "downloads": 6111,
     "favorites": 4,
-    "monthly_downloads": 325
+    "monthly_downloads": 695
   },
   "title": "LibStatic",
-  "updated_at": 1793151071000,
-  "version": "2.1.0"
+  "updated_at": 1795780625000,
+  "version": "3.0.0"
 }

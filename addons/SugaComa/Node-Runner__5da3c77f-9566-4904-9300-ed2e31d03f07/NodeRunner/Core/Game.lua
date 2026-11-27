@@ -561,6 +561,14 @@ function Game:RegisterNodeGather(kind, itemName)
     return true
 end
 
+function Game:EnsureRunHistory(data)
+    if type(data.runHistory) ~= "table" then
+        -- Preserve the only historical result available from older builds.
+        data.runHistory = type(data.lastRun) == "table" and {data.lastRun} or {}
+    end
+    return data.runHistory
+end
+
 function Game:FinishRun(reason, finishedAtMs)
     local state = Project.State
     if not state:IsRunning() then return false end
@@ -589,6 +597,9 @@ function Game:FinishRun(reason, finishedAtMs)
         newBest = isBest,
     }
 
+    local history = self:EnsureRunHistory(data)
+    table.insert(history, 1, result)
+    if #history > 25 then table.remove(history) end
     data.lastRun = result
     state.phase = PHASE_FINISHED
     state.lastResult = result

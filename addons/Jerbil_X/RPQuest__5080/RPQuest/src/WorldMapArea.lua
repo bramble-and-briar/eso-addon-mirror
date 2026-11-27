@@ -503,6 +503,25 @@ function WorldMapArea:ShouldRenderLocationAreasOnCurrentMap(quest)
     return false
 end
 
+local function IsDiscoveryVisibleOnMap(quest, index, discovery, isCreator)
+    if type(discovery) ~= "table" then
+        return false
+    end
+    if isCreator then
+        return true
+    end
+    if discovery.discovered then
+        return false
+    end
+    if quest.sequentialDiscoveries == true and index > 1 then
+        local prev = quest.discoveries and quest.discoveries[index - 1]
+        if not (prev and prev.discovered == true) then
+            return false
+        end
+    end
+    return true
+end
+
 function WorldMapArea:ShouldRenderDiscoveryAreasOnCurrentMap(quest)
     if not IsCurrentMapEligibleForQuestArea(quest) or not ShouldShowDiscoveryAreas(quest) then
         return false
@@ -514,8 +533,8 @@ function WorldMapArea:ShouldRenderDiscoveryAreasOnCurrentMap(quest)
 
     local isCreator = IsCreatorDiscoveryQuest(quest)
     local questZoneId = tonumber(quest.zoneId) or 0
-    for _, d in ipairs(quest.discoveries) do
-        if type(d) == "table" and (isCreator or not d.discovered) then
+    for i, d in ipairs(quest.discoveries) do
+        if IsDiscoveryVisibleOnMap(quest, i, d, isCreator) then
             local hasWorld = d.worldX ~= nil and d.worldZ ~= nil and ((tonumber(d.zoneId) or questZoneId) > 0)
             local hasMapXY = d.x ~= nil and d.y ~= nil and d.x > 0 and d.x < 1 and d.y > 0 and d.y < 1
             if hasWorld or hasMapXY then
@@ -934,7 +953,7 @@ function WorldMapArea:OnLayoutDiscoveryPins(pinManager)
     local isCreator = IsCreatorDiscoveryQuest(targetQuest)
     local color = Addon.Constants.UI.DISCOVERY_AREA_COLOR
     for i, d in ipairs(targetQuest.discoveries or {}) do
-        if type(d) == "table" and (isCreator or not d.discovered) then
+        if IsDiscoveryVisibleOnMap(targetQuest, i, d, isCreator) then
             local discX, discY, discRadius = self:ProjectDiscoveryToCurrentMap(targetQuest, d)
             if discX and discY and discRadius and discRadius > 0 then
                 local pinTag = { questId = questTag, discoveryIndex = i, kind = "discovery" }
@@ -1126,12 +1145,8 @@ function WorldMapArea:HasMapLocation(quest)
         return true
     end
 
-    if mapId > 0 and type(quest.discoveries) == "table" then
-        for _, d in ipairs(quest.discoveries) do
-            if type(d) == "table" and ((d.x and d.y) or (d.worldX and d.worldZ)) then
-                return true
-            end
-        end
+    if mapId > 0 then
+        return true
     end
 
     return false

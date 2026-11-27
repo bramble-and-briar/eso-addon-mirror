@@ -1,0 +1,20 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc.
+; or its affiliates. The Elder Scrolls® and related logos are registered trademarks
+; or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+; All rights reserved.
+
+## Title: MANA Antiquarian
+## Description: A friendly antiquity leads window: your leads grouped by zone, one-click scrying and map, set collection progress, all leads with hints, expiry reminders.
+## Author: Beardborn
+## Version: 1.0.1
+## AddOnVersion: 10001
+## APIVersion: 101051 101052
+## SavedVariables: MANAAntiquarian_SV
+## DependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: displayleads
+
+lang/en.lua
+lang/$(language).lua
+MANAAntiquarian.lua
+MANAAntiquarian.xml
+Bindings.xml

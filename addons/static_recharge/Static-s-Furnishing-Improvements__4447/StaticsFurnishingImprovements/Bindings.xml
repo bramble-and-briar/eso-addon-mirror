@@ -2,10 +2,10 @@
 	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
 		<Category name="Static's Furnishing Improvements">
 			<Action name="SFI_Deposit_Same_From_House">
-				<Down>StaticsFurnishingImprovements:DepositSameFromHouseDialog()</Down>
+				<Down>StaticsFurnishingImprovements.DepositSameFromHouseDialog()</Down>
 			</Action>
 			<Action name="SFI_Show_Vault_Stats">
-				<Down>StaticsFurnishingImprovements.VaultStats:ShowWindow()</Down>
+				<Down>StaticsFurnishingImprovements.VaultStats.ShowWindow()</Down>
 			</Action>
 		</Category>
 	</Layer>

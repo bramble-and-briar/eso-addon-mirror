@@ -1,3 +1,4 @@
+local L = MWC.L
 MWC.Plan = {
   FOOD_STACK_SIZE = 100,
   MAX_YIELD = 4,
@@ -8,7 +9,7 @@ local TYPE_ORDER = {
   blacksmithing = 1, clothier = 2, woodworking = 3, jewelry = 4, alchemy = 5, enchanting = 6, provisioning = 7,
 }
 -- Gear writ labels and icons; gear crafting itself is in GearCraft.lua.
-local GEAR_LABEL = { blacksmithing = "Blacksmithing", clothier = "Clothing", woodworking = "Woodworking", jewelry = "Jewelry crafting" }
+local GEAR_LABEL = L.CRAFT_TAB
 local GEAR_ICON = {
   blacksmithing = "esoui/art/inventory/inventory_tabicon_craftbag_blacksmithing_up.dds",
   clothier = "esoui/art/inventory/inventory_tabicon_craftbag_clothing_up.dds",
@@ -21,25 +22,22 @@ local EVENT_ICON = {
   witches = "/esoui/art/icons/master_writ_witchesfestival.dds", newlife = "/esoui/art/icons/master_writ-newlife.dds",
   deepwinter = "/esoui/art/icons/master_writ-newlife.dds", imperial = "/esoui/art/icons/master_writ-newlife.dds",
 }
-local EVENT_LABEL = {
-  witches = "Witches Festival writ", newlife = "New Life Charity writ", deepwinter = "Deep Winter Charity writ",
-  imperial = "Imperial Charity writ",
-}
+local EVENT_LABEL = L.EVENT_LABEL
 local DRINK_ICON = "esoui/art/treeicons/provisioner_indexicon_beer_up.dds"
 -- Real potion and poison links (a potion's icon depends on its effects); only their icons are used.
 local SAMPLE_POTION_LINK = "|H0:item:54339:308:50:0:0:0:0:0:0:0:0:0:0:0:0:36:1:0:0:0:65536|h|h"
 local SAMPLE_POISON_LINK = "|H0:item:76833:30:3:0:0:0:0:0:0:0:0:0:0:0:0:36:1:0:0:0:525312|h|h"
 local GLYPH_LABEL = {
-  [ITEMTYPE_GLYPH_ARMOR] = "Armor glyph",
-  [ITEMTYPE_GLYPH_WEAPON] = "Weapon glyph",
-  [ITEMTYPE_GLYPH_JEWELRY] = "Jewelry glyph",
+  [ITEMTYPE_GLYPH_ARMOR] = L.TYPE_GLYPH_ARMOR,
+  [ITEMTYPE_GLYPH_WEAPON] = L.TYPE_GLYPH_WEAPON,
+  [ITEMTYPE_GLYPH_JEWELRY] = L.TYPE_GLYPH_JEWELRY,
 }
 
 local INGREDIENT_BAGS = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
 -- Problems nothing but learning can fix: such writs start skipped (once per session).
 local AUTO_SKIP_PROBLEMS = {
-  ["style not known"] = true, ["recipe not known"] = true, ["trait not researched on this item"] = true,
-  ["gold glyph needs Aspect Improvement at max rank"] = true, ["needs three reagents: Laboratory Use passive"] = true,
+  [L.PROBLEM_STYLE_UNKNOWN] = true, [L.PROBLEM_RECIPE_UNKNOWN] = true, [L.PROBLEM_TRAIT_UNKNOWN] = true,
+  [L.PROBLEM_GOLD_GLYPH] = true, [L.PROBLEM_THREE_REAGENTS] = true,
 }
 
 -- Prices are cached for the session by MWC.Price.
@@ -167,7 +165,7 @@ local function FillProvisioning(group, recipes)
   group.name = MWC.ItemName(foodLink)
   group.quality = GetItemLinkFunctionalQuality(foodLink)
   local isDrink = GetItemLinkItemType(foodLink) == ITEMTYPE_DRINK
-  group.typeLabel = isDrink and "Drink" or "Food"
+  group.typeLabel = isDrink and L.TYPE_DRINK or L.TYPE_FOOD
   group.typeIcon = isDrink and DRINK_ICON or FOOD_ICON
   group.required = group.selectedCount * perWrit
 
@@ -182,7 +180,7 @@ local function FillProvisioning(group, recipes)
 
   group.crafts, group.produce, group.slots = 0, 0, 0
   if not recipe or not recipe.known then
-    group.problem = "recipe not known"
+    group.problem = L.PROBLEM_RECIPE_UNKNOWN
   end
   if recipe then
     group.recipe = recipe
@@ -252,7 +250,7 @@ local function FillAlchemy(group, potionIndex, links)
   group.name = MWC.Alchemy.WritPotionName(group.link)
   group.nameKey = MWC.Alchemy.ExpectedName(writ, potionIndex)
   group.quality = GetItemLinkFunctionalQuality(group.link)
-  group.typeLabel = isPoison and "Poison" or "Potion"
+  group.typeLabel = isPoison and L.TYPE_POISON or L.TYPE_POTION
   -- The icon of the potion the writ asks for, once one with that name has been seen; a generic one before.
   group.typeIcon = MWC.Alchemy.IconFor(isPoison, group.nameKey)
     or (GetItemLinkInfo(isPoison and SAMPLE_POISON_LINK or SAMPLE_POTION_LINK))
@@ -275,8 +273,8 @@ local function FillAlchemy(group, potionIndex, links)
   local solventId = MWC.Alchemy.SolventItemId(isPoison)
   local ranked = MWC.Plan.RankCombos(MWC.Alchemy.UsableCombos(group.effectKey), crafts, links)
   if #ranked == 0 then
-    group.problem = #MWC.Alchemy.Combos(group.effectKey) > 0 and "needs three reagents: Laboratory Use passive"
-      or "no reagent combination"
+    group.problem = #MWC.Alchemy.Combos(group.effectKey) > 0 and L.PROBLEM_THREE_REAGENTS
+      or L.PROBLEM_NO_COMBINATION
     return
   end
   -- The writ wants its exact name, which the reagents decide (see Alchemy.ChooseByResult). Reagents from Keep
@@ -284,7 +282,7 @@ local function FillAlchemy(group, potionIndex, links)
   -- session history show what was really used.
   local allowed = MWC.Plan.WithoutKept(ranked)
   if #allowed == 0 then
-    group.problem = "only reagents from Keep materials make it"
+    group.problem = L.PROBLEM_ONLY_KEPT_REAGENTS
     return
   end
   local crafted = MWC.sv.alchemyCrafted and MWC.sv.alchemyCrafted[group.key]
@@ -297,7 +295,7 @@ local function FillAlchemy(group, potionIndex, links)
     group.nameKey = nameKey
   end
   if not combo then
-    group.problem = "no reagents make exactly this potion"
+    group.problem = L.PROBLEM_NO_EXACT_POTION
     return
   end
   group.reagentsUnchecked = verdict == "unchecked"
@@ -315,13 +313,13 @@ local function FillGear(group, gearIndex)
   local writ = group.writs[1]
   -- Names from the writ's numbers (any client language).
   local fields = writ.fields
-  group.setName = zo_strformat("<<1>>", GetItemSetName(fields[4]))
+  group.setName = MWC.CapitalFirst(zo_strformat("<<1>>", GetItemSetName(fields[4])))
   group.styleName = fields[6] > 0 and zo_strformat("<<1>>", GetItemStyleName(fields[6])) or nil
   group.traitName = zo_strformat("<<1>>", GetString("SI_ITEMTRAITTYPE", fields[5]))
   local rawItem = MWC.Gear.ItemName(group.link)
   group.indexKey = MWC.Gear.WritKey(writ)
-  -- The writ text lowercases some words ("platinum Necklace"); show every word capitalized.
-  group.name = zo_strformat("<<C:1>>", rawItem)
+  -- English writ texts lowercase some words ("platinum Necklace"): see MWC.GearDisplayName.
+  group.name = MWC.GearDisplayName(rawItem)
   local entry = gearIndex[group.indexKey] or { bag = 0, bank = 0 }
   group.readyBag, group.readyBank = entry.bag, entry.bank
 
@@ -365,14 +363,14 @@ local function FillGear(group, gearIndex)
   group.crafts = 0
   group.produce, group.slots = remaining, remaining
   if MWC.Gear.IsStyleKnown(writ.fields[6], writ.fields[1]) == false then
-    group.problem = "style not known"
+    group.problem = L.PROBLEM_STYLE_UNKNOWN
   end
   local traitKnown, traitCount = MWC.Gear.TraitResearch(writ.fields)
   local setNeeds = MWC.Gear.SetTraitsRequired(writ.fields[4])
   if traitKnown == false then
-    group.problem = group.problem or "trait not researched on this item"
+    group.problem = group.problem or L.PROBLEM_TRAIT_UNKNOWN
   elseif traitCount and setNeeds and traitCount < setNeeds then
-    group.problem = group.problem or string.format("set needs %d traits researched on this item (%d)", setNeeds, traitCount)
+    group.problem = group.problem or string.format(L.PROBLEM_SET_TRAITS, setNeeds, traitCount)
   end
   group.improvementNotMaxed = group.quality == 5 and not MWC.Gear.IsImprovementMaxed(group.type) or nil
 end
@@ -383,9 +381,9 @@ local function FillEnchanting(group, glyphIndex, links)
   local spec, problem = MWC.Enchanting.Recipe(writ)
 
   group.perWrit = MWC.Enchanting.ITEMS_PER_WRIT
-  group.name = text:match("Craft an? (.-);") or text:match("^[^\n]*")
+  group.name = MWC.WritItemName(text, L.GEAR_NAME_PATTERN)
   local glyphLink = MWC.LinkFromItemId(writ.fields[1])
-  group.typeLabel = GLYPH_LABEL[GetItemLinkItemType(glyphLink)] or "Glyph"
+  group.typeLabel = GLYPH_LABEL[GetItemLinkItemType(glyphLink)] or L.TYPE_GLYPH
   group.typeIcon = (GetItemLinkInfo(glyphLink))
   group.quality = spec and spec.quality or GetItemLinkFunctionalQuality(group.link)
   group.required = group.selectedCount * group.perWrit
@@ -398,7 +396,7 @@ local function FillEnchanting(group, glyphIndex, links)
 
   group.indexKey = spec.indexKey
   if MWC.Enchanting.NeedsGoldAspect(spec.quality) and not MWC.Enchanting.CanUseGoldAspect() then
-    group.problem = "gold glyph needs Aspect Improvement at max rank"
+    group.problem = L.PROBLEM_GOLD_GLYPH
   end
   local entry = glyphIndex[spec.indexKey] or { bag = 0, bank = 0 }
   group.have = entry.bag + entry.bank
@@ -425,7 +423,7 @@ local function FillHistory(group)
     local isDrink = GetItemLinkItemType(foodLink) == ITEMTYPE_DRINK
     group.name = MWC.ItemName(foodLink)
     group.quality = GetItemLinkFunctionalQuality(foodLink)
-    group.typeLabel = isDrink and "Drink" or "Food"
+    group.typeLabel = isDrink and L.TYPE_DRINK or L.TYPE_FOOD
     group.typeIcon = isDrink and DRINK_ICON or FOOD_ICON
   elseif group.type == "alchemy" then
     local isPoison = MWC.Alchemy.IsPoison(fields[1])
@@ -434,7 +432,7 @@ local function FillHistory(group)
     group.name = MWC.Alchemy.WritPotionName(group.link)
     group.nameKey = MWC.sv.potionNames and MWC.sv.potionNames[writ.key]
     group.quality = GetItemLinkFunctionalQuality(group.link)
-    group.typeLabel = isPoison and "Poison" or "Potion"
+    group.typeLabel = isPoison and L.TYPE_POISON or L.TYPE_POTION
     group.typeIcon = MWC.Alchemy.IconFor(isPoison, group.nameKey)
       or (GetItemLinkInfo(isPoison and SAMPLE_POISON_LINK or SAMPLE_POTION_LINK))
   elseif group.type == "enchanting" then
@@ -442,17 +440,17 @@ local function FillHistory(group)
     local spec = MWC.Enchanting.Recipe(writ)
     local glyphLink = MWC.LinkFromItemId(fields[1])
     group.indexKey = spec and spec.indexKey
-    group.name = text:match("Craft an? (.-);") or text:match("^[^\n]*")
-    group.typeLabel = GLYPH_LABEL[GetItemLinkItemType(glyphLink)] or "Glyph"
+    group.name = MWC.WritItemName(text, L.GEAR_NAME_PATTERN)
+    group.typeLabel = GLYPH_LABEL[GetItemLinkItemType(glyphLink)] or L.TYPE_GLYPH
     group.typeIcon = (GetItemLinkInfo(glyphLink))
     group.quality = spec and spec.quality or GetItemLinkFunctionalQuality(group.link)
   else
-    group.setName = zo_strformat("<<1>>", GetItemSetName(fields[4]))
+    group.setName = MWC.CapitalFirst(zo_strformat("<<1>>", GetItemSetName(fields[4])))
     group.styleName = fields[6] > 0 and zo_strformat("<<1>>", GetItemStyleName(fields[6])) or nil
     group.traitName = zo_strformat("<<1>>", GetString("SI_ITEMTRAITTYPE", fields[5]))
     group.styled = fields[6] > 0
     group.indexKey = MWC.Gear.WritKey(writ)
-    group.name = zo_strformat("<<C:1>>", MWC.Gear.ItemName(group.link))
+    group.name = MWC.GearDisplayName(MWC.Gear.ItemName(group.link))
     group.typeLabel = GEAR_LABEL[group.type]
     group.typeIcon = GEAR_ICON[group.type]
     group.quality = fields[3] >= 1 and fields[3] <= 5 and fields[3] or GetItemLinkFunctionalQuality(group.link)

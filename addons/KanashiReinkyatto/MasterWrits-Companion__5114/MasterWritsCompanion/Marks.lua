@@ -1,3 +1,4 @@
+local L = MWC.L
 MWC.Marks = {}
 
 local SKIP_MARK = "MWCSkipMark"
@@ -172,9 +173,9 @@ function MWC.Marks.Init()
 
   ZO_PostHook(ItemTooltip, "SetBagItem", function(tooltip, bag, slot)
     if MWC.Marks.IsExcludedSlot(bag, slot) then
-      tooltip:AddLine("MasterWrits: skip", "ZoFontGameBold", 1, 0.3, 0.3)
+      tooltip:AddLine(L.TOOLTIP_PREFIX .. L.MARK_SKIP, "ZoFontGameBold", 1, 0.3, 0.3)
     elseif IsReadySlot(bag, slot) then
-      tooltip:AddLine("MasterWrits: ready to turn in", "ZoFontGameBold", 0.3, 1, 0.3)
+      tooltip:AddLine(L.TOOLTIP_PREFIX .. L.MARK_READY, "ZoFontGameBold", 0.3, 1, 0.3)
     end
   end)
 

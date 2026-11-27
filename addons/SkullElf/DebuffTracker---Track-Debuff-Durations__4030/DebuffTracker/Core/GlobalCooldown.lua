@@ -711,3 +711,14 @@ function G.SetWatched(t)
 end
 
 function G.IsWatched() return watching end
+
+-- A skill's cast / channel length in ms (0 = instant), as the bar above uses it (Meditate, Fatecarver's Crux included):
+-- the weaving tracker (Core/Weave.lua) counts a skill's end from it.
+function G.CastMs(id)
+    return AbilityInfo(id).delay
+end
+
+-- The ability on an action bar slot (scribed skills: their real ability), as above.
+function G.SlotAbility(slot, bar)
+    return AbilityOnSlot(slot, bar or ActiveBar())
+end

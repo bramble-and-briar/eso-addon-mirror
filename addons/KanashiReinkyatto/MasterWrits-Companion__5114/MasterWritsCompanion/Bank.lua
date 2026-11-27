@@ -1,3 +1,4 @@
+local L = MWC.L
 MWC.Bank = {}
 
 local EVENT_NS = MWC.name .. "Bank"
@@ -93,21 +94,22 @@ end
 -- What was moved, in what takes bag space: writs, item stacks (a count of items alone says nothing about slots)
 -- and the bag's free slots before and after.
 local function Summary()
-  local text = string.format("Moved %d writs", stats.writs)
+  local text = string.format(L.MOVED_WRITS, stats.writs)
   if stats.items > 0 then
-    text = text .. string.format(" and %d items in %d stacks", stats.items, stats.stacks)
+    text = text .. string.format(L.MOVED_ITEMS, stats.items, stats.stacks)
   end
-  return string.format("%s. Bag free slots: %d → %d.", text, stats.freeBefore, GetNumBagFreeSlots(BAG_BACKPACK))
+  return string.format(L.MOVED_SUMMARY, text, stats.freeBefore, GetNumBagFreeSlots(BAG_BACKPACK))
 end
 
 local function Step()
   local move = queue[1]
   if not move then
+    MWC.Activity.Succeed()
     Finish(Summary())
     return
   end
   if not openBag then
-    Finish("Bank closed, moving stopped. " .. Summary())
+    Finish(L.BANK_CLOSED_STOPPED .. Summary())
     return
   end
 
@@ -120,7 +122,7 @@ local function Step()
 
   local destBag, destSlot, room = FindDestination(move.instanceId, move.destBags)
   if not destBag then
-    Finish((move.toBank and "No space left in storage, moving stopped. " or "No space left in the bag, moving stopped. ")
+    Finish((move.toBank and L.STORAGE_FULL_STOPPED or L.BAG_FULL_STOPPED)
       .. Summary())
     return
   end
@@ -148,10 +150,10 @@ local function Step()
         end
       end
       MWC.Activity.Progress(stats.total - #queue,
-        string.format("Moving… %d writs and %d items so far", stats.writs, stats.items))
+        string.format(L.MOVING_PROGRESS, stats.writs, stats.items))
       Step()
     elseif GetGameTimeMilliseconds() - started > MOVE_TIMEOUT_MS then
-      Finish("The game didn't confirm the move, stopped. Try again.")
+      Finish(L.MOVE_NOT_CONFIRMED)
     end
   end)
 end
@@ -162,7 +164,7 @@ local function Start(moves, emptyMessage)
     if emptyMessage then MWC.Print("%s", emptyMessage) end
     return
   end
-  if not MWC.Activity.Begin("Moving", #moves, function() Finish("Moving stopped. " .. Summary()) end) then return end
+  if not MWC.Activity.Begin(L.ACTIVITY_MOVING, #moves, function() Finish(L.MOVING_STOPPED .. Summary()) end) then return end
   queue, stats = moves, { writs = 0, items = 0, stacks = 0, total = #moves,
     freeBefore = GetNumBagFreeSlots(BAG_BACKPACK) }
   Step()
@@ -170,15 +172,15 @@ end
 
 local function CanMove(needHouseChest)
   if queue then
-    MWC.Print("Already moving items.")
+    MWC.Print(L.ALREADY_MOVING)
     return false
   end
   if needHouseChest and not IsHouseChestOpen() then
-    MWC.Print("Open a house storage chest first.")
+    MWC.Print(L.OPEN_HOUSE_CHEST)
     return false
   end
   if not needHouseChest and not IsPlayerBankOpen() then
-    MWC.Print("Open your bank first (not a house chest).")
+    MWC.Print(L.OPEN_BANK_FIRST)
     return false
   end
   return true
@@ -202,7 +204,7 @@ function MWC.Bank.WithdrawExcluded()
     if #moves >= free then break end
     AddMove(moves, writ.bag, writ.slot, 1, true, false)
   end
-  Start(moves, string.format("Nothing to withdraw: no marked writs in the bank or no bag space (%d slots kept free).", FREE_SLOT_RESERVE))
+  Start(moves, string.format(L.NOTHING_WITHDRAW_MARKED, FREE_SLOT_RESERVE))
 end
 
 -- Sealed writs stack to 200, so taking every stack costs only a few slots.
@@ -217,7 +219,7 @@ function MWC.Bank.WithdrawSealed()
       end
     end
   end
-  Start(moves, string.format("Nothing to withdraw: no sealed writs in the bank or no bag space (%d slots kept free).", FREE_SLOT_RESERVE))
+  Start(moves, string.format(L.NOTHING_WITHDRAW_SEALED, FREE_SLOT_RESERVE))
 end
 
 -- Every opened master writ in the backpack, of any craft.
@@ -229,7 +231,7 @@ function MWC.Bank.DepositWrits()
       AddMove(moves, BAG_BACKPACK, slot, 1, true, true)
     end
   end
-  Start(moves, "No master writs in the bag.")
+  Start(moves, L.NO_MASTER_WRITS_IN_BAG)
 end
 
 function MWC.Bank.StoreExcludedInChest()
@@ -238,7 +240,7 @@ function MWC.Bank.StoreExcludedInChest()
   for _, writ in ipairs(ExcludedWrits({ BAG_BACKPACK })) do
     AddMove(moves, writ.bag, writ.slot, 1, true, true)
   end
-  Start(moves, "No marked writs in the bag.")
+  Start(moves, L.NO_MARKED_IN_BAG)
 end
 
 -- How to recognise a group's crafted items, how many one writ takes, and the item id when stacks merge by id.
@@ -290,7 +292,7 @@ local function Families(groups)
     local key = spec and spec.key or ("writ:" .. group.key)
     local family = byKey[key]
     if not family then
-      family = { spec = spec, keys = {}, active = 0, type = group.type, typeOrder = group.typeOrder }
+      family = { spec = spec, keys = {}, active = 0, type = group.type, typeOrder = group.typeOrder, event = group.event }
       byKey[key] = family
       table.insert(families, family)
     end
@@ -363,7 +365,7 @@ function MWC.Bank.Deposit(groups)
       DepositItems(moves, family.spec, (family.active + stayingInBag) * family.spec.perWrit)
     end
   end
-  Start(moves, "No writs or crafted items of these recipes in the bag.")
+  Start(moves, L.NO_RECIPE_ITEMS_IN_BAG)
 end
 
 -- Takes as many selected writs as fit, reserving backpack room for all items needed to turn them in
@@ -413,7 +415,7 @@ function MWC.Bank.Withdraw(groups)
   for _, family in ipairs(Families(groups)) do
     free = PlanWithdrawFamily(moves, family, writs, free)
   end
-  Start(moves, string.format("Nothing to withdraw: no selected writs in the bank or no bag space (%d slots kept free).", FREE_SLOT_RESERVE))
+  Start(moves, string.format(L.NOTHING_WITHDRAW_SELECTED, FREE_SLOT_RESERVE))
 end
 
 -- For turning in: only writs whose crafted items exist (in the bag or bank), with those items, as many as fit.
@@ -426,9 +428,10 @@ function MWC.Bank.WithdrawReady(quiet)
   local free = GetNumBagFreeSlots(BAG_BACKPACK) - FREE_SLOT_RESERVE
   local plans = {}
   local candidates = {}
-  -- Autodelivery (quiet) takes only master writs: it starts their quests next, holiday writs it can't.
+  -- Holiday writs (Event checkbox on) come too, but only with the bag space master writs leave: their quests
+  -- start one at a time, so master writs go first.
   for _, group in ipairs(MWC.Plan.Build().groups) do
-    if group.selectedCount > 0 and not group.problem and not (quiet and group.event) then
+    if group.selectedCount > 0 and not group.problem and (not group.event or MWC.sv.showEvent) then
       table.insert(candidates, group)
     end
   end
@@ -445,7 +448,7 @@ function MWC.Bank.WithdrawReady(quiet)
       local bagMissing = inBag * spec.perWrit - haveBag
       if maxTake > 0 or (bagMissing > 0 and haveBank > 0) then
         table.insert(plans, {
-          type = family.type, typeOrder = family.typeOrder, spec = spec, inBag = inBag, inBank = inBank,
+          type = family.type, typeOrder = family.typeOrder, event = family.event ~= nil, spec = spec, inBag = inBag, inBank = inBank,
           bankStacks = bankStacks, haveBag = haveBag, haveBank = haveBank, maxTake = maxTake, take = 0, slots = 0,
           missing = 0,
         })
@@ -468,7 +471,7 @@ function MWC.Bank.WithdrawReady(quiet)
   end
   -- Each round takes one writ per craft. Within a craft the cheapest writ comes first: one whose items are
   -- already in the bag costs only its own slot, one whose items are in the bank costs their slots too, so a
-  -- tight bag holds as many ready writs as possible.
+  -- tight bag holds as many ready writs as possible. Master writs first, then holiday writs with what is left.
   local types = {}
   for _, plan in ipairs(plans) do
     if not types[plan.type] then
@@ -476,24 +479,26 @@ function MWC.Bank.WithdrawReady(quiet)
       table.insert(types, plan.type)
     end
   end
-  local progress = true
-  while progress do
-    progress = false
-    for _, craft in ipairs(types) do
-      local best, bestSlots, bestMissing, bestExtra
-      for _, plan in ipairs(plans) do
-        if plan.type == craft and plan.take < plan.maxTake then
-          local slots, missing = Cost(plan, plan.take + 1)
-          local extra = slots - plan.slots
-          if extra <= free and (not best or extra < bestExtra) then
-            best, bestSlots, bestMissing, bestExtra = plan, slots, missing, extra
+  for _, holiday in ipairs({ false, true }) do
+    local progress = true
+    while progress do
+      progress = false
+      for _, craft in ipairs(types) do
+        local best, bestSlots, bestMissing, bestExtra
+        for _, plan in ipairs(plans) do
+          if plan.type == craft and plan.event == holiday and plan.take < plan.maxTake then
+            local slots, missing = Cost(plan, plan.take + 1)
+            local extra = slots - plan.slots
+            if extra <= free and (not best or extra < bestExtra) then
+              best, bestSlots, bestMissing, bestExtra = plan, slots, missing, extra
+            end
           end
         end
-      end
-      if best then
-        free = free - bestExtra
-        best.take, best.slots, best.missing = best.take + 1, bestSlots, bestMissing
-        progress = true
+        if best then
+          free = free - bestExtra
+          best.take, best.slots, best.missing = best.take + 1, bestSlots, bestMissing
+          progress = true
+        end
       end
     end
   end
@@ -511,7 +516,7 @@ function MWC.Bank.WithdrawReady(quiet)
       AddMove(moves, plan.inBank[i].bag, plan.inBank[i].slot, 1, true, false)
     end
   end
-  Start(moves, not quiet and string.format("Nothing to withdraw: no ready writs in the bank or no bag space (%d slots kept free).", FREE_SLOT_RESERVE) or nil)
+  Start(moves, not quiet and string.format(L.NOTHING_WITHDRAW_READY, FREE_SLOT_RESERVE) or nil)
 end
 
 -- Crafted items in the bag beyond what the queued writs in the bag need (say, spare potions after turning in).
@@ -525,7 +530,7 @@ function MWC.Bank.DepositLeftovers()
       DepositItems(moves, family.spec, (family.active + inBag) * family.spec.perWrit)
     end
   end
-  Start(moves, "No leftover crafted items in the bag.")
+  Start(moves, L.NO_LEFTOVERS)
 end
 
 MWC.Bank.IsPlayerBankOpen = IsPlayerBankOpen
@@ -541,6 +546,6 @@ function MWC.Bank.Init()
     MWC.UI.OnBankStateChanged()
     -- A bank problem (bank or bag full...) shown in red is over once the bank is left; a moment later, so an
     -- operation stopped by the closing has ended first.
-    zo_callLater(function() MWC.Activity.DismissIf("Moving") end, 200)
+    zo_callLater(function() MWC.Activity.DismissIf(L.ACTIVITY_MOVING) end, 200)
   end)
 end

@@ -1,0 +1,2 @@
+-- Always empty in distributed builds. Never bundle a player's saved history.
+-- Optional legacy recovery requires the explicit server/ownership import dialog.

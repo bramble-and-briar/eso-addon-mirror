@@ -8,16 +8,12 @@
   "category_id": "94",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
     }
   ],
   "content_id": "esoui:3195",
@@ -26,7 +22,7 @@
     "StoreHelper"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3195/",
-  "fingerprint": "df65acb6db1a13f2b6fedd9541376acd5c13ba2e8a5dcd82eb16910f3364b362",
+  "fingerprint": "ae270f15b7186f444d4a13021c9358164610103e6eb6d6c2af25c13893990f65",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10840.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw10841.jpg"
@@ -37,11 +33,11 @@
   "source_id": "3195",
   "source_url": "https://www.esoui.com/downloads/info3195-StoreHelper-maintainstocksofbasiccraftstylemats.html",
   "stats": {
-    "downloads": 13500,
+    "downloads": 13781,
     "favorites": 11,
-    "monthly_downloads": 30
+    "monthly_downloads": 87
   },
   "title": "StoreHelper - maintain stocks of basic craft style mats",
-  "updated_at": 1789773179000,
-  "version": "0.26"
+  "updated_at": 1795829726000,
+  "version": "0.27"
 }

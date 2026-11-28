@@ -1,0 +1,6 @@
+MyUI v1.9.33 — Gamepad target inner background width + spacing
+- Target frame width: 320 UI units (unchanged)
+- Inner native target BgCenter and FrameCenter width: 320 UI units when present
+- Target frame vertical gap below visible boss bar/compass: 25 UI units
+- Target height, other target components and keyboard layout unchanged
+- Retains all prior fixes

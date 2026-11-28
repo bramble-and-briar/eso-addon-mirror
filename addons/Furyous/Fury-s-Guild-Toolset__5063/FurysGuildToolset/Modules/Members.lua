@@ -589,6 +589,8 @@ function Members:MemberItems(m, inactive)
         Add({ label = "Mail the \"we miss you\" text", fn = function() A.Warn(m.name, subject, text, "mail") end })
         Add({ label = "Mail " .. m.name, fn = function() A.Warn(m.name, "", "", "mail") end })
         Add(GT.Report.CopyItem(m.name))
+        Add(GT.Report.TravelItem(m.name))
+        Add(GT.Report.HouseItem(m.name))
     else
         for _, item in ipairs(GT.Report.ContactItems(m.name)) do Add(item) end
         Add({ label = "Whisper the contact text", fn = function() A.Warn(m.name, subject, text, "whisper") end })

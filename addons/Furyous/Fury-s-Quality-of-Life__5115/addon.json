@@ -22,7 +22,7 @@
     "FurysQualityOfLife"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5115/",
-  "fingerprint": "3d3344d81ff361d763f637da9a0a589d0b82851f0773b77cb97ac94c63c7db13",
+  "fingerprint": "755ec7aed534edf980323ecd89f66696fb56ae4d4f07c3ccc706fbf56128eca6",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -30,11 +30,11 @@
   "source_id": "5115",
   "source_url": "https://www.esoui.com/downloads/info5115-FurysQualityofLife.html",
   "stats": {
-    "downloads": 0,
-    "favorites": 1,
-    "monthly_downloads": 0
+    "downloads": 23,
+    "favorites": 2,
+    "monthly_downloads": 17
   },
   "title": "Fury's Quality of Life",
-  "updated_at": 1795679612000,
-  "version": "0.5.5"
+  "updated_at": 1795824210000,
+  "version": "0.6.0"
 }

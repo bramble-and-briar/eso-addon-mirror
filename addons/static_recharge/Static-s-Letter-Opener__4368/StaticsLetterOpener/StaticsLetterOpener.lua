@@ -1,7 +1,7 @@
 --[[------------------------------------------------------------------------------------------------
 Title:					Static's Letter Opener
 Author:					Static_Recharge
-Version:			  1.1.1
+Version:			  1.2.0
 Description:		Opens master writs and survey letters automatically
 ------------------------------------------------------------------------------------------------]]--
 
@@ -10,6 +10,7 @@ Description:		Opens master writs and survey letters automatically
 Libraries and Aliases
 ------------------------------------------------------------------------------------------------]]--
 local EM = EVENT_MANAGER
+local SM = SCENE_MANAGER
 
 
 --[[------------------------------------------------------------------------------------------------
@@ -38,6 +39,17 @@ local Containers = {
 	["maps"] = {
 		[224681] = true, 			-- treasure map
 	},
+
+	["ic"] = {
+		[212219] = true, 			-- jewelrycrafting pouch
+		[212230] = true, 			-- furnishing materials trunk
+		[212238] = true, 			-- sack of provisions
+		[212247] = true, 			-- carpentry crate
+		[212248] = true, 			-- chest of runes
+		[212249] = true, 			-- smithy case
+		[212251] = true, 			-- alchemical sachet
+		[212252] = true, 			-- clothier coffer
+	},
 }
 
 
@@ -56,7 +68,7 @@ local SLO = StaticsLetterOpener
 
 -- Static definitions
 SLO.addonName = "StaticsLetterOpener"
-SLO.addonVersion = "1.1.1"
+SLO.addonVersion = "1.2.0"
 SLO.author = "|CFF0000Static_Recharge|r"
 SLO.varsVersion = 1
 
@@ -73,6 +85,7 @@ function SLO.Initialize()
 		surveys = true,
 		masterWrits = false,
 		maps = false,
+		ic = false,
 		openAll = false,
 		chatEnabled = true,
 		debugEnabled = false,
@@ -103,6 +116,7 @@ function SLO.Initialize()
 	EM:RegisterForEvent(SLO.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, SLO.OnInventorySingleSlotUpdate)
 	EM:AddFilterForEvent(SLO.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
 	EM:AddFilterForEvent(SLO.addonName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+	EM:RegisterForEvent(SLO.addonName, EVENT_LOOT_UPDATED, SLO.OnLootUpdated)
 
 	--SLASH_COMMANDS["/slotest"] = function(...) self:Test(...) end
 
@@ -148,6 +162,7 @@ function SLO.OnInventorySingleSlotUpdate(eventCode, bagId, slotId, isNewItem, it
 			table.insert(SLO.Que, itemData)
 			SLO.Chat:Debug(zo_strformat("<<1>> Qued", itemData.link))
 			if not SLO.started then
+				if category == "ic" then SM:Show("hudui") end
 				EM:RegisterForUpdate(SLO.addonName, 500, SLO.Open)
 				SLO.started = true
 			end
@@ -204,6 +219,20 @@ function SLO.GetInventoryIndex()
 				return slotIndex
 			end
 		end
+	end
+end
+
+
+--[[------------------------------------------------------------------------------------------------
+SLO.OnLootUpdated(eventCode)
+Inputs:				None
+Outputs:			None
+Description:	Loots the container.
+------------------------------------------------------------------------------------------------]]--
+function SLO.OnLootUpdated(eventCode)
+	if SLO.started then
+		LootAll()
+		SM:ShowBaseScene()
 	end
 end
 

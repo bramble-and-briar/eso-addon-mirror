@@ -1,0 +1,54 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Crown Crate Codex">
+            <Action name="CROWN_CRATE_CODEX_TOGGLE">
+                <Down>CrownCrateCodex:Toggle()</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="CrownCrateCodexGamepad" allowFallthrough="false">
+        <Category>
+            <Action name="CCC_GP_UP" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_INPUT_UP">
+                <Down>return CrownCrateCodex:GamepadCommand("up")</Down>
+            </Action>
+            <Action name="CCC_GP_DOWN" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_INPUT_DOWN">
+                <Down>return CrownCrateCodex:GamepadCommand("down")</Down>
+            </Action>
+            <Action name="CCC_GP_LEFT" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT">
+                <Down>return CrownCrateCodex:GamepadCommand("left")</Down>
+            </Action>
+            <Action name="CCC_GP_RIGHT" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT">
+                <Down>return CrownCrateCodex:GamepadCommand("right")</Down>
+            </Action>
+            <Action name="CCC_GP_SELECT" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_PRIMARY">
+                <Down>return CrownCrateCodex:GamepadCommand("select")</Down>
+            </Action>
+            <Action name="CCC_GP_BACK" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_NEGATIVE">
+                <Down>return CrownCrateCodex:GamepadCommand("back")</Down>
+            </Action>
+            <Action name="CCC_GP_COLLECTIONS" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_SECONDARY">
+                <Down>return CrownCrateCodex:GamepadCommand("collections")</Down>
+            </Action>
+            <Action name="CCC_GP_OPTIONS" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_TERTIARY">
+                <Down>return CrownCrateCodex:GamepadCommand("options")</Down>
+            </Action>
+            <Action name="CCC_GP_DETAILS" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK">
+                <Down>return CrownCrateCodex:GamepadCommand("details")</Down>
+            </Action>
+            <Action name="CCC_GP_PREVIOUSTAB" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER">
+                <Down>return CrownCrateCodex:GamepadCommand("previousTab")</Down>
+            </Action>
+            <Action name="CCC_GP_NEXTTAB" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
+                <Down>return CrownCrateCodex:GamepadCommand("nextTab")</Down>
+            </Action>
+            <Action name="CCC_GP_PREVIOUSPAGE" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_LEFT_TRIGGER">
+                <Down>return CrownCrateCodex:GamepadCommand("previousPage")</Down>
+            </Action>
+            <Action name="CCC_GP_NEXTPAGE" hideAction="true" rebindable="false" inheritsBindFrom="UI_SHORTCUT_RIGHT_TRIGGER">
+                <Down>return CrownCrateCodex:GamepadCommand("nextPage")</Down>
+            </Action>
+            <Action name="CCC_GP_TOGGLE" hideAction="true" rebindable="false" inheritsBindFrom="CROWN_CRATE_CODEX_TOGGLE"><Down>CrownCrateCodex:Toggle()</Down></Action>
+            <AllowAction name="TAKE_SCREENSHOT"/>
+        </Category>
+    </Layer>
+</Bindings>

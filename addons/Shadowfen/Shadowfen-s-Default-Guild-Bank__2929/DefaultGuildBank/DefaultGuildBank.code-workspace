@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "DefaultGuildBank",
+			"path": "."
+		},
+		{
+			"name": "LibSFUtils",
+			"path": "../LibSFUtils"
+		},
+		{
+			"name": "LibLanguage",
+			"path": "../LibLanguage"
+		},
+		{
+			"name": "esoui",
+			"path": "D:/Fen/eso source code/esoui-10.0.8/esoui-live/esoui"
+		}
+	],
+	"settings": {}
+}

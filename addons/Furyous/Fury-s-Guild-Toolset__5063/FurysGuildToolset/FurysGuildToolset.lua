@@ -6,7 +6,7 @@ local GT = FurysGuildToolset
 
 GT.name = "FurysGuildToolset"
 GT.displayName = "Fury's Guild Toolset"
-GT.version = "1.34.0"
+GT.version = "1.34.8"
 GT.website = "https://www.esoui.com/downloads/info5063.html"
 GT.savedVarsVersion = 1
 
@@ -166,6 +166,14 @@ local function BuildDefaults()
         historyCursor = {},
         mailQueue = {},      -- [processorKey] = last processed eventId
         firstRunLookbackDays = 30,
+        holeFill = false,            -- 1.34.7: fill holes LibHistoire leaves (Core/HoleFill.lua); starts turned off
+        holeLog = {},                -- 1.34.7: every hole found, for /gt holes
+        holeFillStartMinutes = 2,    -- 1.34.7: hole filler numbers (limits and tips in Core/HoleFill.lua SETTINGS)
+        holeFillMinGapHours = 12,
+        holeFillLookBackDays = 30,
+        holeFillPauseMinutes = 4,
+        holeFillMaxPerSession = 6,
+        holeFillStuckMinutes = 15,
         alertsDisabledGuilds = {},   -- [guildId] = true: no alerts, cases or auto actions for that guild (installs before 1.3.0)
         alertGuilds = {},            -- [guildId] = true: alerts on for that guild (installs from 1.3.0, see alertGuildsOptIn)
         modules = {},
@@ -192,6 +200,7 @@ local function OnAddOnLoaded(_, addonName)
         if module.Initialize then module:Initialize(GT.sv.modules[id]) end
     end
 
+    GT.HoleFill:Initialize()
     GT.sv.mailQueue = nil -- v0.2.3: automatic mail removed; drop anything left queued
     GT.Report:Initialize()
     GT.RegisterSlashCommands()
@@ -281,6 +290,8 @@ function GT.RegisterSlashCommands()
             if bank and bank.sv then bank:PrintStatus() end
             local capacity = GT:GetModule("capacity")
             if capacity and capacity.sv then capacity:PrintStatus() end
+        elseif arg == "holes" then
+            GT.HoleFill:ShowLog()
         elseif arg == "reset" or arg == "rescan" then
             GT:Rescan()
         elseif arg == "reset full" then
@@ -306,6 +317,7 @@ function GT.RegisterSlashCommands()
             GT.Util.Print("/gt reset  rebuild bank alerts and hoppers from the History log with your current settings")
             GT.Util.Print("/gt reset full  also wipe the History log, reload and download it again")
             GT.Util.Print("/gt status  show what history has loaded and the biggest withdrawers")
+            GT.Util.Print("/gt holes  list the holes LibHistoire left in the bank history and what the Toolset filled")
             GT.Util.Print("/gt settings  open the settings panel")
         end
     end

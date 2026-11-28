@@ -23,6 +23,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Ambulance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheInfiniti352/Tamriel-Ambulance__3124) | TheInfiniti352 | PC / Mac | 1.2.11 |
 | [Tamriel Calendar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Tamriel-Calendar__4357) | Soul_Hagans | PC / Mac | 2.4.2 |
 | [Tamriel Chronos - Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gandalf/Tamriel-Chronos---Clock__3348) | Gandalf | PC / Mac | 20101 |
+| [Tamriel Coach Claude](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TitoDrew/Tamriel-Coach-Claude__5130) | TitoDrew | PC / Mac | 1.7.1 |
 | [Tamriel Collections - Archive Antiquities](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Antiquities__ce080e90-e198-4d6b-8b7e-19c933c02e6e) | MajesticMinxi | Console | — |
 | [Tamriel Collections - Archive Furnishing Plans](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Furnishing-Plans__8e8983cd-c304-4a89-b625-ec8c4560820d) | MajesticMinxi | Console | — |
 | [Tamriel Collections - Archive Lore Books](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Tamriel-Collections---Archive-Lore-Books__47c3cdf6-2b6c-4ace-99f9-f4c57bf852a3) | MajesticMinxi | Console | — |
@@ -163,6 +164,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Title Loop](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Title-Loop__5e051775-8c73-4e96-bb6b-dcaa188dc064) | Copper0 | Console | — |
 | [TitleFlex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Skvysh/TitleFlex__2509) | Skvysh | PC / Mac | 1.8 |
 | [TitleFlex - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/TitleFlex---Updated__4027) | wicked_prophet | PC / Mac | 1.9.1 |
+| [TME UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/TME-UI__f481dfac-4530-40b0-a73d-8f25cf55ac78) | m1lkst3ak | Console | — |
 | [TodoList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blazeofmoon/TodoList__5051) | blazeofmoon | PC / Mac | 1.3.0 |
 | [Toggle FPS and Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tnrsn/Toggle-FPS-and-Ping__3812) | Tnrsn | PC / Mac | 1.001 |
 | [ToggleGroupFrame (and Companion Unit Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleGroupFrame-and-Companion-Unit-Frame__3698) | Saint-Ange | PC / Mac | 1.5.1 |

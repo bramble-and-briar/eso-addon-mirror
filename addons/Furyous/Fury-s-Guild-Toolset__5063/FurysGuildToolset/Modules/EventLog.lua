@@ -316,6 +316,11 @@ function EventLog:OnHistoryEvent(guildId, category, info)
     self.returns = nil
 end
 
+-- 1.34.7: true when the History log already has this event (used by the hole filler).
+function EventLog:HasEvent(guildId, category, eventId)
+    return self.seen ~= nil and self.seen[SeenKey(guildId, GroupOfCategory(category), eventId)] == true
+end
+
 -- Returns ---------------------------------------------------------------------
 
 -- Matches each item withdrawal with later deposits of the same item (same item link) by the
@@ -699,13 +704,28 @@ end
 
 function EventLog:BuildSettings(options)
     local sv, defaults = self.sv, self.defaults
+    local holeControls = {}
+    for _, def in ipairs(GT.HoleFill.SETTINGS) do
+        holeControls[#holeControls + 1] = { type = "slider", name = def.name, tooltip = def.tooltip .. " Default: " .. def.default .. ".",
+            min = def.min, max = def.max, step = 1,
+            getFunc = function() return GT.HoleFill.Setting(def.key) end, setFunc = function(v) GT.sv[def.key] = v end,
+            default = def.default, disabled = function() return not sv.enabled or not GT.sv.holeFill end }
+    end
     options[#options + 1] = { type = "submenu", name = "History log and export", controls = {
         { type = "checkbox", name = "Keep a history log", getFunc = function() return sv.enabled end,
           setFunc = function(v) sv.enabled = v end, default = defaults.enabled, requiresReload = true },
         { type = "slider", name = "Keep events for (days)", min = 7, max = 365, step = 1,
           getFunc = function() return sv.keepDays end, setFunc = function(v) sv.keepDays = v end, default = defaults.keepDays },
         { type = "description", text = "The log is also saved in SavedVariables/FurysGuildToolset.lua after you log out or /reloadui, if you want the raw data. Each event is one line: guild id; event id; time; type; member; target; quantity; item link; gold; rank." },
-        { type = "button", name = "Remove the old log backup", width = "half",
+        { type = "checkbox", name = "Fill holes LibHistoire leaves",
+          tooltip = "A fallback. LibHistoire normally delivers all guild history. When it skips a stretch of bank item history (a silence far longer than usual in a guild you get alerts from, last 30 days), the Toolset asks the server for just that window, but only while LibHistoire has nothing left to download, one window every few minutes. The sliders below set its waits and limits. Events it adds go to the History log and bank alerts, but never trigger auto-demote or a mail. Needs the history log.",
+          getFunc = function() return GT.sv.holeFill end,
+          setFunc = function(v) GT.sv.holeFill = v; if v then GT.HoleFill:Start() end end,
+          default = false, disabled = function() return not sv.enabled end },
+        { type = "button", name = "Show holes found", width = "half",
+          tooltip = "Lists every hole in the bank history the Toolset has found, when, how long, how many events it added, in the copy window (Select all, Ctrl+C). Same as /gt holes.",
+          func = function() GT.HoleFill:ShowLog() end },
+        { type = "button", name = "Remove old log backup", width = "half",
           tooltip = "Version 1.28.0 saves the History log in a smaller format and keeps the old copy in your saved file as a backup for " .. BACKUP_DAYS .. " days. Click to remove that backup now, so your saved file shrinks at your next logout or /reloadui. The History log itself is not touched. Asks first. Greyed out when there is no backup.",
           func = function()
               GT.Actions.Confirm("Remove the old log backup", "Remove the old copy of the History log for good?\n\nThe log in the new format stays. This can't be undone.",
@@ -714,6 +734,14 @@ function EventLog:BuildSettings(options)
           disabled = function() return self:OldLogCount() == 0 end,
           isDangerous = true, warning = "Removes the old copy of the History log for good. The log in the new format stays." },
     } }
+    -- The hole filler's sliders go right under its checkbox.
+    local controls = options[#options].controls
+    for index, control in ipairs(controls) do
+        if control.name == "Fill holes LibHistoire leaves" then
+            for offset, slider in ipairs(holeControls) do table.insert(controls, index + offset, slider) end
+            break
+        end
+    end
 end
 
 -- One guild's return time, inside that guild's Rules submenu (next to its bank limits).

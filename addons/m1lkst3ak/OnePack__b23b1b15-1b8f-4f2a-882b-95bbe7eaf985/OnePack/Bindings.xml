@@ -1,0 +1,41 @@
+<Bindings>
+  <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+    <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+      <Action name="ONEPACK_OPEN">
+        <Down>OnePackToggle()</Down>
+      </Action>
+    </Category>
+  </Layer>
+  <Layer name="SI_ONEPACK_NATIVE_GRID_LAYER">
+    <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+      <Action name="ONEPACK_NATIVE_GRID_LEFT">
+        <Down>OnePackNativeInventoryInput('left')</Down>
+      </Action>
+      <Action name="ONEPACK_NATIVE_GRID_RIGHT">
+        <Down>OnePackNativeInventoryInput('right')</Down>
+      </Action>
+      <Action name="ONEPACK_NATIVE_GRID_UP">
+        <Down>OnePackNativeInventoryInput('up')</Down>
+      </Action>
+      <Action name="ONEPACK_NATIVE_GRID_DOWN">
+        <Down>OnePackNativeInventoryInput('down')</Down>
+      </Action>
+    </Category>
+  </Layer>
+  <Layer name="SI_ONEPACK_NATIVE_BANK_GRID_LAYER">
+    <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+      <Action name="ONEPACK_NATIVE_BANK_GRID_LEFT">
+        <Down>OnePackNativeBankInput('left')</Down>
+      </Action>
+      <Action name="ONEPACK_NATIVE_BANK_GRID_RIGHT">
+        <Down>OnePackNativeBankInput('right')</Down>
+      </Action>
+      <Action name="ONEPACK_NATIVE_BANK_GRID_UP">
+        <Down>OnePackNativeBankInput('up')</Down>
+      </Action>
+      <Action name="ONEPACK_NATIVE_BANK_GRID_DOWN">
+        <Down>OnePackNativeBankInput('down')</Down>
+      </Action>
+    </Category>
+  </Layer>
+</Bindings>

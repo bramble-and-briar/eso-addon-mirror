@@ -87,7 +87,8 @@ function S.AddCriticalDamageData(result,advanced,sources)
     result.rawCriticalDamage=result.criticalDamage+(result.targetBonusesEnabled and result.targetCriticalDamage or 0)
     result.effectiveCriticalDamage=math.min(result.rawCriticalDamage,cap)
     result.criticalDamageOvercap=math.max(0,result.rawCriticalDamage-cap)
-    result.displayCriticalDamage=S.criticalShowEffective~=false and result.effectiveCriticalDamage or result.rawCriticalDamage
+    result.criticalDisplayLimit=200
+    result.displayCriticalDamage=S.criticalShowEffective~=false and result.effectiveCriticalDamage or math.min(result.rawCriticalDamage,result.criticalDisplayLimit)
 end
 
 local function describe(v,title)

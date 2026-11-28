@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.8.1
+- **Fixes game crashes during writ runs.** Every item change (each writ you hand in, each loot) made the addon read your whole backpack, craft bag and wallet again a moment later, and again at every loading screen. On a writ run that meant heavy work every few seconds, and the game could crash. Now a change only notes what changed. Everything is read in one go when you open the summary, the copy window, Find or the tooltip line, and when you log out, switch characters, quit or reload. What the addon shows and saves is the same as before. The full read when you log in is split into parts too: the bank, then your bags and wallet, then the craft bag, then storage, one part every half second instead of all at once.
+
+## 1.8.0
+- **Prepare the Excel file is on the summary window now**, next to the copy button, so you don't have to open the settings for it. It still asks before it reloads the interface. The copy button is now called **Export / Copy**, like the Guild Toolset buttons.
+- **Lighter logout with "Keep the Excel file ready" on.** The list is only rebuilt when something you own actually changed, and then only the bags, banks and houses that changed are redone. Logging out after a session where nothing changed does no Excel work at all.
+- **Saved settings now load the standard way** (ZO_SavedVars), as ESOUI's reviewers asked. Your settings are moved over by themselves the first time you log in, so nothing changes for you.
+
+## 1.7.9
+- **Fury's Addons Menu is now a required library**, like LibAddonMenu-2.0, so it shows in the game's Required Add-Ons list. Install it from ESOUI or Minion (Minion 3 does not install libraries for you). It gives all of Fury's addons the Fury sidebar and `/fury`.
+
+## 1.7.8
+- The manifest lists Fury's Addons Menu as an optional library without a version check, as ESOUI asks (the game does not check versions there).
+
+## 1.7.7
+- **The Fury sidebar now lives in Fury's Addons Menu.** The sidebar, the `/fury` list and the other Fury addons' icons in the title bar used to be copied into every Fury addon; that code now lives only in the optional library Fury's Addons Menu (1.3.0 or newer), as the ESOUI team suggested. With the library installed nothing changes for you and your sidebar settings carry over. Without it, this addon works the same, just without the sidebar, `/fury` and those title-bar icons.
+
+## 1.7.6
+- **Fury's Addons Menu is now a separate library.** The Fury sidebar's key and saved settings used to ship as a small folder inside every Fury addon. At the request of the ESOUI team it is now its own download, Fury's Addons Menu. It is optional: install it to keep the sidebar's key and to have the sidebar remember its settings. Without it, `/fury` and the sidebar still work. Your sidebar settings and your key carry over once it is installed.
+
 ## 1.7.5
 - **Lighter loading screens.** With "Keep the Excel file ready" on, the addon rebuilt the whole Excel list (thousands of rows, every character and account) at every loading screen after anything in your bags changed. On a recruit tour or a writ run that meant heavy work at each port, the moment the game is busiest. The list and the daily totals are now built only when you log out, switch characters, quit or reload, which is when the game writes them to your PC anyway. The Excel file is the same as before.
 

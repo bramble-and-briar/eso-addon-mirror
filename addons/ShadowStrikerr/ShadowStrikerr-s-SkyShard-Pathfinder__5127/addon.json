@@ -1,0 +1,44 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/ShadowStrikerr/ShadowStrikerr-s-SkyShard-Pathfinder__5127",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "ShadowStrikerr",
+  "canonical_id": "esoui:5127",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5127",
+  "deleted": false,
+  "directories": [
+    "SkyshardPathfinder"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5127/",
+  "fingerprint": "3e870ef9afa59cca451bf596069a427e8f25aa013b32e9ff5b305f455e1b6bed",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18850.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18851.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18852.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18853.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18854.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18855.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18857.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5127",
+  "source_url": "https://www.esoui.com/downloads/info5127-ShadowStrikerrsSkyShardPathfinder.html",
+  "stats": {
+    "downloads": 36,
+    "favorites": 1,
+    "monthly_downloads": 7
+  },
+  "title": "ShadowStrikerr's SkyShard Pathfinder",
+  "updated_at": 1795829632000,
+  "version": "0.4.24"
+}

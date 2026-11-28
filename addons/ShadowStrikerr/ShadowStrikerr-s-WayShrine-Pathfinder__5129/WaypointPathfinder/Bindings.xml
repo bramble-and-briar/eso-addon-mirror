@@ -1,0 +1,18 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="WayShrine Pathfinder">
+            <Action name="SHADOWSTRIKERR_WPF_SETTINGS">
+                <Down>ShadowStrikerrWaypointPathfinder.ToggleQuickSettings()</Down>
+            </Action>
+            <Action name="SHADOWSTRIKERR_WPF_GUIDANCE">
+                <Down>ShadowStrikerrWaypointPathfinder.ToggleGuidance()</Down>
+            </Action>
+            <Action name="SHADOWSTRIKERR_WPF_MOVE">
+                <Down>ShadowStrikerrWaypointPathfinder.MovePanel()</Down>
+            </Action>
+            <Action name="SHADOWSTRIKERR_WPF_TARGET_WAYSHRINE">
+                <Down>ShadowStrikerrWaypointPathfinder.TargetHoveredWayshrine()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

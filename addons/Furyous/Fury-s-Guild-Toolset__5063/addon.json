@@ -22,7 +22,7 @@
     "FurysGuildToolset"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5063/",
-  "fingerprint": "635a721bcff073d43e0f307286072944b57b81d44e76e505b15d5b836710d649",
+  "fingerprint": "a2ca4a353a13331e6271d2162cb923cd4d57d0963e923b688ddd94134f932285",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18794.png",
     "https://cdn-eso.mmoui.com/preview/pvw18793.png",
@@ -41,11 +41,11 @@
   "source_id": "5063",
   "source_url": "https://www.esoui.com/downloads/info5063-FurysGuildToolset.html",
   "stats": {
-    "downloads": 88,
+    "downloads": 105,
     "favorites": 2,
-    "monthly_downloads": 78
+    "monthly_downloads": 98
   },
   "title": "Fury's Guild Toolset",
-  "updated_at": 1795768190000,
-  "version": "1.34.0"
+  "updated_at": 1795851115000,
+  "version": "1.34.8"
 }

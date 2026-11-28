@@ -57,6 +57,26 @@
 -- item already held, a currency at its cap) is closed and its container left
 -- alone.
 --
+-- Contents can land in slots of their own beside a stack the bag already
+-- holds, so the unboxer stacks the backpack (the game's Stack All, StackBag)
+-- at two moments, and only when two partial stacks of one item exist, so
+-- nothing to merge sends nothing and raises no "items stacked" alert:
+--
+--   end     the run has opened something and its queue is empty. The run
+--           stays open a quarter second past its last opening first, so
+--           contents that trail their container are stacked too.
+--   full    the backpack has no free slot and a container is next (before
+--           its UseItem), or a loot window is stuck on a full bag. Merging
+--           stacks may free the room the contents need, so the run goes on
+--           instead of stopping.
+--
+-- Rule 2 covers it: the Stack All is the one request in flight until the bag
+-- holds no split stack, because it can merge the very containers that are
+-- queued and the next target has to be judged on the bag as it is after the
+-- merge. It only pours a stack into another of the same item, so it never
+-- puts a different item in a queued slot. A Stack All the game does not
+-- carry out is waited on once, then stacking is off for the rest of the run.
+--
 -- Every stage logs a "+Nms" timestamp (ms since the run started) for field
 -- diagnosis (visible when LibConsoleLogger is installed; logging is optional
 -- and silently off without it).
@@ -83,6 +103,9 @@ local LOOT_STUCK_MS = 2000
 -- A container that itself refuses use (while the player could use items) is
 -- dropped from the queue after this long
 local ITEM_BLOCK_GIVE_UP_MS = 30000
+-- How long after the last opening a run stays open before it stacks the bag
+-- and ends: a container's contents can reach the bag a moment after it vanishes
+local STACK_SETTLE_MS = 250
 -- Block key of a UseItem call the game refused outright
 local BLOCK_KEY_REJECTED = -1
 
@@ -294,8 +317,8 @@ local function FinishRun(now)
     local unbox = GetUnbox()
     StopLoop()
     unbox.active = false
-    Log(string.format("Unbox +%dms: done, %d opened (%d blocked attempts)",
-        Elapsed(now), unbox.openedCount, unbox.attemptCount))
+    Log(string.format("Unbox +%dms: done, %d opened (%d blocked attempts), %d free slots",
+        Elapsed(now), unbox.openedCount, unbox.attemptCount, GetNumBagFreeSlots(BAG_BACKPACK)))
     -- lootWatchUntilMs deliberately survives: the loot window can open after
     -- the container disappears from the bag (which ends the run).
 end
@@ -355,6 +378,50 @@ local function AttemptUse(slotIndex, now)
     return true, nil
 end
 
+---@return boolean
+local function IsBackpackFull()
+    return FindFirstEmptySlotInBag(BAG_BACKPACK) == nil
+end
+
+---Send a Stack All if it would merge something (see header).
+---@param now integer
+---@param reason string Why now, for the log
+---@return boolean sent A Stack All is now in flight
+local function AttemptStack(now, reason)
+    local unbox = GetUnbox()
+    if not GetSettings().stackAfterOpening or unbox.stackGaveUp then
+        return false
+    end
+    if not BagUtils.HasSplitStacks() then
+        return false
+    end
+    Log(string.format("Unbox +%dms: stacking the backpack (%s)", Elapsed(now), reason))
+    StackBag(BAG_BACKPACK)
+    unbox.stackSentAtMs = now
+    return true
+end
+
+---Settle the Stack All in flight: the bag holds no split stack any more, or
+---the game did not carry it out.
+---@param now integer
+---@return boolean settled Nothing is in flight any more; the loop may send again
+local function SettleStack(now)
+    local unbox = GetUnbox()
+    if BagUtils.HasSplitStacks() then
+        if now - unbox.stackSentAtMs < USE_RETRY_TIMEOUT_MS + GetLatency() then
+            return false
+        end
+        unbox.stackGaveUp = true
+        Log(string.format("Unbox +%dms: stacks still split %dms after Stack All; no more stacking this run",
+            Elapsed(now), now - unbox.stackSentAtMs))
+    else
+        Log(string.format("Unbox +%dms: stacked (%dms after the send)", Elapsed(now), now - unbox.stackSentAtMs))
+    end
+    unbox.stackSentAtMs = 0
+    ResetBackoff()
+    return true
+end
+
 ---Settle the use in flight: opened, dropped, or stuck on its loot window.
 ---@param now integer
 ---@return boolean settled Nothing is in flight any more; the loop may send again
@@ -375,12 +442,15 @@ local function SettleInFlight(now)
         end
         EndLooting()
         unbox.inFlight = nil
-        if not opened then
+        if IsBackpackFull() then
+            -- Merging stacks may free the room the rest of the contents need:
+            -- the container stays queued and is opened again once it lands.
+            if not AttemptStack(now, "backpack full, contents left in the loot window") then
+                Log(string.format("Unbox +%dms: backpack full; stopping", Elapsed(now)))
+                ClearQueue()
+            end
+        elseif not opened then
             Skip(inFlight, "its contents could not all be taken", now)
-        end
-        if not FindFirstEmptySlotInBag(BAG_BACKPACK) then
-            Log(string.format("Unbox +%dms: backpack full; stopping", Elapsed(now)))
-            ClearQueue()
         end
         ResetBackoff()
         return true
@@ -389,6 +459,7 @@ local function SettleInFlight(now)
     if opened then
         unbox.inFlight = nil
         unbox.openedCount = unbox.openedCount + 1
+        unbox.lastOpenedAtMs = now
         Log(string.format("Unbox +%dms: opened slot %d (%dms after the send)",
             Elapsed(now), slotIndex, now - inFlight.sentAtMs))
         ResetBackoff()
@@ -495,8 +566,10 @@ local function OnAttemptBlocked(slotIndex, blockKey, now)
     end
 end
 
----The single per-frame driver: settles the use in flight, waits for a bought
----satchel, picks the next container, and sends with backoff.
+---The single per-frame driver: settles the request in flight (a use or a
+---Stack All), waits for a bought satchel, picks the next container, stacks a
+---full bag, and sends with backoff; with the queue empty it lets the last
+---contents land, stacks the bag, then ends the run.
 local function Loop()
     local unbox = GetUnbox()
     if not unbox.active then
@@ -509,6 +582,9 @@ local function Loop()
     if unbox.inFlight and not SettleInFlight(now) then
         return
     end
+    if unbox.stackSentAtMs > 0 and not SettleStack(now) then
+        return
+    end
 
     ResolveExpectedSatchel(now)
 
@@ -518,9 +594,20 @@ local function Loop()
 
     local slotIndex = NextTarget()
     if not slotIndex then
-        if not unbox.expectItemId then
-            FinishRun(now)
+        local settling = unbox.openedCount > 0 and now - unbox.lastOpenedAtMs < STACK_SETTLE_MS
+        if unbox.expectItemId or settling then
+            return
         end
+        -- The run ends once this Stack All has landed (or there is none to send).
+        if unbox.openedCount > 0 and AttemptStack(now, "end of run") then
+            return
+        end
+        FinishRun(now)
+        return
+    end
+
+    -- A full bag cannot take the container's contents; merging stacks may free the room.
+    if IsBackpackFull() and AttemptStack(now, "backpack full") then
         return
     end
 
@@ -543,6 +630,9 @@ local function StartLoop()
     unbox.active = true
     unbox.startedAtMs = GetGameTimeMilliseconds()
     unbox.openedCount = 0
+    unbox.lastOpenedAtMs = 0
+    unbox.stackSentAtMs = 0
+    unbox.stackGaveUp = false
     unbox.attemptCount = 0
     unbox.itemBlockSinceMs = 0
     unbox.lastBlockKey = nil

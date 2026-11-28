@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/lousytourist/LousyTourist-s-update-for-Votans-keybinder__5118",
+  "archive_path": "addons/lousytourist/LT-s-sorting-version-of-Votans-keybinder__5118",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "lousytourist",
@@ -15,22 +15,22 @@
   "content_id": "esoui:5118",
   "deleted": false,
   "directories": [
-    "VotansKeybinder"
+    "LT-VotansKeybinder"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5118/",
-  "fingerprint": "0818e040c041fb26d4b7b9698d834b161f2f24cbff270b726fdcf6fdd282c4b5",
+  "fingerprint": "8dbb3c35d61ff7f7fe83625841f81f814c97ded07df7068ff639373b6af10502",
   "images": [],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "5118",
-  "source_url": "https://www.esoui.com/downloads/info5118-LousyTouristsupdateforVotanskeybinder.html",
+  "source_url": "https://www.esoui.com/downloads/info5118-LTssortingversionofVotanskeybinder.html",
   "stats": {
-    "downloads": 37,
+    "downloads": 64,
     "favorites": 1,
-    "monthly_downloads": 21
+    "monthly_downloads": 54
   },
-  "title": "LousyTourist's update for Votans keybinder",
-  "updated_at": 1795699821000,
-  "version": "26.1.26"
+  "title": "LT's sorting version of Votans keybinder",
+  "updated_at": 1795815520000,
+  "version": "26.1.27"
 }

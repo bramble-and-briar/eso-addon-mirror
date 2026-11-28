@@ -1,3 +1,8 @@
+[COLOR="DeepSkyBlue"]1.25 (25)[/COLOR]:
+[LIST]
+[*] Added fix recommended by Navarill to fix non-default guilds would hang on the "Retrieving Items..." spinner until he clicked another guild and came back.
+[/LIST]
+
 [COLOR="DeepSkyBlue"]1.23 (24)[/COLOR]:
 [LIST]
 [*] API bump.

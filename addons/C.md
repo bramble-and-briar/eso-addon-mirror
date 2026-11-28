@@ -302,7 +302,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CrowdednESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CrowdednESO__9d131435-84c4-4c6d-9d73-5e2ec6fa61b7) | Masteroshi430 | Console | — |
 | [CrowdednESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CrowdednESO__3296) | Masteroshi430 | PC / Mac | 2026.07.09 |
 | [Crown And Crux](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SaintAres97/Crown-And-Crux__0ac5fe21-6f1a-4c14-8b9f-be1a308a9619) | SaintAres97 | Console | — |
-| [Crown Crate Codex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowStrikerr/Crown-Crate-Codex__5023) | ShadowStrikerr | PC / Mac | 0.12.6 |
 | [Crown Crate Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Faunter/Crown-Crate-Tracker__1741) | Faunter | PC / Mac | 4.0 |
 | [Crown of Cyrodiil](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tillalarrien/Crown-of-Cyrodiil__1784) | Tillalarrien | PC / Mac | 1.2.1 (Clockwork City) |
 | [CrownCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/triase/CrownCustomizer__1548) | triase | PC / Mac | 1.0.5 |

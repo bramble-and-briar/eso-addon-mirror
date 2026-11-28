@@ -1,0 +1,11 @@
+## Title: Fury's Addons Menu
+## Description: Library for Fury's addons: the Fury sidebar, the /fury addons list, the sidebar's key and its saved settings. Required by Fury's addons.
+## Author: Furyous
+## Version: 1.3.2
+## AddOnVersion: 132
+## IsLibrary: true
+## APIVersion: 101051 101052
+## SavedVariables: FurysAddonMenu_SV
+
+FurysAddonMenu.lua
+Bindings.xml

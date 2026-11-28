@@ -700,6 +700,10 @@ function TraderWeek:ContactMenu(control, e)
         end
     end)
     AddMenuItem("Copy " .. e.name, function() GT.Report:ShowCopy(e.name) end)
+    for _, item in ipairs({ GT.Report.TravelItem(e.name), GT.Report.HouseItem(e.name) }) do
+        AddMenuItem(item.label, function() GT.Report.HideTip(); item.fn() end, nil, nil, nil, nil, nil, nil, nil,
+            function(itemControl) GT.Report.ShowMenuTip(itemControl, item.tip) end, GT.Report.HideTip)
+    end
     if e.rank then
         AddMenuItem("Shout out " .. e.name .. " in guild chat", function()
             self:PostToGuild(e.g, { self:ShoutOutText(e) })

@@ -300,7 +300,8 @@ function BankWatch:OnHistoryEvent(guildId, category, info, isLive)
         table.insert(sv.cases, case)
         if alert then self:AlertCase(case, false) end
     end
-    if alert then self:MaybeAutoDemote(case) end
+    -- 1.34.7: events the hole filler fetched late (info.backfilled) alert, but never auto-demote or mail (Albert).
+    if alert and not info.backfilled then self:MaybeAutoDemote(case) end
     GT.Report:RefreshIfShown()
 end
 

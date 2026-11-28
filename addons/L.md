@@ -51,7 +51,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Left Right Simple Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sergi4ek/Left-Right-Simple-Addon__3767) | sergi4ek | PC / Mac | 1.2.2 |
 | [Lens Flare Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Lens-Flare-Toggle__1215) | CaptainBlagbird | PC / Mac | 1.0.14 |
 | [Leo's Altholic (Fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Fix__3596) | sshogrin | PC / Mac | 1.9.10 |
-| [Leo's Altholic Standalone Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Standalone-Viewer__5071) | sshogrin | PC / Mac | 1.2.0 |
+| [Leo's Altholic Standalone Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Leo-s-Altholic-Standalone-Viewer__5071) | sshogrin | PC / Mac | 1.2.2 |
 | [Leo's Dolmen Runner - LDR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Dolmen-Runner---LDR__2534) | LeandroSilva | PC / Mac | 1.3.1 |
 | [Leo's Dolmen Runner - REDUX (with inviter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kiasmalyn/Leo-s-Dolmen-Runner---REDUX-with-inviter__3629) | Kiasmalyn | PC / Mac | 2.1.5 |
 | [Leo's Guild Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Guild-Manager__2151) | LeandroSilva | PC / Mac | 1.3.0 |
@@ -379,9 +379,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LoreTooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/LoreTooltips__4460) | tomkolp | PC / Mac | 1.0.1 |
 | [Lost Treasure](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CrazyDutchGuy/Lost-Treasure__561) | CrazyDutchGuy | PC / Mac | 34 |
 | [LostPassives](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/necco889/LostPassives__3733) | necco889 | PC / Mac | 0.0.2 |
-| [LousyTourist's update for Votans keybinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/LousyTourist-s-update-for-Votans-keybinder__5118) | lousytourist | PC / Mac | 26.1.26 |
 | [LovelyEmotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShinyBones/LovelyEmotes__1890) | ShinyBones | PC / Mac | 5.2 |
 | [LovelyEmotes - EmoteModification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShinyBones/LovelyEmotes---EmoteModification__3934) | ShinyBones | PC / Mac | 1.0 |
+| [LT's sorting version of Votans keybinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lousytourist/LT-s-sorting-version-of-Votans-keybinder__5118) | lousytourist | PC / Mac | 26.1.27 |
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |
 | [Lucent Citadel Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wondernuts/Lucent-Citadel-Helper__3897) | Wondernuts | PC / Mac | 0.7.0 |
 | [Luck Meter: Critical Strikes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Luck-Meter-Critical-Strikes__3222) | Psiioniic | PC / Mac | 0.3.1 |

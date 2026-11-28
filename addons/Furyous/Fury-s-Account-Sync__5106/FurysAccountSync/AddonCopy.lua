@@ -14,6 +14,9 @@ local LAYOUT_PARTS = {
     { key = "Chat",                  name = "chat window" },
     { key = "PerformanceMeters",     name = "frame rate and ping meter" },
     { key = "ZO_HUDTracker_Manager", name = "quest tracker" },
+    -- Where the HUD windows sit after you move them in the game's own HUD editor. The game keeps
+    -- this once per account, not per character.
+    { key = "ZO_HUDManager",         name = "HUD positions", wide = true },
 }
 
 local function Copy(value, depth)
@@ -224,17 +227,25 @@ local function CharacterNode(account, character)
     return node
 end
 
--- The layout parts of the snapshot's character that differ on this character: { key, name }.
-function AS.LayoutPlan()
-    local list = {}
+-- Where a layout part sits: the character's own node, or the account-wide node for a "wide" part.
+-- Returns the main's node, this account's node and the undo key ("$AccountWide" or the character).
+local function LayoutNodes(part)
     local sv = AS.SV()
     local snap = sv.snapshot
-    if not snap or not snap.char or not sv.main or sv.main == GetDisplayName() then return list end
-    local from = CharacterNode(sv.main, snap.char)
-    local to = CharacterNode(GetDisplayName(), GetUnitName("player"))
-    if not from or not to then return list end
+    if not snap or not snap.char or not sv.main or sv.main == GetDisplayName() then return nil end
+    if part.wide then
+        return CharacterNode(sv.main, WIDE), CharacterNode(GetDisplayName(), WIDE), WIDE
+    end
+    local character = GetUnitName("player")
+    return CharacterNode(sv.main, snap.char), CharacterNode(GetDisplayName(), character), character
+end
+
+-- The layout parts of the main that differ here: { key, name }.
+function AS.LayoutPlan()
+    local list = {}
     for _, part in ipairs(LAYOUT_PARTS) do
-        if type(from[part.key]) == "table" and not Same(from[part.key], to[part.key]) then
+        local from, to = LayoutNodes(part)
+        if from and to and type(from[part.key]) == "table" and not Same(from[part.key], to[part.key]) then
             list[#list + 1] = part
         end
     end
@@ -243,19 +254,14 @@ end
 
 -- Returns how many parts were copied. The old ones go into the undo record.
 function AS.CopyLayout(list, undo)
-    local sv = AS.SV()
-    local snap = sv.snapshot
-    local me, character = GetDisplayName(), GetUnitName("player")
-    local from = snap and CharacterNode(sv.main, snap.char)
-    local to = CharacterNode(me, character)
-    if not from or not to or #list == 0 then return 0 end
     local n = 0
     for _, part in ipairs(list) do
-        if type(from[part.key]) == "table" then
-            local old = undo.layouts[character]
+        local from, to, undoKey = LayoutNodes(part)
+        if from and to and type(from[part.key]) == "table" then
+            local old = undo.layouts[undoKey]
             if not old then
                 old = {}
-                undo.layouts[character] = old
+                undo.layouts[undoKey] = old
             end
             if old[part.key] == nil then old[part.key] = to[part.key] or false end
             to[part.key] = Copy(from[part.key])

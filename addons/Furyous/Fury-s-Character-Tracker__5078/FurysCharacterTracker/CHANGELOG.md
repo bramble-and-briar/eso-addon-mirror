@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.9.0
+- Shared code update: Fury's addons now load their saved settings the standard way. Nothing changes for you.
+
+## 1.8.9
+- **Fury's Addons Menu is now a required library**, like LibAddonMenu-2.0, so it shows in the game's Required Add-Ons list. Install it from ESOUI or Minion (Minion 3 does not install libraries for you). It gives all of Fury's addons the Fury sidebar and `/fury`.
+
+## 1.8.8
+- The manifest lists Fury's Addons Menu as an optional library without a version check, as ESOUI asks (the game does not check versions there).
+
+## 1.8.7
+- **The Fury sidebar now lives in Fury's Addons Menu.** The sidebar, the `/fury` list and the other Fury addons' icons in the title bar used to be copied into every Fury addon; that code now lives only in the optional library Fury's Addons Menu (1.3.0 or newer), as the ESOUI team suggested. With the library installed nothing changes for you and your sidebar settings carry over. Without it, this addon works the same, just without the sidebar, `/fury` and those title-bar icons.
+
+## 1.8.6
+- **Fury's Addons Menu is now a separate library.** The Fury sidebar's key and saved settings used to ship as a small folder inside every Fury addon. At the request of the ESOUI team it is now its own download, Fury's Addons Menu. It is optional: install it to keep the sidebar's key and to have the sidebar remember its settings. Without it, `/fury` and the sidebar still work. Your sidebar settings and your key carry over once it is installed.
+
 ## 1.8.5
 - **Finished writs stay finished.** A writ you hand in now always shows as Done, even when the game doesn't tell the addon about the hand-in. When a writ taken today leaves your journal, the addon counts it as handed in. It also reads your writs again whenever you finish a quest and when you log out or switch characters.
 - **Alchemy writs are read right.** An alchemy writ could be taken for another craft's writ, so its column stayed "-". On an English client the writ's name now decides which craft it is.

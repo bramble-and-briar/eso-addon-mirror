@@ -69,9 +69,7 @@ local function Checkbox(parent, text, y, onToggle)
     local c = WINDOW_MANAGER:CreateControlFromVirtual(Name("Check"), parent, "ZO_CheckButton")
     c:SetAnchor(TOPLEFT, parent, TOPLEFT, 40, y)
     ZO_CheckButton_SetLabelText(c, text)
-    ZO_CheckButton_SetToggleFunction(c, function(_, checked)
-        if not refreshing then onToggle(checked) end
-    end)
+    ZO_CheckButton_SetToggleFunction(c, function(_, checked) onToggle(checked) end)
     return c
 end
 

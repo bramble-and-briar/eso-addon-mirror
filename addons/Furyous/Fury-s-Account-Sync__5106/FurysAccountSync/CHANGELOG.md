@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.9
+- **Saved settings now load the standard way** (ZO_SavedVars), as ESOUI's reviewers asked. Your settings are moved over by themselves the first time you log in, so nothing changes for you. The Windows tool (0.2.2) reads them in the new place.
+- **Game settings now stick after you log out.** The game holds many settings, Auto Loot among them, until its own Settings menu closes and only then saves them to its server. Settings this addon copied looked right but could be gone at the next login unless you had opened and closed the Settings menu. They are now saved right away. If an account copied before, press Apply there once more.
+- **HUD positions are copied too.** Where you moved the HUD windows with the game's own HUD editor (the action bar, health bars, buffs, group frames and the like) now copies with "Chat window, meters, quest tracker and HUD". The game keeps these once per account. The Windows tool (0.2.2) copies them as well.
+
+## 0.6.8
+- **Fury's Addons Menu is now a required library**, like LibAddonMenu-2.0, so it shows in the game's Required Add-Ons list. Install it from ESOUI or Minion (Minion 3 does not install libraries for you). It gives all of Fury's addons the Fury sidebar and `/fury`.
+
+## 0.6.7
+- The manifest lists Fury's Addons Menu as an optional library without a version check, as ESOUI asks (the game does not check versions there).
+
+## 0.6.6
+- **The Fury sidebar now lives in Fury's Addons Menu.** The sidebar, the `/fury` list and the other Fury addons' icons in the title bar used to be copied into every Fury addon; that code now lives only in the optional library Fury's Addons Menu (1.3.0 or newer), as the ESOUI team suggested. With the library installed nothing changes for you and your sidebar settings carry over. Without it, this addon works the same, just without the sidebar, `/fury` and those title-bar icons.
+
+## 0.6.5
+- **Fury's Addons Menu is now a separate library.** The Fury sidebar's key and saved settings used to ship as a small folder inside every Fury addon. At the request of the ESOUI team it is now its own download, Fury's Addons Menu. It is optional: install it to keep the sidebar's key and to have the sidebar remember its settings. Without it, `/fury` and the sidebar still work. Your sidebar settings and your key carry over once it is installed.
+
 ## 0.6.4
 - **Smaller version number.** The version in the title bar is now in small print, the same in every Fury window, so the name and your other Fury addons' icons stand out.
 

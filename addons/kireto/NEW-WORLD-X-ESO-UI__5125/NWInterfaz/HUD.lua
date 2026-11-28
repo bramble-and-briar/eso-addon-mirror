@@ -1,7 +1,7 @@
 -- HUD: barras apiladas (magia / aguante / salud), nivel o Campeón,
 -- habilidades (botones nativos, más chicos y sin marcos) y consumibles.
 -- No toca la brújula, el menú superior ni el rastreador de misiones.
-local NWUI = NWUI
+local NWUI = NWInterfaz
 local HUD = {}
 NWUI.HUD = HUD
 
@@ -92,11 +92,9 @@ local function UpdateShield()
     local h = bars[P_HEALTH]
     if not h then return end
     local val = 0
-    if GetUnitAttributeVisualizerEffectInfo and ATTRIBUTE_VISUAL_POWER_SHIELDING then
-        local ok, v = pcall(GetUnitAttributeVisualizerEffectInfo, "player",
-            ATTRIBUTE_VISUAL_POWER_SHIELDING, STAT_MITIGATION, ATTRIBUTE_HEALTH, P_HEALTH)
-        if ok and type(v) == "number" then val = v end
-    end
+    local v = GetUnitAttributeVisualizerEffectInfo("player",
+        ATTRIBUTE_VISUAL_POWER_SHIELDING, STAT_MITIGATION, ATTRIBUTE_HEALTH, P_HEALTH)
+    if v then val = v end
     if val > 0 then
         h.shield:SetWidth((h:GetWidth() - 2) * zo_clamp(val / (h.max or 1), 0, 1))
         h.shield:SetHidden(false)
@@ -104,6 +102,184 @@ local function UpdateShield()
         h.shield:SetHidden(true)
     end
 end
+
+-- =====================================================================
+-- Efectos del juego en la barra de vida (como la barra original):
+--   armadura rota / aumentada, daño aumentado / reducido, regeneración
+--   aumentada / reducida, inquebrantable y posesión.
+-- Se usan los mismos avisos del juego (EVENT_UNIT_ATTRIBUTE_VISUAL_*) y sus
+-- texturas. Todo se dibuja DENTRO de la barra de vida (bajo el número), así
+-- no toca la barra de aguante de arriba ni la de experiencia de abajo, y no
+-- cambia el tamaño, el color ni los números de ninguna barra.
+-- No incluye el cambio de tamaño por vida máxima (alteraría las barras).
+-- =====================================================================
+local FX_ART = "EsoUI/Art/UnitAttributeVisualizer/"
+local FX_ARROW_W, FX_ARROW_MS = 16, 1200
+local hpfx
+
+local function FXValue(visual, stat)
+    local v = GetUnitAttributeVisualizerEffectInfo("player", visual, stat, ATTRIBUTE_HEALTH, P_HEALTH)
+    return v or 0
+end
+
+local function Pulse(ctrl, lo, hi, ms)
+    local tl = ANIMATION_MANAGER:CreateTimeline()
+    local a = tl:InsertAnimation(ANIMATION_ALPHA, ctrl)
+    a:SetAlphaValues(lo, hi)
+    a:SetDuration(ms)
+    tl:SetPlaybackType(ANIMATION_PLAYBACK_PING_PONG, LOOP_INDEFINITELY)
+    return tl
+end
+
+-- capa que ocupa el interior de la barra (dentro del borde)
+local function Layer(parent, level)
+    local c = WM:CreateControl(NWUI.UID("NWUI_HUD_FX"), parent, CT_CONTROL)
+    c:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
+    c:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, 0, 0)
+    c:SetHidden(true)
+    c.level = level
+    return c
+end
+
+local function FillTex(layer, file, level)
+    local t = NWUI.Tex(layer, nil, level or layer.level)
+    t:SetTexture(FX_ART .. file)
+    t:SetAnchorFill(layer)
+    return t
+end
+
+-- marco de 4 líneas pegado al interior de la barra
+local function Ring(layer, color, inset, thick)
+    for i = 1, 4 do
+        local e = NWUI.Tex(layer, color, layer.level)
+        if i == 1 then e:SetAnchor(TOPLEFT, layer, TOPLEFT, inset, inset); e:SetAnchor(TOPRIGHT, layer, TOPRIGHT, -inset, inset); e:SetHeight(thick)
+        elseif i == 2 then e:SetAnchor(BOTTOMLEFT, layer, BOTTOMLEFT, inset, -inset); e:SetAnchor(BOTTOMRIGHT, layer, BOTTOMRIGHT, -inset, -inset); e:SetHeight(thick)
+        elseif i == 3 then e:SetAnchor(TOPLEFT, layer, TOPLEFT, inset, inset); e:SetAnchor(BOTTOMLEFT, layer, BOTTOMLEFT, inset, -inset); e:SetWidth(thick)
+        else e:SetAnchor(TOPRIGHT, layer, TOPRIGHT, -inset, inset); e:SetAnchor(BOTTOMRIGHT, layer, BOTTOMRIGHT, -inset, -inset); e:SetWidth(thick) end
+    end
+end
+
+function HUD.CreateHealthFX(h)
+    local box = WM:CreateControl("NWUI_HUD_HealthFX", h, CT_CONTROL)
+    box:SetAnchor(TOPLEFT, h, TOPLEFT, 1, 1)
+    box:SetAnchor(BOTTOMRIGHT, h, BOTTOMRIGHT, -1, -1)
+    hpfx = { box = box }
+
+    -- debajo del número (las etiquetas van en el nivel 8)
+    local down = Layer(box, 4)                         -- daño reducido: sombra oscura
+    NWUI.Tex(down, {0.10, 0.00, 0.12, 0.35}, 4):SetAnchorFill(down)
+    Ring(down, {0.30, 0.05, 0.32, 0.95}, 0, 2)
+    down.anim = Pulse(down, 0.55, 1, 700)
+
+    local crack = Layer(box, 5)                        -- armadura rota
+    crack.cracks = FillTex(crack, "attributeBar_dynamic_decreasedArmor_standard.dds", 5)
+    crack.glow = FillTex(crack, "attributeBar_dynamic_decreasedArmor_standard_glow.dds", 6)
+    local tl = ANIMATION_MANAGER:CreateTimeline()      -- igual que el juego: aparece y destella
+    local a1 = tl:InsertAnimation(ANIMATION_ALPHA, crack.cracks)
+    a1:SetAlphaValues(0, 1); a1:SetDuration(100)
+    local a2 = tl:InsertAnimation(ANIMATION_ALPHA, crack.glow)
+    a2:SetAlphaValues(0, 1); a2:SetDuration(100)
+    local a3 = tl:InsertAnimation(ANIMATION_ALPHA, crack.glow, 350)
+    a3:SetAlphaValues(1, 0); a3:SetDuration(1000)
+    crack.anim = tl
+
+    local unw = Layer(box, 5)                          -- inquebrantable
+    FillTex(unw, "attributeBar_dynamic_invulnerable.dds", 5)
+    unw.anim = Pulse(unw, 0.6, 1, 800)
+
+    local pos = Layer(box, 5)                          -- posesión
+    FillTex(pos, "attributeBar_dynamic_possession.dds", 5)
+    FillTex(pos, "attributeBar_dynamic_possessionGlow.dds", 6)
+    pos.anim = Pulse(pos, 0.6, 1, 900)
+
+    local armor = Layer(box, 6)                        -- armadura aumentada: marco metálico
+    Ring(armor, {0.80, 0.82, 0.86, 0.95}, 0, 2)
+    Ring(armor, {0.25, 0.26, 0.30, 0.90}, 2, 1)
+
+    local up = Layer(box, 7)                           -- daño aumentado: halo dorado
+    Ring(up, {0.98, 0.80, 0.36, 1}, 3, 2)
+    up.anim = Pulse(up, 0.45, 1, 600)
+
+    local arrows = Layer(box, 7)                       -- regeneración: flechas
+    arrows.list = {}
+    for i = 1, 2 do
+        local t = NWUI.Tex(arrows, nil, 7)
+        t:SetTexture(FX_ART .. "attributeBar_arrow.dds")
+        t:SetDimensions(FX_ARROW_W, FX_ARROW_W)
+        arrows.list[i] = t
+    end
+
+    hpfx.down, hpfx.crack, hpfx.unw, hpfx.pos = down, crack, unw, pos
+    hpfx.armor, hpfx.up, hpfx.arrows = armor, up, arrows
+end
+
+-- Flechas como las del juego: desde el centro hacia fuera (regeneración
+-- aumentada) o desde los bordes hacia el centro (reducida), con fundido.
+local function ArrowStep()
+    local ar = hpfx and hpfx.arrows
+    if not (ar and ar.fxOn) then
+        EVENT_MANAGER:UnregisterForUpdate("NWUI_HUD_HPArrows")
+        return
+    end
+    local half = hpfx.box:GetWidth() / 2
+    local p = (GetFrameTimeMilliseconds() % FX_ARROW_MS) / 1000
+    local alpha = 0
+    if p < 1 then
+        if p < 0.15 then alpha = 0
+        elseif p < 0.5 then alpha = (p - 0.15) / 0.35
+        elseif p < 0.85 then alpha = 1 - (p - 0.5) / 0.35 end
+    else
+        p = 1
+    end
+    local travel = math.max(0, half - FX_ARROW_W - 3)
+    local outward = ar.dir > 0
+    local d = outward and (p * travel) or ((1 - p) * travel)
+    local left, right = ar.list[1], ar.list[2]
+    left:ClearAnchors(); right:ClearAnchors()
+    left:SetAnchor(RIGHT, hpfx.box, CENTER, -d, 1)
+    right:SetAnchor(LEFT, hpfx.box, CENTER, d, 1)
+    -- la textura apunta a la izquierda; la derecha va en espejo
+    if outward then
+        left:SetTextureCoords(0, 1, 0, 1); right:SetTextureCoords(1, 0, 0, 1)
+    else
+        left:SetTextureCoords(1, 0, 0, 1); right:SetTextureCoords(0, 1, 0, 1)
+    end
+    left:SetAlpha(alpha * 0.9); right:SetAlpha(alpha * 0.9)
+end
+
+-- estado propio (IsHidden también es true si la barra está oculta)
+local function Toggle(layer, on)
+    on = on and true or false
+    if on == (layer.fxOn == true) then return false end
+    layer.fxOn = on
+    layer:SetHidden(not on)
+    if layer.anim then
+        if on then layer.anim:PlayFromStart() else layer.anim:Stop() end
+    end
+    return true
+end
+
+function HUD.UpdateHealthFX()
+    if not hpfx then return end
+    local on = NWUI.sv.hud.healthEffects ~= false
+    local armor = FXValue(ATTRIBUTE_VISUAL_INCREASED_STAT, STAT_ARMOR_RATING) + FXValue(ATTRIBUTE_VISUAL_DECREASED_STAT, STAT_ARMOR_RATING)
+    local power = FXValue(ATTRIBUTE_VISUAL_INCREASED_STAT, STAT_POWER) + FXValue(ATTRIBUTE_VISUAL_DECREASED_STAT, STAT_POWER)
+    local regen = FXValue(ATTRIBUTE_VISUAL_INCREASED_REGEN_POWER, STAT_HEALTH_REGEN_COMBAT) + FXValue(ATTRIBUTE_VISUAL_DECREASED_REGEN_POWER, STAT_HEALTH_REGEN_COMBAT)
+    local unw = FXValue(ATTRIBUTE_VISUAL_UNWAVERING_POWER, STAT_MITIGATION)
+    local pos = FXValue(ATTRIBUTE_VISUAL_POSSESSION, STAT_MITIGATION)
+    Toggle(hpfx.crack, on and armor < 0)
+    Toggle(hpfx.armor, on and armor > 0)
+    Toggle(hpfx.up, on and power > 0)
+    Toggle(hpfx.down, on and power < 0)
+    Toggle(hpfx.unw, on and unw > 0)
+    Toggle(hpfx.pos, on and pos > 0)
+    local ar = hpfx.arrows
+    ar.dir = regen > 0 and 1 or -1
+    if Toggle(ar, on and regen ~= 0) and regen ~= 0 then
+        EVENT_MANAGER:RegisterForUpdate("NWUI_HUD_HPArrows", 0, ArrowStep)
+    end
+end
+HUD.HealthFX = function() return hpfx end
 
 local function RefreshPowers()
     for ptype, b in pairs(bars) do
@@ -123,44 +299,53 @@ end
 -- degradado recortado con la forma del hexágono (textures/nivel_fondo.dds).
 local LEVEL_FRAME = "NWInterfaz/textures/nivel_marco.dds"
 local LEVEL_BG    = "NWInterfaz/textures/nivel_fondo.dds"
-local IMG_W, IMG_H, TEX_W, TEX_H = 885, 132, 1024, 256
+local IMG_W, TEX_W, TEX_H = 885, 1024, 256
+-- Solo se usa la parte del hexágono (filas 0-109): la línea dorada con rombo
+-- que había debajo se sustituye por la barra de experiencia.
+local IMG_H = 110
 local HEX_H, HEX_CY = 109, 54          -- alto del hexágono y su centro (px de la imagen)
+local HEX_FLAT_W = 285                 -- ancho del tramo recto del hexágono (px de la imagen)
+local WIDEST_LEVEL = "3,600"           -- número más ancho posible (Campeón máximo)
 
 function HUD.UpdateLevel()
     local lv = HUD.level
     if not lv then return end
     local s = NWUI.sv.hud
     lv:SetHidden(not s.showLevel)
-    local size = s.levelSize or 26
-    lv.label:SetFont("$(BOLD_FONT)|" .. size .. "|soft-shadow-thick")
-    -- escala: marco compacto, el hexágono apenas más alto que el número
+    local size = s.levelSize or 18
+    -- escala: alto del hexágono = levelSize + 16
     local k = (size + 16) / HEX_H
-    -- icono de Campeón grande: ~78 % del alto del hexágono (como el ejemplo)
-    local iconSize = math.floor(HEX_H * k * 0.78 + 0.5)
+    local iconSize = math.floor(HEX_H * k * 0.70 + 0.5)
     lv.icon:SetDimensions(iconSize, iconSize)
+    -- número casi del alto del icono, pero siempre cabe "3,600" dentro del hexágono
+    local inner = HEX_FLAT_W * k - 8
+    if lv.fitFor ~= size then
+        local fs = math.floor(iconSize * 0.95 + 0.5)
+        while fs > 10 do
+            lv.label:SetFont("$(BOLD_FONT)|" .. fs .. "|soft-shadow-thick")
+            lv.label:SetText(ZO_CommaDelimitNumber(3600))
+            if iconSize + 3 + (lv.label:GetTextWidth() or 0) <= inner then break end
+            fs = fs - 1
+        end
+        lv.fitFor, lv.fontSize = size, fs
+    end
+    lv.label:SetFont("$(BOLD_FONT)|" .. lv.fontSize .. "|soft-shadow-thick")
     local W, H = math.floor(IMG_W * k + 0.5), math.floor(IMG_H * k + 0.5)
     lv:SetDimensions(W, H)
     -- offset vertical del centro del hexágono respecto al centro del control
     local dy = (HEX_CY - IMG_H / 2) * k
 
-    local level = GetUnitLevel("player") or 1
-    local isCP = level >= 50
-    if IsUnitChampion then isCP = IsUnitChampion("player") or isCP end
+    local level = GetUnitLevel("player")
+    local isCP = IsUnitChampion("player") or level >= GetMaxLevel()
     lv.icon:ClearAnchors()
     lv.label:ClearAnchors()
     if isCP then
-        local cp = 0
-        if GetPlayerChampionPointsEarned then
-            cp = GetPlayerChampionPointsEarned()
-        elseif GetUnitChampionPoints then
-            cp = GetUnitChampionPoints("player")
-        end
-        lv.label:SetText(ZO_CommaDelimitNumber(cp or 0))
+        lv.label:SetText(ZO_CommaDelimitNumber(GetPlayerChampionPointsEarned()))
         lv.icon:SetHidden(false)
         local tw = lv.label:GetTextWidth() or 0
-        local contentW = iconSize + 4 + tw
+        local contentW = iconSize + 3 + tw
         lv.icon:SetAnchor(LEFT, lv, CENTER, -contentW / 2, dy)
-        lv.label:SetAnchor(LEFT, lv.icon, RIGHT, 4, 0)
+        lv.label:SetAnchor(LEFT, lv.icon, RIGHT, 3, 0)
     else
         lv.label:SetText(tostring(level))
         lv.icon:SetHidden(true)
@@ -169,13 +354,133 @@ function HUD.UpdateLevel()
 end
 
 -- =====================================================================
+-- Barra de experiencia: fina, dorada, con un marco del mismo estilo que la
+-- placa del nivel (textures/xp_marco.dds: punta izq. | tramo | punta der.).
+-- Muestra lo que falta para el siguiente nivel o, con Campeón, para el
+-- siguiente punto de Campeón. El relleno lleva un degradado que se desvanece
+-- a la izquierda y es dorado brillante en la punta.
+-- =====================================================================
+local XP_TEX = "NWInterfaz/textures/xp_marco.dds"
+local XP_H, XP_CAP, XP_BAR = 8, 4, 3   -- alto del marco, ancho de cada punta, alto de la barra
+local XP_GAP = 3                       -- separación arriba (salud) y abajo (placa)
+
+local function XPProgress()
+    local level = GetUnitLevel("player") or 1
+    if IsUnitChampion("player") or level >= GetMaxLevel() then
+        local cp = GetPlayerChampionPointsEarned()
+        local cur = GetPlayerChampionXP()
+        local max = GetNumChampionXPInChampionPoint(cp)
+        if not max or max <= 0 then return 1 end
+        return zo_clamp(cur / max, 0, 1)
+    end
+    local cur, max = GetUnitXP("player"), GetUnitXPMax("player")
+    if not max or max <= 0 then return 0 end
+    return zo_clamp(cur / max, 0, 1)
+end
+HUD.XPProgress = XPProgress
+
+function HUD.CreateXP(g)
+    local xp = WM:CreateControl("NWUI_HUD_XP", g, CT_CONTROL)
+    local function piece(u0, u1)
+        local t = NWUI.Tex(xp, nil, 0)
+        t:SetTexture(XP_TEX)
+        t:SetTextureCoords(u0, u1, 0, 1)
+        return t
+    end
+    xp.left  = piece(0, 16 / 64)
+    xp.mid   = piece(30 / 64, 34 / 64)
+    xp.right = piece(48 / 64, 1)
+    xp.track = NWUI.Tex(xp, {0.09, 0.08, 0.06, 1}, 1)
+    xp.fill  = NWUI.Tex(xp, nil, 2)
+    xp.tip   = NWUI.Tex(xp, {1, 0.94, 0.78, 1}, 3)
+    xp.shown, xp.target = 0, 0
+    HUD.xp = xp
+end
+
+local function SetXPFill(p)
+    local xp = HUD.xp
+    xp.shown = p
+    local g = HUD.barsGroup
+    local w = math.max(0, ((g and g:GetWidth()) or 0) - 2 * XP_CAP)
+    local fw = math.floor(w * p + 0.5)
+    xp.fill:SetHidden(fw < 1)
+    xp.tip:SetHidden(fw < 3)
+    xp.fill:SetWidth(math.max(1, fw))
+end
+
+local function XPStep()
+    local xp = HUD.xp
+    local now = GetFrameTimeMilliseconds()
+    local t = zo_clamp((now - xp.t0) / 350, 0, 1)
+    local e = 1 - (1 - t) * (1 - t)
+    SetXPFill(xp.from + (xp.target - xp.from) * e)
+    if t >= 1 then EVENT_MANAGER:UnregisterForUpdate("NWUI_HUD_XPAnim") end
+end
+
+function HUD.UpdateXP(instant)
+    local xp = HUD.xp
+    if not xp then return end
+    local p = XPProgress()
+    xp.target = p
+    if instant or p < xp.shown or xp:IsHidden() then
+        EVENT_MANAGER:UnregisterForUpdate("NWUI_HUD_XPAnim")
+        SetXPFill(p)
+        return
+    end
+    xp.from, xp.t0 = xp.shown, GetFrameTimeMilliseconds()
+    EVENT_MANAGER:RegisterForUpdate("NWUI_HUD_XPAnim", 0, XPStep)
+end
+
+function HUD.LayoutXP()
+    local xp, g, lv = HUD.xp, HUD.barsGroup, HUD.level
+    if not (xp and g) then return end
+    local s = NWUI.sv.hud
+    local on = s.showXP ~= false
+    xp:SetHidden(not on)
+    xp:ClearAnchors()
+    -- el panel oscuro de las barras sobresale 2 px: la separación se mide desde él
+    xp:SetAnchor(TOPLEFT, g, BOTTOMLEFT, 0, 2 + XP_GAP)
+    xp:SetAnchor(TOPRIGHT, g, BOTTOMRIGHT, 0, 2 + XP_GAP)
+    xp:SetHeight(XP_H)
+    xp.left:ClearAnchors();  xp.left:SetAnchor(TOPLEFT, xp, TOPLEFT, 0, 0);  xp.left:SetDimensions(XP_CAP, XP_H)
+    xp.right:ClearAnchors(); xp.right:SetAnchor(TOPRIGHT, xp, TOPRIGHT, 0, 0); xp.right:SetDimensions(XP_CAP, XP_H)
+    xp.mid:ClearAnchors()
+    xp.mid:SetAnchor(TOPLEFT, xp.left, TOPRIGHT, 0, 0)
+    xp.mid:SetAnchor(BOTTOMRIGHT, xp.right, BOTTOMLEFT, 0, 0)
+    local inset = XP_CAP
+    xp.track:ClearAnchors()
+    xp.track:SetAnchor(LEFT, xp, LEFT, inset, 0)
+    xp.track:SetAnchor(RIGHT, xp, RIGHT, -inset, 0)
+    xp.track:SetHeight(XP_BAR)
+    xp.fill:ClearAnchors()
+    xp.fill:SetAnchor(TOPLEFT, xp.track, TOPLEFT, 0, 0)
+    xp.fill:SetHeight(XP_BAR)
+    -- degradado horizontal: izquierda casi transparente, punta dorada
+    NWUI.SetColor(xp.fill, {0.94, 0.80, 0.47, 1})
+    if xp.fill.SetGradientColors and ORIENTATION_HORIZONTAL then
+        xp.fill:SetGradientColors(ORIENTATION_HORIZONTAL, 0.43, 0.31, 0.16, 0.16, 0.94, 0.80, 0.47, 1)
+    end
+    xp.tip:ClearAnchors()
+    xp.tip:SetAnchor(TOPRIGHT, xp.fill, TOPRIGHT, 0, 0)
+    xp.tip:SetDimensions(2, XP_BAR)
+    -- la placa del nivel cuelga debajo, con la misma separación
+    if lv then
+        lv:ClearAnchors()
+        if on then
+            lv:SetAnchor(TOP, xp, BOTTOM, 0, XP_GAP)
+        else
+            lv:SetAnchor(TOP, g, BOTTOM, 0, 2 + XP_GAP)
+        end
+    end
+    HUD.UpdateXP(true)
+end
+
+-- =====================================================================
 -- Botones nativos: localizar y aplanar (sin marcos)
 -- =====================================================================
 local function SlotObj(n)
-    if ZO_ActionBar_GetButton then
-        local ok, b = pcall(ZO_ActionBar_GetButton, n)
-        if ok and b and b.slot then return b end
-    end
+    local b = ZO_ActionBar_GetButton(n)
+    if b and b.slot then return b end
 end
 
 local function SlotCtrl(n)
@@ -226,8 +531,8 @@ local function Flatten(c, obj)
     if not (c and NWUI.sv.hud.flatAbilities) then return end
     local btn = (obj and obj.button) or (c.GetNamedChild and c:GetNamedChild("Button"))
     if btn then
-        if btn.SetNormalTexture then pcall(btn.SetNormalTexture, btn, "") end
-        if btn.SetPressedTexture then pcall(btn.SetPressedTexture, btn, "") end
+        btn:SetNormalTexture("")
+        btn:SetPressedTexture("")
     end
     if c.GetNamedChild then
         for _, suffix in ipairs({ "Frame", "Border", "Edge" }) do
@@ -249,10 +554,8 @@ end
 -- Icono real del botón (el botón tiene margen alrededor del icono: el marco
 -- se dibuja pegado al icono para que el cuadro sea más chico)
 local function IconOf(c, b)
-    local ic = b and b.icon
-    if (not ic or type(ic) == "function") and c and c.GetNamedChild then ic = c:GetNamedChild("Icon") end
-    if ic and type(ic) ~= "function" and ic ~= c and ic.GetParent then return ic end
-    return c
+    -- ActionButton guarda su icono en .icon (esoui/ingame/actionbar/actionbutton.lua)
+    return (b and b.icon) or c:GetNamedChild("Icon") or c
 end
 HUD.IconOf = IconOf
 
@@ -264,11 +567,8 @@ local function IconInset(c, b)
     if not c then return 0 end
     if insetCache[c] then return insetCache[c] end
     local ic = IconOf(c, b)
-    if ic == c or not (c.GetWidth and ic.GetWidth and ic.GetHeight) then return 0 end
-    local ok1, cw = pcall(c.GetWidth, c)
-    local ok2, iw = pcall(ic.GetWidth, ic)
-    local ok3, ih = pcall(ic.GetHeight, ic)
-    if not (ok1 and ok2 and ok3 and type(cw) == "number" and type(iw) == "number" and type(ih) == "number") then return 0 end
+    if ic == c then return 0 end
+    local cw, iw, ih = c:GetWidth(), ic:GetWidth(), ic:GetHeight()
     if cw <= 0 or iw <= 0 or iw > cw or math.abs(iw - ih) > 1 then return 0 end -- icono girando: no medir
     local r = (cw - iw) / (2 * cw)
     if r > 0.2 then return 0 end
@@ -293,59 +593,122 @@ function HUD.FlattenAll()
 end
 
 -- =====================================================================
+-- Al morir, el juego oculta su barra de habilidades (está en la lista de
+-- fragmentos que no se ven estando muerto). Los marcos del addon son
+-- propios y se quedaban vacíos: mientras estás muerto se dibujan dentro los
+-- mismos iconos (y teclas) con las texturas del juego. No se toca la barra
+-- del juego. Al revivir se quitan y vuelve a verse la del juego.
+-- =====================================================================
+local function DeadParts(f)
+    if not f.deadIcon then
+        f.deadIcon = NWUI.Tex(f, nil, 0)
+        f.deadKey = NWUI.Label(f, F.key, C.text, "")
+        f.deadCount = NWUI.Label(f, F.count, C.text, "")
+    end
+    local t = NWUI.sv.hud.iconBorder or 2
+    f.deadIcon:ClearAnchors()
+    f.deadIcon:SetAnchor(TOPLEFT, f, TOPLEFT, t, t)
+    f.deadIcon:SetAnchor(BOTTOMRIGHT, f, BOTTOMRIGHT, -t, -t)
+    f.deadKey:ClearAnchors()
+    f.deadKey:SetAnchor(TOP, f, BOTTOM, 0, 1)
+    f.deadCount:ClearAnchors()
+    f.deadCount:SetAnchor(BOTTOMRIGHT, f, BOTTOMRIGHT, -t - 2, -t + 1)
+end
+
+local function ShowDead(f, tex, key, count)
+    DeadParts(f)
+    local has = tex ~= nil and tex ~= ""
+    f.deadIcon:SetTexture(has and tex or "")
+    f.deadIcon:SetHidden(not has)
+    f.deadKey:SetText(key or "")
+    f.deadKey:SetHidden(not (has and key and key ~= ""))
+    f.deadCount:SetText((count and count > 0) and tostring(count) or "")
+    f.deadCount:SetHidden(not (has and count and count > 0))
+end
+
+local function HideDead(f)
+    if f and f.deadIcon then
+        f.deadIcon:SetHidden(true)
+        f.deadKey:SetHidden(true)
+        f.deadCount:SetHidden(true)
+    end
+end
+
+function HUD.UpdateDeadIcons()
+    if not HUD.tlw then return end
+    local dead = IsUnitDead("player") and NWUI.sv.hud.moveActionBar and not IsInGamepadPreferredMode()
+    local hotbar = GetActiveHotbarCategory()
+    for n = 3, 8 do
+        local b = SlotObj(n)
+        local c = b and b.slot or _G["ActionButton" .. n]
+        local f = c and frames[c]
+        if f then
+            if dead then
+                local key = b and b.buttonText and b.buttonText:GetText() or nil
+                ShowDead(f, GetSlotTexture(n, hotbar), key)
+            else
+                HideDead(f)
+            end
+        end
+    end
+    local q = QuickslotCtrl()
+    local f = q and frames[q]
+    if f then
+        if dead then
+            local slot = GetCurrentQuickslot()
+            local cat = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+            ShowDead(f, GetSlotTexture(slot, cat), nil, GetSlotItemCount(slot, cat))
+        else
+            HideDead(f)
+        end
+    end
+end
+
+-- =====================================================================
 -- Icono del tipo de arma (texturas del propio juego, no se añade ninguna)
 -- =====================================================================
 local TH = "EsoUI/Art/TradingHouse/Tradinghouse_Weapons_"
 local INVT = "EsoUI/Art/Inventory/inventory_tabIcon_"
-local WEAPON_ICON = {}
-local function MapIcon(constName, path)
-    local v = rawget(_G, constName)
-    if type(v) == "number" then WEAPON_ICON[v] = path end
-end
-MapIcon("WEAPONTYPE_AXE",               TH .. "1h_Axe_Down.dds")
-MapIcon("WEAPONTYPE_HAMMER",            TH .. "1h_Mace_Down.dds")
-MapIcon("WEAPONTYPE_SWORD",             TH .. "1h_Sword_Down.dds")
-MapIcon("WEAPONTYPE_DAGGER",            TH .. "1h_Dagger_Down.dds")
-MapIcon("WEAPONTYPE_TWO_HANDED_AXE",    TH .. "2h_Axe_Down.dds")
-MapIcon("WEAPONTYPE_TWO_HANDED_HAMMER", TH .. "2h_Mace_Down.dds")
-MapIcon("WEAPONTYPE_TWO_HANDED_SWORD",  TH .. "2h_Sword_Down.dds")
-MapIcon("WEAPONTYPE_BOW",               INVT .. "bow_down.dds")
-MapIcon("WEAPONTYPE_FIRE_STAFF",        INVT .. "damageStaff_down.dds")
-MapIcon("WEAPONTYPE_FROST_STAFF",       INVT .. "damageStaff_down.dds")
-MapIcon("WEAPONTYPE_LIGHTNING_STAFF",   INVT .. "damageStaff_down.dds")
-MapIcon("WEAPONTYPE_HEALING_STAFF",     INVT .. "damageStaff_down.dds")
-MapIcon("WEAPONTYPE_SHIELD",            INVT .. "shield_down.dds")
+local WEAPON_ICON = {
+    [WEAPONTYPE_AXE]               = TH .. "1h_Axe_Down.dds",
+    [WEAPONTYPE_HAMMER]            = TH .. "1h_Mace_Down.dds",
+    [WEAPONTYPE_SWORD]             = TH .. "1h_Sword_Down.dds",
+    [WEAPONTYPE_DAGGER]            = TH .. "1h_Dagger_Down.dds",
+    [WEAPONTYPE_TWO_HANDED_AXE]    = TH .. "2h_Axe_Down.dds",
+    [WEAPONTYPE_TWO_HANDED_HAMMER] = TH .. "2h_Mace_Down.dds",
+    [WEAPONTYPE_TWO_HANDED_SWORD]  = TH .. "2h_Sword_Down.dds",
+    [WEAPONTYPE_BOW]               = INVT .. "bow_down.dds",
+    [WEAPONTYPE_FIRE_STAFF]        = INVT .. "damageStaff_down.dds",
+    [WEAPONTYPE_FROST_STAFF]       = INVT .. "damageStaff_down.dds",
+    [WEAPONTYPE_LIGHTNING_STAFF]   = INVT .. "damageStaff_down.dds",
+    [WEAPONTYPE_HEALING_STAFF]     = INVT .. "damageStaff_down.dds",
+    [WEAPONTYPE_SHIELD]            = INVT .. "shield_down.dds",
+}
 HUD.WEAPON_ICON = WEAPON_ICON
 
-local function Const(name) local v = rawget(_G, name); return type(v) == "number" and v or nil end
-
 local function PairSlots(pair)
-    if pair == Const("ACTIVE_WEAPON_PAIR_BACKUP") then
-        return Const("EQUIP_SLOT_BACKUP_MAIN"), Const("EQUIP_SLOT_BACKUP_OFF")
+    if pair == ACTIVE_WEAPON_PAIR_BACKUP then
+        return EQUIP_SLOT_BACKUP_MAIN, EQUIP_SLOT_BACKUP_OFF
     end
-    return Const("EQUIP_SLOT_MAIN_HAND"), Const("EQUIP_SLOT_OFF_HAND")
+    return EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND
 end
 
 local function WeaponTypeAt(slot)
-    if not (slot and GetItemWeaponType) then return nil end
-    local ok, t = pcall(GetItemWeaponType, BAG_WORN, slot)
-    if ok and type(t) == "number" and t ~= Const("WEAPONTYPE_NONE") and t ~= 0 then return t end
+    local t = GetItemWeaponType(BAG_WORN, slot)
+    if t ~= WEAPONTYPE_NONE then return t end
 end
 
 -- Devuelve icono principal y (si hay dos armas de una mano) el icono que se
 -- dibuja en espejo encima para formar la X.
 local function ComputeIcons(mt, ot)
-    if ot and ot == Const("WEAPONTYPE_SHIELD") then return WEAPON_ICON[ot] end
+    if ot == WEAPONTYPE_SHIELD then return WEAPON_ICON[ot] end
     if mt and ot and WEAPON_ICON[mt] and WEAPON_ICON[ot] then return WEAPON_ICON[mt], WEAPON_ICON[ot] end
     local t = mt or ot
     return t and WEAPON_ICON[t] or nil
 end
 
 local function HasWorn(slot)
-    if not (slot and HasItemInSlot) then return nil end
-    local ok, v = pcall(HasItemInSlot, BAG_WORN, slot)
-    if ok then return v and true or false end
-    return nil
+    return HasItemInSlot(BAG_WORN, slot)
 end
 
 -- Mientras el juego cambia de armas puede informar "sin arma" un instante;
@@ -360,8 +723,7 @@ function HUD.WeaponIcons(pair)
         iconCache[pair] = { a, b }
         return a, b
     end
-    local hm, ho = HasWorn(mainSlot), HasWorn(offSlot)
-    if hm == false and ho == false then
+    if not HasWorn(mainSlot) and not HasWorn(offSlot) then
         iconCache[pair] = nil
         return nil
     end
@@ -371,26 +733,21 @@ function HUD.WeaponIcons(pair)
 end
 
 local function ActivePair()
-    if GetActiveWeaponPairInfo then
-        local ok, p = pcall(GetActiveWeaponPairInfo)
-        if ok and type(p) == "number" then return p end
-    end
-    return Const("ACTIVE_WEAPON_PAIR_MAIN") or 1
+    return (GetActiveWeaponPairInfo())
 end
 
 local function OtherPair(p)
-    local main, back = Const("ACTIVE_WEAPON_PAIR_MAIN") or 1, Const("ACTIVE_WEAPON_PAIR_BACKUP") or 2
-    return p == back and main or back
+    return p == ACTIVE_WEAPON_PAIR_BACKUP and ACTIVE_WEAPON_PAIR_MAIN or ACTIVE_WEAPON_PAIR_BACKUP
 end
 
 -- Categoría de la barra inactiva (la del otro par de armas)
 local function InactiveCategory()
-    local prim, back = Const("HOTBAR_CATEGORY_PRIMARY") or 0, Const("HOTBAR_CATEGORY_BACKUP") or 1
-    local act = GetActiveHotbarCategory and GetActiveHotbarCategory()
+    local prim, back = HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP
+    local act = GetActiveHotbarCategory()
     if act == prim then return back end
     if act == back then return prim end
     -- hombre lobo / sobrecarga: se muestra la barra del par de armas actual
-    return ActivePair() == (Const("ACTIVE_WEAPON_PAIR_BACKUP") or 2) and back or prim
+    return ActivePair() == ACTIVE_WEAPON_PAIR_BACKUP and back or prim
 end
 
 local function WeaponBox(parent, name)
@@ -418,7 +775,7 @@ local function SetWeaponBox(c, pair)
         -- sin dato ahora mismo: se conserva lo que ya se mostraba, salvo que
         -- de verdad no haya armas equipadas en ese par
         local m, o = PairSlots(pair)
-        if c.lastIcon and not (HasWorn(m) == false and HasWorn(o) == false) then
+        if c.lastIcon and (HasWorn(m) or HasWorn(o)) then
             a, b = c.lastIcon, c.lastIcon2
         end
     end
@@ -460,10 +817,8 @@ local function CreateBackSlot(parent, i)
 end
 
 local function NewSweep(parent)
-    if not CT_COOLDOWN then return nil end
-    local ok, cd = pcall(WM.CreateControl, WM, NWUI.UID("NWUI_Sweep"), parent, CT_COOLDOWN)
-    if not ok or not cd then return nil end
-    if cd.SetFillColor then cd:SetFillColor(0, 0, 0, 0.78) end
+    local cd = WM:CreateControl(NWUI.UID("NWUI_Sweep"), parent, CT_COOLDOWN)
+    cd:SetFillColor(0, 0, 0, 0.78)
     cd:SetDrawLevel(9)
     cd:SetHidden(true)
     return cd
@@ -471,12 +826,8 @@ end
 
 local UpdateBackBarRaw
 function HUD.UpdateBackBar()
-    local ok, err = pcall(UpdateBackBarRaw)
-    HUD.lastBackT = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
-    if not ok then
-        HUD.lastBackErr = tostring(err)
-        pcall(HUD.RefreshWeaponBox)
-    end
+    UpdateBackBarRaw()
+    HUD.lastBackT = GetFrameTimeMilliseconds()
 end
 
 UpdateBackBarRaw = function()
@@ -487,7 +838,7 @@ UpdateBackBarRaw = function()
     local any = false
     for i, c in ipairs(r.slots) do
         local n = i + 2
-        local tex = GetSlotTexture and GetSlotTexture(n, cat)
+        local tex = GetSlotTexture(n, cat)
         if type(tex) == "string" and tex ~= "" then
             c.icon:SetTexture(tex)
             c.icon:SetHidden(false)
@@ -579,26 +930,23 @@ function HUD.DiagWeapon()
     add("x", wb.GetLeft and math.floor(wb:GetLeft())); add("y", wb.GetTop and math.floor(wb:GetTop()))
     add("tam", wb:GetWidth()); add("hudOculto", HUD.tlw and HUD.tlw:IsHidden())
     add("animando", HUD.swap and HUD.swap.t0 ~= nil)
-    local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+    local now = GetFrameTimeMilliseconds() or 0
     add("tick", HUD.lastTickT and (now - HUD.lastTickT) or "nunca")
     add("refresco", HUD.lastBackT and (now - HUD.lastBackT) or "nunca")
     local m, o = PairSlots(ActivePair())
     add("tipos", tostring((WeaponTypeAt(m))) .. "/" .. tostring((WeaponTypeAt(o))))
     add("equipado", tostring((HasWorn(m))) .. "/" .. tostring((HasWorn(o))))
     local lines = { table.concat(out, "  ") }
-    if HUD.lastBackErr then lines[#lines + 1] = "error: " .. HUD.lastBackErr end
-    local ok, err = pcall(HUD.RefreshWeaponBox)
-    lines[#lines + 1] = "refrescado: " .. (ok and ("oculto=" .. tostring((own(wb)))) or tostring(err))
+    HUD.RefreshWeaponBox()
+    lines[#lines + 1] = "refrescado: oculto=" .. tostring(own(wb))
     return lines
 end
 
 -- La flecha del juego que indicaba la barra activa se oculta (la sustituye el
 -- icono del arma). Se usa alfa 0 porque el juego la vuelve a mostrar sola.
 local function HideSwapArrow()
-    local ws = rawget(_G, "ZO_ActionBar1WeaponSwap")
-    if ws and type(ws) ~= "function" and ws.SetAlpha then ws:SetAlpha(0) end
-    local wsl = rawget(_G, "ZO_ActionBar1WeaponSwapLock")
-    if wsl and type(wsl) ~= "function" and wsl.SetAlpha then wsl:SetAlpha(0) end
+    ZO_ActionBar1WeaponSwap:SetAlpha(0)
+    ZO_ActionBar1WeaponSwapLock:SetAlpha(0)
 end
 HUD.HideSwapArrow = HideSwapArrow
 
@@ -637,7 +985,7 @@ end
 local function SwapStep()
     local r = HUD.backRow
     if not (swap.t0 and r) then return end
-    local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+    local now = GetFrameTimeMilliseconds() or 0
     local p = math.min(1, math.max(0, (now - swap.t0) / SWAP_MS))
     local e = EaseOut(p)
     -- barra inactiva: parte de la posición/tamaño de la activa
@@ -683,9 +1031,7 @@ local function StartSweeps()
                 cd = NewSweep(c)
                 if cd then
                     cd:SetDrawLevel(20)
-                    local icon = c.GetNamedChild and c:GetNamedChild("Icon")
-                    local target = (icon and icon ~= c and type(icon) ~= "function") and icon or c
-                    cd:SetAnchorFill(target)
+                    cd:SetAnchorFill(IconOf(c))
                 end
                 HUD.activeSweeps[c] = cd
             end
@@ -697,7 +1043,7 @@ local function StartSweeps()
     end
     for _, cd in ipairs(list) do
         cd:SetHidden(false)
-        pcall(cd.StartCooldown, cd, ms, ms, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_UNTIL, false)
+        cd:StartCooldown(ms, ms, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_UNTIL, false)
     end
     zo_callLater(function()
         for _, cd in ipairs(list) do cd:SetHidden(true) end
@@ -715,7 +1061,7 @@ function HUD.PlaySwap()
         swap.fromScale = sz / math.max(1, bsz)
         swap.fromDY = BACK_GAP + KEY_ROOM + sz - bsz -- desde la fila activa
         swap.rise = math.floor(sz * 0.35 + 0.5)
-        swap.t0 = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+        swap.t0 = GetFrameTimeMilliseconds() or 0
         EVENT_MANAGER:RegisterForUpdate("NWUI_HUD_Swap", 0, SwapStep)
         SwapStep()
     end
@@ -773,7 +1119,7 @@ function HUD.LayoutAbilities()
         HUD.rowCenterX = (vl + vr) / 2 - x / 2
     end
     HideSwapArrow()
-    if ZO_ActionBar1KeybindBG then ZO_ActionBar1KeybindBG:SetHidden(true) end
+    ZO_ActionBar1KeybindBG:SetHidden(true)
     HUD.FlattenAll()
     HUD.LayoutBackBar()
 end
@@ -800,13 +1146,13 @@ local function CreateQS(parent, i)
     end)
     c:SetHandler("OnMouseEnter", function(self)
         local slot = QSlot(self.index)
-        local link = GetSlotItemLink and GetSlotItemLink(slot, QS_CAT)
-        if link and link ~= "" then
+        local link = GetSlotItemLink(slot, QS_CAT)
+        if link ~= "" then
             InitializeTooltip(ItemTooltip, self, BOTTOM, 0, -6, TOP)
-            pcall(ItemTooltip.SetLink, ItemTooltip, link)
+            ItemTooltip:SetLink(link)
         else
-            local ok, name = pcall(GetSlotName, slot, QS_CAT)
-            if ok and name and name ~= "" then
+            local name = GetSlotName(slot, QS_CAT)
+            if name ~= "" then
                 InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -6, TOP)
                 SetTooltipText(InformationTooltip, zo_strformat("<<1>>", name))
             end
@@ -821,15 +1167,14 @@ end
 
 function HUD.UpdateConsumables()
     if not HUD.qsSlots then return end
-    local current = GetCurrentQuickslot and GetCurrentQuickslot()
+    local current = GetCurrentQuickslot()
     for i, c in ipairs(HUD.qsSlots) do
         local slot = QSlot(i)
-        local ok, tex = pcall(GetSlotTexture, slot, QS_CAT)
-        if ok and tex and tex ~= "" then
+        local tex = GetSlotTexture(slot, QS_CAT)
+        if tex ~= "" then
             c.icon:SetTexture(tex)
             c.icon:SetHidden(false)
-            local okc, count = pcall(GetSlotItemCount, slot, QS_CAT)
-            if not okc then count = nil end
+            local count = GetSlotItemCount(slot, QS_CAT)
             if count and count > 0 then
                 c.count:SetText(tostring(count))
             elseif count == 0 then
@@ -846,12 +1191,12 @@ function HUD.UpdateConsumables()
     end
     -- Respaldo del recuadro del objeto activo (si no se encontró el botón nativo)
     if HUD.qsCurrent and not HUD.qsCurrent:IsHidden() then
-        local ok, tex = pcall(GetSlotTexture, current or 0, QS_CAT)
-        if ok and tex and tex ~= "" then
+        local tex = GetSlotTexture(current, QS_CAT)
+        if tex ~= "" then
             HUD.qsCurrent.icon:SetTexture(tex)
             HUD.qsCurrent.icon:SetHidden(false)
-            local okc, count = pcall(GetSlotItemCount, current, QS_CAT)
-            HUD.qsCurrent.count:SetText((okc and count) and tostring(count) or "")
+            local count = GetSlotItemCount(current, QS_CAT)
+            HUD.qsCurrent.count:SetText(count and tostring(count) or "")
         else
             HUD.qsCurrent.icon:SetHidden(true)
             HUD.qsCurrent.count:SetText("")
@@ -872,27 +1217,26 @@ end
 local keyLabels = {}   -- etiquetas ya identificadas como "letra de tecla"
 
 local function HideKeyLabels(btn)
-    if not (btn and btn.GetNumChildren) then return end
+    if not btn then return end
     local function walk(c, depth)
         if depth > 4 then return end
-        local okn, n = pcall(c.GetNumChildren, c)
-        for i = 1, (okn and n or 0) do
-            local okc, ch = pcall(c.GetChild, c, i)
-            if okc and ch then
-                if ch.GetText and ch.SetText then
-                    local okt, t = pcall(ch.GetText, ch)
-                    if okt and IsKeyText(t) then
+        for i = 1, c:GetNumChildren() do
+            local ch = c:GetChild(i)
+            if ch then
+                if ch:GetType() == CT_LABEL then
+                    local t = ch:GetText()
+                    if IsKeyText(t) then
                         keyCache[btn] = t
                         keyLabels[ch] = true
-                        pcall(ch.SetText, ch, "")
+                        ch:SetText("")
                     end
-                    if keyLabels[ch] then pcall(ch.SetAlpha, ch, 0) end
+                    if keyLabels[ch] then ch:SetAlpha(0) end
                 end
                 walk(ch, depth + 1)
             end
         end
     end
-    pcall(walk, btn, 0)
+    walk(btn, 0)
 end
 HUD.HideKeyLabels = HideKeyLabels
 
@@ -902,27 +1246,19 @@ local function QuickslotKeyText(q)
 end
 -- Tecla asignada a los objetos rápidos (para mostrarla en el inventario)
 function HUD.QuickslotKey()
-    local q = _G.QuickslotButton
-    local ok, t = pcall(QuickslotKeyText, q)
-    return (ok and type(t) == "string" and t ~= "") and t or "Q"
+    local t = QuickslotKeyText(QuickslotButton)
+    return t ~= "" and t or "Q"
 end
 
 -- Botón de la definitiva del compañero (solo existe con un compañero invocado)
 local function CompanionCtrl()
-    if not (HOTBAR_CATEGORY_COMPANION and ZO_ActionBar_GetButton) then
-        return _G.CompanionUltimateButton
-    end
-    local ok, b = pcall(ZO_ActionBar_GetButton, (ACTION_BAR_ULTIMATE_SLOT_INDEX or 7) + 1, HOTBAR_CATEGORY_COMPANION)
-    if ok and b and b.slot and b.slot ~= SlotCtrl(8) then return b.slot end
-    return _G.CompanionUltimateButton
+    local b = ZO_ActionBar_GetButton(ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, HOTBAR_CATEGORY_COMPANION)
+    if b and b.slot and b.slot ~= SlotCtrl(8) then return b.slot end
+    return CompanionUltimateButton
 end
 
 local function CompanionActive()
-    if HasActiveCompanion then
-        local ok, v = pcall(HasActiveCompanion)
-        if ok then return v end
-    end
-    return false
+    return HasActiveCompanion()
 end
 
 function HUD.LayoutConsumables()
@@ -1012,11 +1348,21 @@ function HUD.LayoutBars()
     hp:SetAnchor(TOPRIGHT, sta, BOTTOMRIGHT, 0, gap)
     hp:SetHeight(hh)
 
-    hp.label:SetFont((hh >= 26 and "$(BOLD_FONT)|17|soft-shadow-thick") or (hh >= 18 and F.barBig) or F.barSmall)
-    local small = (rh >= 15 and "$(BOLD_FONT)|13|soft-shadow-thick")
-        or (rh >= 11 and F.barSmall) or "$(BOLD_FONT)|9|soft-shadow-thin"
-    mag.label:SetFont(small)
-    sta.label:SetFont(small)
+    -- Tipografía de los números de las barras: la del diseño nuevo
+    -- (fonts/NWBarras.slug, DejaVu Sans Condensed Bold) o la del juego.
+    local face, big, small
+    if s.barFont ~= "eso" then
+        face = "NWInterfaz/fonts/NWBarras.slug"
+        big = (hh >= 26 and 16) or (hh >= 18 and 14) or 11
+        small = (rh >= 17 and 13) or (rh >= 15 and 12) or (rh >= 11 and 10) or 8
+    else
+        face = "$(BOLD_FONT)"
+        big = (hh >= 26 and 17) or (hh >= 18 and 15) or 11
+        small = (rh >= 17 and 14) or (rh >= 15 and 13) or (rh >= 11 and 11) or 9
+    end
+    hp.label:SetFont(face .. "|" .. big .. "|soft-shadow-thick")
+    mag.label:SetFont(face .. "|" .. small .. "|soft-shadow-thick")
+    sta.label:SetFont(face .. "|" .. small .. "|soft-shadow-thick")
 
     -- separación entre barras: fondo oscuro detrás + borde fino en cada barra
     local border = (s.barBorder == "gold") and C.headerLine or {0.32, 0.32, 0.34, 1}
@@ -1029,6 +1375,7 @@ function HUD.LayoutBars()
     NWUI.SetColor(mag.fill, FILL.magicka)
     NWUI.SetColor(sta.fill, s.staminaColor == "eso" and FILL.stamina_eso or FILL.stamina_nw)
     for _, b in pairs(bars) do RenderBar(b) end
+    HUD.LayoutXP()
 end
 
 function HUD.LayoutAll()
@@ -1041,6 +1388,7 @@ function HUD.LayoutAll()
         if m.isHUD then NWUI.ApplyPosition(m) end
     end
     RefreshPowers()
+    HUD.UpdateDeadIcons()
 end
 
 function HUD.SetUnlocked(state)
@@ -1052,12 +1400,9 @@ function HUD.SetUnlocked(state)
 end
 
 local function HideDefaultBars()
-    if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
-        for _, scene in ipairs({ HUD_SCENE, HUD_UI_SCENE }) do
-            if scene then pcall(scene.RemoveFragment, scene, PLAYER_ATTRIBUTE_BARS_FRAGMENT) end
-        end
-    end
-    if ZO_PlayerAttribute then ZO_PlayerAttribute:SetHidden(true) end
+    HUD_SCENE:RemoveFragment(PLAYER_ATTRIBUTE_BARS_FRAGMENT)
+    HUD_UI_SCENE:RemoveFragment(PLAYER_ATTRIBUTE_BARS_FRAGMENT)
+    ZO_PlayerAttribute:SetHidden(true)
 end
 
 local function Resize(key, delta, min, max, step)
@@ -1085,10 +1430,13 @@ function HUD.Init()
     bars[P_MAGICKA] = CreateBar(g, "magicka")
     bars[P_STAMINA] = CreateBar(g, "stamina")
     bars[P_HEALTH]  = CreateBar(g, "health")
+    HUD.CreateHealthFX(bars[P_HEALTH])
+
+    -- Barra de experiencia (debajo de la salud)
+    HUD.CreateXP(g)
 
     -- Nivel (plano, número grande)
     local lv = WM:CreateControl("NWUI_HUD_Level", g, CT_CONTROL)
-    lv:SetAnchor(TOP, g, BOTTOM, 0, 7)
     -- fondo negro translúcido en degradado (forma del hexágono) y marco dorado encima
     lv.bg = NWUI.Tex(lv, nil, 0)
     lv.bg:SetTexture(LEVEL_BG)
@@ -1167,34 +1515,49 @@ function HUD.Init()
     end)
     m1.isHUD, m2.isHUD, m3.isHUD = true, true, true
 
+    -- Texto al morir ("Elige ubicación para revivir", recapitulación, tiempo
+    -- de espera en Cyrodiil...). Es del juego (ZO_Death) y sale abajo del todo,
+    -- encima de las barras. Se ancla a un marco propio que se mueve en el modo
+    -- edición como el resto del HUD. Solo se cambia su ancla: los botones de
+    -- revivir siguen siendo del juego.
+    local death = WM:CreateControl("NWUI_HUD_Death", tlw, CT_CONTROL)
+    death:SetDimensions(ZO_Death:GetWidth(), ZO_Death:GetHeight())
+    local m4 = NWUI.RegisterMovable(death, "hud_death", function(c)
+        c:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -16)   -- donde lo pone el juego
+    end, NWUI.T("mv_death"), false)
+    m4.isHUD = true
+    ZO_Death:ClearAnchors()
+    ZO_Death:SetAnchor(CENTER, death, CENTER, 0, 0)
+    HUD.death = death
+
     tlw:SetHandler("OnUpdate", OnUpdate)
 
     -- vuelve a ocultar las letras Q / Y si el juego las redibuja
     EVENT_MANAGER:RegisterForUpdate("NWUI_HUD_KeyHide", 1000, function()
-        HUD.lastTickT = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+        HUD.lastTickT = GetFrameTimeMilliseconds()
         if not NWUI.sv.hud.moveActionBar or IsInGamepadPreferredMode() then return end
-        if not (HUD.swap and HUD.swap.t0) then
-            pcall(HUD.RefreshWeaponBox)
+        if not HUD.swap.t0 then
+            HUD.RefreshWeaponBox()
             HUD.UpdateBackBar()
         end
-        pcall(HideSwapArrow)
+        HideSwapArrow()
         HideKeyLabels(QuickslotCtrl())
-        local c = CompanionCtrl and CompanionCtrl()
+        local c = CompanionCtrl()
         if c then HideKeyLabels(c) end
     end)
 
     -- capa de dibujo por encima de las ventanas del juego del HUD, para que la
     -- barra del juego no tape el icono del arma al volver de un menú
     if DL_CONTROLS and tlw.SetDrawLayer then tlw:SetDrawLayer(DL_CONTROLS) end
-    HUD.fragment = ZO_HUDFadeSceneFragment:New(tlw)
+    HUD.fragment = NWUI.SafeFragment(tlw, 200)
     HUD.fragment:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_FRAGMENT_SHOWN or newState == SCENE_FRAGMENT_SHOWING then
             HUD.LayoutBackBar()
             zo_callLater(function() HUD.LayoutBackBar() end, 250)
         end
     end)
-    if HUD_SCENE then HUD_SCENE:AddFragment(HUD.fragment) end
-    if HUD_UI_SCENE then HUD_UI_SCENE:AddFragment(HUD.fragment) end
+    HUD_SCENE:AddFragment(HUD.fragment)
+    HUD_UI_SCENE:AddFragment(HUD.fragment)
 
     if s.hideDefaultBars then HideDefaultBars() end
 
@@ -1211,6 +1574,15 @@ function HUD.Init()
     end
     NWUI.On("NWUI_Level", "EVENT_LEVEL_UPDATE", HUD.UpdateLevel, REGISTER_FILTER_UNIT_TAG, "player")
     NWUI.On("NWUI_CPGain", "EVENT_CHAMPION_POINT_GAINED", HUD.UpdateLevel)
+    NWUI.On("NWUI_XP", "EVENT_EXPERIENCE_UPDATE", function() HUD.UpdateXP() end, REGISTER_FILTER_UNIT_TAG, "player")
+    NWUI.On("NWUI_XPLevel", "EVENT_LEVEL_UPDATE", function() HUD.UpdateXP(true) end, REGISTER_FILTER_UNIT_TAG, "player")
+    NWUI.On("NWUI_XPCP", "EVENT_CHAMPION_POINT_GAINED", function() HUD.UpdateXP(true) end)
+    NWUI.On("NWUI_XPAct", "EVENT_PLAYER_ACTIVATED", function() HUD.UpdateXP(true) end)
+    -- efectos del juego en la barra de vida (ver HUD.UpdateHealthFX)
+    for _, ev in ipairs({ "EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED", "EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED", "EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED" }) do
+        NWUI.On("NWUI_HPFX_" .. ev, ev, HUD.UpdateHealthFX, REGISTER_FILTER_UNIT_TAG, "player")
+    end
+    NWUI.On("NWUI_HPFXAct", "EVENT_PLAYER_ACTIVATED", HUD.UpdateHealthFX)
     NWUI.On("NWUI_CPUpd", "EVENT_CHAMPION_POINT_UPDATE", HUD.UpdateLevel)
 
     local function Relayout() NWUI.Throttle("NWUI_HUD_Relayout", 60, HUD.LayoutAll) end
@@ -1219,6 +1591,9 @@ function HUD.Init()
         zo_callLater(Relayout, 800)
     end)
     NWUI.On("NWUI_HUD_Pad", "EVENT_GAMEPAD_PREFERRED_MODE_CHANGED", Relayout)
+    -- iconos de la barra mientras estás muerto (ver HUD.UpdateDeadIcons)
+    NWUI.On("NWUI_HUD_Dead", "EVENT_PLAYER_DEAD", HUD.UpdateDeadIcons)
+    NWUI.On("NWUI_HUD_Alive", "EVENT_PLAYER_ALIVE", HUD.UpdateDeadIcons)
     NWUI.On("NWUI_HUD_AllBars", "EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED", function()
         Relayout()
         HUD.UpdateConsumables()

@@ -1,0 +1,1 @@
+1.9.36: Restored MyUI_AlternativeAttributes.lua and MyUI_AttributeWidth.lua byte-for-byte from the original user-provided My_UI_PS5_Stabilitaetsfix_5Prozent.zip. Preserved bossbar/targetframe and group invitation fixes from 1.9.35.

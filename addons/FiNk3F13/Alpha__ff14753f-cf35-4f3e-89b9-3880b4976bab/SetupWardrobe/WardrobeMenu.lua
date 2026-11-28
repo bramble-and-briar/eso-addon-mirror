@@ -268,8 +268,12 @@ function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, 
         position,state.pageIndex=1,pageIndex
         refreshHud(); refresh()
     end)
-    sv:AddSettings(controls,nil,false)
-    if LibRadialMenu then
+    local quickslotActions={}
+    do
+        local function register(addon,name,id,texture,run,description)
+            quickslotActions[#quickslotActions+1]={name=name,id=id,run=run}
+            if LibRadialMenu then LibRadialMenu:RegisterEntry(addon,name,id,texture,run,description) end
+        end
         local texture="/esoui/art/icons/gear_breton_heavy_chest_d.dds"
         local function loadPosition(index)
             if pending() then d("SetupWardrobe – Bitte den Wechsel abwarten."); return end
@@ -284,16 +288,16 @@ function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, 
             redraw()
         end
         for i=1,4 do
-            LibRadialMenu:RegisterEntry("ControllerWardrobe","Setup "..i,"setup"..i,texture,
+            register("ControllerWardrobe","Setup "..i,"setup"..i,texture,
                 function() loadSetup(i) end,"Ursprünglicher Schnellplatz "..i)
         end
         for i=1,14 do
-            LibRadialMenu:RegisterEntry("ControllerWardrobe","Raid-Seite · Setup "..i,"pageSetup"..i,texture,
+            register("ControllerWardrobe","Raid-Seite · Setup "..i,"pageSetup"..i,texture,
                 function() loadPosition(i) end,"Platz "..i.." der ausgewählten Raid-Seite laden.")
         end
         for _,delta in ipairs({-1,1}) do
             local text=delta==1 and "Nächstes Setup" or "Vorheriges Setup"
-            LibRadialMenu:RegisterEntry("ControllerWardrobe",text,"cycle"..delta,texture,function()
+            register("ControllerWardrobe",text,"cycle"..delta,texture,function()
                 if pending() then d("SetupWardrobe – Bitte den Wechsel abwarten."); return end
                 local ids=page().ids
                 local start=position
@@ -305,7 +309,12 @@ function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, 
                 d("SetupWardrobe – Diese Seite enthält kein gespeichertes Setup.")
             end,text.." der ausgewählten Seite laden")
         end
-        LibRadialMenu:RegisterEntry("ControllerWardrobe","Zum ersten Setup zurück","resetSequence",texture,function()
+        register("ControllerWardrobe","Aktuelles Setup erneut laden","reloadCurrent",texture,function()
+            local index=position
+            for i,id in ipairs(page().ids) do if id==state.last then index=i; break end end
+            loadPosition(index)
+        end,"Das zuletzt geladene Setup der ausgewählten Raid-Seite erneut anlegen.")
+        register("ControllerWardrobe","Zum ersten Setup zurück","resetSequence",texture,function()
             if pending() then d("SetupWardrobe – Bitte den Wechsel abwarten."); return end
             for i,id in ipairs(page().ids) do
                 if state.setups[id] then
@@ -316,8 +325,10 @@ function ControllerWardrobeMenu(sv, state, slots, bars, title, save, loadSetup, 
             end
             d("SetupWardrobe – Diese Seite enthält kein gespeichertes Setup.")
         end,"Reihenfolge neu beginnen und das erste gespeicherte Setup der ausgewählten Seite laden.")
-        LibRadialMenu:RegisterEntry("ControllerWardrobe","Wechsel abbrechen","cancelSwap",texture,function()
+        register("ControllerWardrobe","Wechsel abbrechen","cancelSwap",texture,function()
             if cancel then cancel() end
         end,"Einen laufenden oder im Kampf vorgemerkten Wechsel beenden. Bereits angelegte Teile bleiben angelegt.")
     end
+    SetupWardrobeNativeQuickslots(state,choose,controls,quickslotActions)
+    sv:AddSettings(controls,nil,false)
 end

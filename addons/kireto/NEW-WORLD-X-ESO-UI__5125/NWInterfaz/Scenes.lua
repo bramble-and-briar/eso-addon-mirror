@@ -5,7 +5,7 @@
 --  · coloca la barra original (espacio, mejorar bolsa y oro) bajo el panel,
 --  · si abres la bolsa de artesanía o los objetos rápidos, muestra los originales.
 -- Al cerrar la escena, todo vuelve exactamente a su sitio.
-local NWUI = NWUI
+local NWUI = NWInterfaz
 local SC = {}
 NWUI.Scenes = SC
 
@@ -118,18 +118,17 @@ local function HarvestIcons(menu)
     if harvested ~= nil then return harvested end
     local found, seen = {}, {}
     local function walk(c, depth)
-        if depth > 5 or not c.GetNumChildren then return end
-        local okn, n = pcall(c.GetNumChildren, c)
-        for i = 1, (okn and n or 0) do
-            local okc, ch = pcall(c.GetChild, c, i)
-            if okc and ch then
-                if ch.GetTextureFileName then
-                    local ok, f = pcall(ch.GetTextureFileName, ch)
-                    if ok and type(f) == "string" and f:lower():find("icon", 1, true) then
+        if depth > 5 then return end
+        for i = 1, c:GetNumChildren() do
+            local ch = c:GetChild(i)
+            if ch then
+                if ch:GetType() == CT_TEXTURE then
+                    local f = ch:GetTextureFileName()
+                    if f ~= "" and f:lower():find("icon", 1, true) then
                         f = f:gsub("_down%.dds$", "_up.dds"):gsub("_over%.dds$", "_up.dds")
                         if not seen[f] then
                             seen[f] = true
-                            found[#found + 1] = { f = f, x = ch:GetLeft() or 0 }
+                            found[#found + 1] = { f = f, x = ch:GetLeft() }
                         end
                     end
                 end
@@ -137,7 +136,7 @@ local function HarvestIcons(menu)
             end
         end
     end
-    pcall(walk, menu, 0)
+    walk(menu, 0)
     table.sort(found, function(a, b) return a.x < b.x end)
     if #found == 5 then
         harvested = {}
@@ -250,10 +249,10 @@ function SC.CurrentMode()
     if SC.showing then return SC.showing end
     local m = SceneMode()
     if m then return m end
-    local it = GetInteractionType and GetInteractionType()
+    local it = GetInteractionType()
     if INTERACTION_GUILDBANK and it == INTERACTION_GUILDBANK then return "guildbank" end
     if INTERACTION_BANK and it == INTERACTION_BANK then
-        if GetBankingBag and GetBankingBag() ~= BAG_BANK then return "housebank" end
+        if GetBankingBag() ~= BAG_BANK then return "housebank" end
         return "bank"
     end
     return "inventory"

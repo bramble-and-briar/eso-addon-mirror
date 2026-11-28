@@ -47,6 +47,31 @@ local function FormatRemain(remain)
     return text, color
 end
 
+CB.FormatRemain = FormatRemain
+
+-- 枠線(ROYAL CYBER: 細い金のメタリック枠)
+function CB.SetFrame(bd, on, color, thickness)
+    local t = thickness or 1
+    bd:SetEdgeTexture("", t, t, t)
+    local c = color or CB.Theme.gold
+    bd:SetEdgeColor(c[1], c[2], c[3], on and (c[4] or 1) or 0)
+end
+
+-- ULT蓄積量の文字列と色(実HUDとプレビューで共通)
+function CB.FormatUlt(value, cost)
+    local mode = SV.ultValueMode
+    local text
+    if mode == 1 then
+        text = tostring(value)
+    elseif mode == 3 then
+        text = value .. "/" .. cost
+    else
+        text = (value >= cost) and tostring(value) or (value .. "/" .. cost)
+    end
+    local usable = cost > 0 and value >= cost
+    return text, usable and SV.ultUsableColor or SV.ultColor
+end
+
 local function FormatLong(remainMs)
     -- クイックスロット用(長いクールダウン)
     local s = remainMs / 1000
@@ -155,6 +180,7 @@ local function AttachToHud(ctl)
     end
     return false
 end
+CB.AttachToHud = AttachToHud
 
 function CB.CreateControls()
     if root then return end
@@ -222,12 +248,14 @@ function CB.ApplyLayout()
         gcdWin.fill:SetWidth(SV.gcdW)
         gcdWin.fill:SetColor(ColorOf(SV.gcdColor, 0.8))
         local gcdOn = SV.enabled and SV.gcdEnabled
+        CB.SetFrame(gcdWin.bg, SV.designFrame)
         gcdWin.bg:SetHidden(not gcdOn)
         if not gcdOn then gcdWin.fill:SetHidden(true) end
     end
     root:SetHidden(not SV.enabled)
     CB.ApplyStandardBarPosition()
     CB.RefreshIcons()
+    if CB.ApplyResources then CB.ApplyResources() end
 end
 
 -- 標準バーの移動(有効時のみ。元の位置を覚えて差分を足す)
@@ -353,17 +381,9 @@ local function UpdateUlt(t)
     if SV.ultShowValue and id > 0 then
         local value = CB.GetUltValue()
         local cost = CB.GetUltCost(active)
-        local mode = SV.ultValueMode
-        local text
-        if mode == 1 then
-            text = tostring(value)
-        elseif mode == 3 then
-            text = value .. "/" .. cost
-        else
-            text = (value >= cost) and tostring(value) or (value .. "/" .. cost)
-        end
+        local text, color = CB.FormatUlt(value, cost)
         ultOv.value:SetText(text)
-        ultOv.value:SetColor(ColorOf((cost > 0 and value >= cost) and SV.ultUsableColor or SV.ultColor, 1))
+        ultOv.value:SetColor(ColorOf(color, 1))
         ultOv.value:SetHidden(false)
     else
         ultOv.value:SetHidden(true)
@@ -526,6 +546,10 @@ local function BuildWidget(abilityId, cfg)
     local icon = WM:CreateControl(c:GetName() .. "Icon", c, CT_TEXTURE)
     icon:SetAnchorFill(c)
     icon:SetTexture(GetAbilityIcon(abilityId))
+    local frame = WM:CreateControl(c:GetName() .. "Frame", c, CT_BACKDROP)
+    frame:SetAnchorFill(c)
+    frame:SetCenterColor(0, 0, 0, 0)
+    CB.SetFrame(frame, SV.designFrame)
     local timer = WM:CreateControl(c:GetName() .. "T", c, CT_LABEL)
     timer:SetAnchor(CENTER, c, CENTER, 0, 0)
     timer:SetFont(Font(zo_max(12, zo_floor(cfg.size * 0.4))))
@@ -534,7 +558,7 @@ local function BuildWidget(abilityId, cfg)
     stack:SetFont(Font(zo_max(10, zo_floor(cfg.size * 0.3))))
     stack:SetColor(ColorOf(SV.stackColor, 1))
     c:SetHidden(not SV.enabled)
-    widgetCtl[abilityId] = { ctl = c, icon = icon, timer = timer, stack = stack }
+    widgetCtl[abilityId] = { ctl = c, icon = icon, frame = frame, timer = timer, stack = stack }
 end
 
 -- 全ウィジェットを作り直す(追加・削除・位置変更後)
@@ -551,6 +575,7 @@ function CB.RebuildWidgets()
             BuildWidget(abilityId, cfg)
         else
             w.ctl:SetHidden(not SV.enabled)
+            CB.SetFrame(w.frame, SV.designFrame)
             w.ctl:SetDimensions(cfg.size, cfg.size)
             w.ctl:ClearAnchors()
             w.ctl:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, cfg.x, cfg.y)

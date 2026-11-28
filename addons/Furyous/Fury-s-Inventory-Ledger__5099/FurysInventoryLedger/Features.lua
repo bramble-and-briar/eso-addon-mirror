@@ -19,6 +19,8 @@ FIL.PlaceLabel = PlaceLabel
 
 -- Calls fn(cont, accountKey) for every saved container; this account only unless allAccounts.
 local function EachContainer(fn, allAccounts)
+    -- 1.8.1: changes are only noted while you play; read them now, before anything is shown.
+    if FIL.HasPending() then FIL.FlushPending() end
     for acctKey, a in pairs(FIL.GetAllAccounts()) do
         if allAccounts or acctKey == FIL.accountKey then
             for _, ch in pairs(a.chars) do

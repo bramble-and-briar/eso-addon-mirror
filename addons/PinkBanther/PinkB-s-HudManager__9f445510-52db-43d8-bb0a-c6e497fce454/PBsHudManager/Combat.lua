@@ -137,6 +137,14 @@ A.combatTargets = {
         end
         return list
     end },
+    { key = "ping", controls = function()
+        -- PB's Ping & Bag Space Indicator. The add-on is "Bag"; only its project folder says "Bug".
+        -- One window, shown and hidden by a scene fragment and by its settings preview, both of which
+        -- go through the window's SetHidden.
+        local list = {}
+        add(list, rawget(_G, "PBsPingAndBagSpaceIndicatorWindow"))
+        return list
+    end },
     { key = "compass", controls = function()
         -- The frame and the compass inside it: hiding the frame alone would leave the bearing
         -- marks and the pins if the client keeps them in a control of their own. Whichever of

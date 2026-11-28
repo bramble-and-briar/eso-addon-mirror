@@ -18,7 +18,7 @@
     "LeoAltholicViewer"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5071/",
-  "fingerprint": "cc953420663fc52848aefd91ad9efb6e3264cdfc439bad19907cec475cbca3b9",
+  "fingerprint": "5116e5c7d5f86d29c33889a97b0e575edb34c34e4c19620bb9e1dea3c45baa71",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18807.png",
     "https://cdn-eso.mmoui.com/preview/pvw18806.png",
@@ -40,11 +40,11 @@
   "source_id": "5071",
   "source_url": "https://www.esoui.com/downloads/info5071-LeosAltholicStandaloneViewer.html",
   "stats": {
-    "downloads": 101,
+    "downloads": 110,
     "favorites": 3,
-    "monthly_downloads": 85
+    "monthly_downloads": 106
   },
   "title": "Leo's Altholic Standalone Viewer",
-  "updated_at": 1795636325000,
-  "version": "1.2.0"
+  "updated_at": 1795845979000,
+  "version": "1.2.2"
 }

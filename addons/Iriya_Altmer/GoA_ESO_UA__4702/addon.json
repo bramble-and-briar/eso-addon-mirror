@@ -24,7 +24,7 @@
     "gamedata"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4702/",
-  "fingerprint": "588ccd71931f7a7b358cf3121ad286db84340da51dbaeb242cdf980ba88115d1",
+  "fingerprint": "df2c50416faea778910f735c8e411c6238634f150378034ab983de4624d4c5f3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16677.png"
   ],
@@ -34,11 +34,11 @@
   "source_id": "4702",
   "source_url": "https://www.esoui.com/downloads/info4702-GoA_ESO_UA.html",
   "stats": {
-    "downloads": 1388,
+    "downloads": 1400,
     "favorites": 1,
-    "monthly_downloads": 412
+    "monthly_downloads": 414
   },
   "title": "GoA_ESO_UA",
-  "updated_at": 1795778152000,
-  "version": "47.78.17"
+  "updated_at": 1795798810000,
+  "version": "47.97"
 }

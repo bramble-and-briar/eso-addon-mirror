@@ -2,10 +2,12 @@
 
 **AI disclosure:** This addon's code was written with the assistance of an AI coding assistant (Claude by Anthropic), working from my designs and instructions. I test every release in game on my own accounts before it goes up, and I maintain it. Please report any problem in the comments.
 
+> **New:** this addon now requires [Fury's Addons Menu](https://www.esoui.com/downloads/info5126-FurysAddonsMenu.html), a free library like LibAddonMenu-2.0. Minion 3 does not install libraries for you, so if the addon stops loading after this update, install it from the link or in Minion.
+
 Make your other accounts on this PC match your main one: game settings, keybinds, chat look, addon settings
 and window layout, plus character builds you can load onto any character on any account.
 
-**Requires:** LibAddonMenu-2.0 (version 43 or newer). Install it separately; without it the addon will not load.
+**Requires:** LibAddonMenu-2.0 (version 43 or newer) and [Fury's Addons Menu](https://www.esoui.com/downloads/info5126-FurysAddonsMenu.html) (version 1.3.0 or newer), which gives all of Fury's addons the Fury sidebar and `/fury`. Both are separate downloads: search for them in Minion (Minion 3 does not install libraries for you) or get them from ESOUI. Without them, this addon will not load.
 
 Everything starts turned off. Nothing changes on any account until you turn it on there.
 
@@ -40,7 +42,7 @@ character in with their settings. Copy with care, check your addons afterwards, 
 - Keybinds, including addon keybinds. An addon's keybind is copied once that addon is turned on for the account.
 - Chat colors, chat text size and how far the chat window fades.
 - **Addon settings** (starts turned off): the main's settings for every ticked addon on this addon's list that is turned on for the account. Only a small set of well-known addons is ticked to begin with; **Which addons** in the settings has a tickbox for each, so you can add them one at a time. This covers things such as options, colors and window positions. An addon's stats, logs and collected data stay as each account has them, and addons that only hold data (inventories, knowledge, guild history and the like) are never touched.
-- **Chat window, meters and quest tracker** (starts turned off): where the base game's chat window, frame rate and ping meters and quest tracker sit, taken from the character the snapshot was made on.
+- **Chat window, meters, quest tracker and HUD** (starts turned off): where the base game's chat window, frame rate and ping meters and quest tracker sit, taken from the character the snapshot was made on, and where the HUD windows sit that you moved in the game's own HUD editor (the action bar, health bars, buffs, group frames and the like).
 
 **Same keybinds on all your characters** (starts turned off): the game keeps keybinds per character, so a key you set on one character is missing on your others. On the main account, tick "Same keybinds on all this account's characters" in the settings and every other character there takes the main character's keybinds when you log in on it, game and addon keys alike. The main character is the one you last pressed Take snapshot on; automatic snapshots only come from it. `/fas keys` copies them right away.
 

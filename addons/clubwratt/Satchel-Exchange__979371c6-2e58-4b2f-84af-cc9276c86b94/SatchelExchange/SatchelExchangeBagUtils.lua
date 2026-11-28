@@ -1,4 +1,4 @@
--- SatchelExchangeBagUtils.lua: Pure helpers for backpack and item-use
+-- SatchelExchangeBagUtils.lua: Pure helpers for backpack, stack and item-use
 -- readiness inspection.
 
 local SatchelExchangeBagUtils = {}
@@ -45,6 +45,31 @@ function SatchelExchangeBagUtils.GetSlotSignature(slotIndex)
     local uniqueId = GetItemUniqueId(BAG_BACKPACK, slotIndex)
     local stack = GetSlotStackSize(BAG_BACKPACK, slotIndex)
     return uniqueId and Id64ToString(uniqueId) or "", stack
+end
+
+-- Scratch set for HasSplitStacks, reused so a poll allocates nothing.
+---@type table<integer, boolean>
+local partialStacks = {}
+
+---Whether the backpack holds two partial stacks of one item: what the game's
+---Stack All would merge. Two slots stack when their item instance ids match,
+---the rule the game's own drag-to-stack uses.
+---@return boolean
+function SatchelExchangeBagUtils.HasSplitStacks()
+    ZO_ClearTable(partialStacks)
+    for slotIndex in ZO_IterateBagSlots(BAG_BACKPACK) do
+        local stack, maxStack = GetSlotStackSize(BAG_BACKPACK, slotIndex)
+        if stack > 0 and stack < maxStack then
+            local instanceId = GetItemInstanceId(BAG_BACKPACK, slotIndex)
+            if instanceId then
+                if partialStacks[instanceId] then
+                    return true
+                end
+                partialStacks[instanceId] = true
+            end
+        end
+    end
+    return false
 end
 
 ---Whether the player is back on the plain HUD. The game silently drops

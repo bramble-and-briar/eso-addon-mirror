@@ -1,5 +1,5 @@
 -- Casilla de objeto plana, usada por el inventario, los bancos y el equipo.
-local NWUI = NWUI
+local NWUI = NWInterfaz
 local Slot = {}
 NWUI.Slot = Slot
 
@@ -19,18 +19,18 @@ function Slot.ShowTooltip(c)
     if not d then return end
     local left = d.tooltipSide ~= "right"
     if d.kind == "wheel" and d.hasItem then
-        local link = GetSlotItemLink and GetSlotItemLink(d.wheelSlot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-        if link and link ~= "" then
+        local link = GetSlotItemLink(d.wheelSlot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if link ~= "" then
             InitializeTooltip(ItemTooltip, c, RIGHT, -6, 0, LEFT)
-            pcall(ItemTooltip.SetLink, ItemTooltip, link)
+            ItemTooltip:SetLink(link)
             return
         end
     elseif d.kind == "quest" then
         InitializeTooltip(ItemTooltip, c, RIGHT, -6, 0, LEFT)
         if d.toolIndex then
-            pcall(ItemTooltip.SetQuestTool, ItemTooltip, d.questIndex, d.toolIndex)
+            ItemTooltip:SetQuestTool(d.questIndex, d.toolIndex)
         else
-            pcall(ItemTooltip.SetQuestItem, ItemTooltip, d.questIndex, d.stepIndex, d.conditionIndex)
+            ItemTooltip:SetQuestItem(d.questIndex, d.stepIndex, d.conditionIndex)
         end
         return
     end
@@ -51,15 +51,13 @@ function Slot.ShowTooltip(c)
         InitializeTooltip(ItemTooltip, c, LEFT, 6, 0, RIGHT)
     end
     if d.kind == "worn" then
-        pcall(ItemTooltip.SetWornItem, ItemTooltip, d.slotIndex)
+        ItemTooltip:SetWornItem(d.slotIndex)
     else
-        pcall(ItemTooltip.SetBagItem, ItemTooltip, d.bagId, d.slotIndex)
+        ItemTooltip:SetBagItem(d.bagId, d.slotIndex)
         if d.equippable then
-            pcall(function()
-                ItemTooltip:ShowComparativeTooltips()
-                ZO_PlayShowAnimationOnComparisonTooltip(ComparativeTooltip1)
-                ZO_PlayShowAnimationOnComparisonTooltip(ComparativeTooltip2)
-            end)
+            ItemTooltip:ShowComparativeTooltips()
+            ZO_PlayShowAnimationOnComparisonTooltip(ComparativeTooltip1)
+            ZO_PlayShowAnimationOnComparisonTooltip(ComparativeTooltip2)
         end
     end
 end
@@ -67,7 +65,7 @@ end
 function Slot.HideTooltip()
     ClearTooltip(ItemTooltip)
     ClearTooltip(InformationTooltip)
-    pcall(ItemTooltip.HideComparativeTooltips, ItemTooltip)
+    ItemTooltip:HideComparativeTooltips()
 end
 
 -- ---------------------------------------------------------------------
@@ -147,11 +145,9 @@ function Slot.OwnMenu(c)
                     SetItemIsJunk(d.bagId, d.slotIndex, not d.junk)
                 end)
             end
-            if SetItemIsPlayerLocked then
-                AddMenuItem(d.locked and "Desbloquear" or "Bloquear", function()
-                    SetItemIsPlayerLocked(d.bagId, d.slotIndex, not d.locked)
-                end)
-            end
+            AddMenuItem(d.locked and "Desbloquear" or "Bloquear", function()
+                SetItemIsPlayerLocked(d.bagId, d.slotIndex, not d.locked)
+            end)
         end
     end
     AddMenuItem(NWUI.T("link_chat"), function() LinkInChat(d) end)
@@ -159,9 +155,9 @@ function Slot.OwnMenu(c)
 end
 
 function Slot.ShowMenu(c)
-    if NWUI.sv.inv.useGameMenu and ZO_InventorySlot_ShowContextMenu then
-        local ok = pcall(ZO_InventorySlot_ShowContextMenu, c)
-        if ok then return end
+    if NWUI.sv.inv.useGameMenu then
+        ZO_InventorySlot_ShowContextMenu(c)
+        return
     end
     Slot.OwnMenu(c)
 end
@@ -207,23 +203,22 @@ function Slot.ClearNew(c)
     if not (d and d.isNew) then return end
     d.isNew = false
     if c.newBadge then c.newBadge:SetHidden(true); NWUI.Pulse(c.newBadge, false) end
-    if NWUI.Inventory and NWUI.Inventory.ForgetNew then NWUI.Inventory.ForgetNew(d.bagId, d.slotIndex) end
-    if NWUI.Inventory and NWUI.Inventory.QueueTabNew then NWUI.Inventory.QueueTabNew() end
-    local si = rawget(_G, "SHARED_INVENTORY")
-    if si and si.ClearNewStatus and d.bagId and d.slotIndex then
-        pcall(si.ClearNewStatus, si, d.bagId, d.slotIndex)
-    end
+    NWUI.Inventory.ForgetNew(d.bagId, d.slotIndex)
+    NWUI.Inventory.QueueTabNew()
+    SHARED_INVENTORY:ClearNewStatus(d.bagId, d.slotIndex)
 end
 
-function Slot.OnEnter(c)
+-- nativeTooltip: el juego ya muestra su información emergente (botón seguro)
+function Slot.OnEnter(c, nativeTooltip)
     c.hl:SetHidden(false)
-    Slot.ShowTooltip(c)
+    if not nativeTooltip then Slot.ShowTooltip(c) end
     Slot.ClearNew(c)
 end
 
-function Slot.OnExit(c)
+-- nativeTooltip: la información emergente la quita el propio juego
+function Slot.OnExit(c, nativeTooltip)
     c.hl:SetHidden(true)
-    Slot.HideTooltip()
+    if not nativeTooltip then Slot.HideTooltip() end
 end
 
 -- Clic izquierdo. 'handleDrop' = false cuando el juego ya se encarga de
@@ -281,24 +276,14 @@ end
 -- juego, igual que en su inventario, y "Usar" funciona.
 -- ---------------------------------------------------------------------
 local SECURE_KINDS = { item = true, bank = true, guild = true, craft = true }
-local SECURE_TEMPLATES = { "ZO_InventorySlotBehavior_Keyboard", "ZO_ItemSlot" }
+-- Plantilla del juego solo con el comportamiento (sin gráficos):
+-- esoui/ingame/inventory/inventoryslot.xml
+local SECURE_TEMPLATE = "ZO_InventorySlotBehavior_Keyboard"
 
 local function CreateSecureButton(c)
-    if not WM.CreateControlFromVirtual then return nil end
-    local b
-    for _, tpl in ipairs(SECURE_TEMPLATES) do
-        local ok, ctl = pcall(WM.CreateControlFromVirtual, WM, NWUI.UID("NWUI_SlotBtn"), c, tpl)
-        if ok and ctl then b = ctl; break end
-    end
-    if not b then return nil end
-
-    -- Si se usó la plantilla con gráficos, se ocultan sus partes visibles.
-    for _, child in ipairs({ "Icon", "StackCount", "Cooldown" }) do
-        local ch = b.GetNamedChild and b:GetNamedChild(child)
-        if ch then ch:SetHidden(true) end
-    end
-    pcall(function() b:SetMouseOverTexture() end)
-    pcall(function() b:SetPressedMouseOverTexture() end)
+    local b = WM:CreateControlFromVirtual(NWUI.UID("NWUI_SlotBtn"), c, SECURE_TEMPLATE)
+    b:SetMouseOverTexture("")
+    b:SetPressedMouseOverTexture("")
 
     b:ClearAnchors()
     b:SetAnchorFill(c)
@@ -309,8 +294,18 @@ local function CreateSecureButton(c)
 
     -- Lo visual y el arrastre siguen siendo nuestros. OnClicked y
     -- OnMouseDoubleClick se dejan con los manejadores del juego.
-    b:SetHandler("OnMouseEnter", function() Slot.OnEnter(c) end)
-    b:SetHandler("OnMouseExit", function() Slot.OnExit(c) end)
+    -- Al pasar el ratón se llama también al manejador del juego
+    -- (esoui/ingame/inventory/inventoryslot.lua): muestra su información
+    -- emergente y pone en la barra de teclas de abajo las acciones del objeto
+    -- (Usar / Abrir, Vista previa, Equipar, Depositar...), igual que en el
+    -- inventario original.
+    -- IMPORTANTE: no se reemplazan los manejadores de la plantilla; se añade
+    -- uno con nombre propio. Si el addon llamara él mismo a
+    -- ZO_InventorySlot_OnMouseEnter, las acciones de la barra de teclas se
+    -- crearían desde código de addon y el juego bloquearía UseItem al pulsar E
+    -- ("Attempt to access a private function 'UseItem'").
+    b:SetHandler("OnMouseEnter", function() Slot.OnEnter(c, true) end, "NWInterfaz")
+    b:SetHandler("OnMouseExit", function() Slot.OnExit(c, true) end, "NWInterfaz")
     b:SetHandler("OnMouseUp", function(_, button, upInside)
         if not upInside or button ~= MOUSE_BUTTON_INDEX_LEFT then return end
         -- En el arcón de artesanía el juego no gestiona soltar; lo hacemos nosotros.
@@ -331,31 +326,24 @@ end
 -- también funciona para mover objetos entre casillas.
 -- ---------------------------------------------------------------------
 local WHEEL_CAT = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-local wheelObject   -- objeto con GetHotbarCategory() que esperan las funciones nativas
-
+-- Objeto con GetHotbarCategory() que esperan los manejadores nativos.
+-- QUICKSLOT_KEYBOARD.wheel lo crea el juego la primera vez que se abre la
+-- ventana de objetos rápidos (inicialización diferida en
+-- esoui/ingame/quickslot/keyboard/quickslot_keyboard.lua); hasta entonces
+-- basta un objeto equivalente.
+local pendingWheel = { GetHotbarCategory = function() return WHEEL_CAT end }
 local function WheelObject()
-    if wheelObject then return wheelObject end
-    local qk = rawget(_G, "QUICKSLOT_KEYBOARD")
-    local native = type(qk) == "table" and qk.wheel
-    if native and type(native.GetHotbarCategory) == "function" then
-        wheelObject = native
-    else
-        wheelObject = { GetHotbarCategory = function() return WHEEL_CAT end }
-    end
-    return wheelObject
+    return QUICKSLOT_KEYBOARD.wheel or pendingWheel
 end
 
 local function CreateWheelButton(c)
-    if not WM.CreateControlFromVirtual then return nil end
-    local ok, ctl = pcall(WM.CreateControlFromVirtual, WM, NWUI.UID("NWUI_WheelSlot"), c, "ZO_AbilitySlot")
-    if not ok or not ctl then return nil end
-    local b = ctl.GetNamedChild and ctl:GetNamedChild("Button")
-    if not b or type(b) == "function" then return nil end
+    -- plantilla del juego: esoui/ingame/actionbar/abilityslot.xml (hijo "Button")
+    local ctl = WM:CreateControlFromVirtual(NWUI.UID("NWUI_WheelSlot"), c, "ZO_AbilitySlot")
+    local b = ctl:GetNamedChild("Button")
     ctl:ClearAnchors()
     ctl:SetAnchorFill(c)
-    if ctl.SetDrawLevel then ctl:SetDrawLevel(20) end
-    pcall(function() b:SetMouseOverTexture(nil) end)
-    pcall(function() b:SetMouseOverTexture("") end)
+    ctl:SetDrawLevel(20)
+    b:SetMouseOverTexture("")
     -- lo visual y el clic izquierdo (elegir destino) siguen siendo nuestros;
     -- OnClicked / OnReceiveDrag / OnDragStart / menú: los del juego
     b:SetHandler("OnMouseEnter", function() Slot.OnEnter(c) end)
@@ -379,9 +367,11 @@ end
 local function SetupWheelButton(c, d)
     local isWheel = d.kind == "wheel" and d.wheelSlot ~= nil and WHEEL_CAT ~= nil
     local w = c.wheelBtn
-    if type(w) == "function" then w = nil end
-    if isWheel and w == nil then w = CreateWheelButton(c) or false; c.wheelBtn = w end
-    if not w then return end
+    if not w then
+        if not isWheel then return end
+        w = CreateWheelButton(c)
+        c.wheelBtn = w
+    end
     w:SetHidden(not isWheel)
     w.button:SetMouseEnabled(isWheel)
     if isWheel then
@@ -408,9 +398,7 @@ local function SetupSecureButton(c, d)
     b.slotIndex = d.slotIndex
     b.stackCount = d.stack or 0
     b.dataEntry = c.dataEntry
-    if ZO_Inventory_BindSlot then
-        pcall(ZO_Inventory_BindSlot, b, d.slotType, d.slotIndex, d.bagId)
-    end
+    ZO_Inventory_BindSlot(b, d.slotType, d.slotIndex, d.bagId)
 end
 
 -- ---------------------------------------------------------------------
@@ -543,11 +531,9 @@ function Slot.Setup(c, d)
         itemType = d.itemType, equipType = d.equipType, quality = d.quality,
         displayQuality = d.quality, name = d.name, iconFile = d.icon,
     } }
-    if ZO_Inventory_BindSlot and d.slotType then
-        pcall(ZO_Inventory_BindSlot, c, d.slotType, d.slotIndex, d.bagId)
-    end
+    if d.slotType then ZO_Inventory_BindSlot(c, d.slotType, d.slotIndex, d.bagId) end
     SetupSecureButton(c, d)
     SetupWheelButton(c, d)
 
-    if NWUI.Price then pcall(NWUI.Price.Apply, c, d) end
+    NWUI.Price.Apply(c, d)
 end

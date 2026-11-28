@@ -46,6 +46,7 @@ local function remove(unitId,abilityId)
 end
 
 function S.ResetStatusTracking()
+    if S.ResetCriticalBuffDiagnostics then S.ResetCriticalBuffDiagnostics() end
     units,criticalUnits,durations={},{},{}
     currentTargetId=nil
     S.lastTargetSample=nil

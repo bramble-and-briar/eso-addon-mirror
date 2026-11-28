@@ -1,10 +1,10 @@
-NWUI = NWUI or {}
-local NWUI = NWUI
+NWInterfaz = NWInterfaz or {}
+local NWUI = NWInterfaz
 local WM = WINDOW_MANAGER
 local EM = EVENT_MANAGER
 
 NWUI.name = "NWInterfaz"
-NWUI.version = "1.8.1"
+NWUI.version = "1.9.7"
 NWUI.movables = {}
 NWUI.unlocked = false
 
@@ -78,7 +78,7 @@ end
 -- así que 1 unidad no siempre es 1 píxel. Las posiciones que no caen en un
 -- píxel entero hacen que las líneas de 1 px desaparezcan.
 function NWUI.UIScale()
-    local s = (GetUIGlobalScale and GetUIGlobalScale()) or 1
+    local s = (GetUIGlobalScale()) or 1
     if type(s) ~= "number" or s <= 0 then s = 1 end
     return math.min(4, math.max(0.3, s))
 end
@@ -106,8 +106,7 @@ end
 -- sigue siempre al original (texto, color, letra, alineación, recorte).
 local BOLD_OFFSET = 1
 function NWUI.Embolden(l, font)
-    local old = l.nwGhost
-    if old and type(old) ~= "function" then return old end
+    if l.nwGhost then return l.nwGhost end
     local g = WM:CreateControl(NWUI.UID("NWUI_LB"), l, CT_LABEL)
     g:SetAnchor(TOPLEFT, l, TOPLEFT, BOLD_OFFSET, 0)
     g:SetAnchor(BOTTOMRIGHT, l, BOTTOMRIGHT, BOLD_OFFSET, 0)
@@ -115,11 +114,9 @@ function NWUI.Embolden(l, font)
     l.nwGhost = g
     local function mirror(method)
         local orig = l[method]
-        if type(orig) ~= "function" then return end
         l[method] = function(self, ...)
             orig(self, ...)
-            local gm = g[method]
-            if type(gm) == "function" then gm(g, ...) end
+            g[method](g, ...)
         end
     end
     for _, m in ipairs({ "SetText", "SetColor", "SetFont", "SetHorizontalAlignment",
@@ -169,21 +166,12 @@ function NWUI.FlatBox(parent, bg, border, size)
     return b, i
 end
 
--- Degradado vertical (arriba -> abajo). Si la versión del juego no lo admite,
--- queda un color sólido con el tono de arriba.
+-- Degradado vertical (arriba -> abajo). En ORIENTATION_VERTICAL el color
+-- inicial es el de abajo (igual que el selector de color del juego).
 function NWUI.Gradient(tex, top, bottom)
     NWUI.SetColor(tex, top)
-    if tex.SetGradientColors and ORIENTATION_VERTICAL then
-        local ok = pcall(tex.SetGradientColors, tex, ORIENTATION_VERTICAL,
-            bottom[1], bottom[2], bottom[3], bottom[4] or 1, top[1], top[2], top[3], top[4] or 1)
-        if ok then return end
-    end
-    if tex.SetVertexColors and VERTEX_POINTS_TOPLEFT then
-        pcall(function()
-            tex:SetVertexColors(VERTEX_POINTS_TOPLEFT + VERTEX_POINTS_TOPRIGHT, top[1], top[2], top[3], top[4] or 1)
-            tex:SetVertexColors(VERTEX_POINTS_BOTTOMLEFT + VERTEX_POINTS_BOTTOMRIGHT, bottom[1], bottom[2], bottom[3], bottom[4] or 1)
-        end)
-    end
+    tex:SetGradientColors(ORIENTATION_VERTICAL,
+        bottom[1], bottom[2], bottom[3], bottom[4] or 1, top[1], top[2], top[3], top[4] or 1)
 end
 
 -- "INVENTARIO" -> "I N V E N T A R I O" (respeta acentos UTF-8)
@@ -209,12 +197,9 @@ end
 -- Obtiene una función global del juego SIN tocar las privadas.
 -- (Leer una función privada desde un addon provoca "Attempt to access a private function".)
 function NWUI.SafeGet(fnName)
-    if IsPrivateFunction then
-        local ok, private = pcall(IsPrivateFunction, fnName)
-        if not ok or private then return nil end
-    end
-    local ok, fn = pcall(function() return _G[fnName] end)
-    if ok and type(fn) == "function" then return fn end
+    if IsPrivateFunction(fnName) then return nil end
+    local fn = _G[fnName]
+    if type(fn) == "function" then return fn end
     return nil
 end
 
@@ -354,19 +339,14 @@ function NWUI.SetTitle(label, title, maxW)
 end
 
 -- Llama una función del juego; usa CallSecureProtected si está protegida.
--- Devuelve false (sin error) si la función no existe o es privada.
+-- Devuelve false si la función es privada (los addons no pueden usarla).
 function NWUI.Call(fnName, ...)
-    if IsProtectedFunction then
-        local okp, protected = pcall(IsProtectedFunction, fnName)
-        if okp and protected then
-            local ok, res = pcall(CallSecureProtected, fnName, ...)
-            return ok and res
-        end
+    if IsProtectedFunction(fnName) then
+        return CallSecureProtected(fnName, ...)
     end
     local fn = NWUI.SafeGet(fnName)
     if not fn then return false end
-    local ok, a, b = pcall(fn, ...)
-    return ok, a, b
+    return true, fn(...)
 end
 
 function NWUI.Throttle(key, ms, fn)
@@ -377,12 +357,44 @@ function NWUI.Throttle(key, ms, fn)
     end)
 end
 
+-- Fragmento de escena SEGURO para las ventanas del addon.
+-- Los fragmentos con animación (ZO_FadeSceneFragment / ZO_HUDFadeSceneFragment)
+-- creados por un addon terminan su animación desde código "no confiable" y es
+-- esa animación la que da paso a la siguiente escena: el juego entonces bloquea
+-- funciones privadas de esa escena (p. ej. "QuerySkuCatalog" al abrir los Tomos
+-- de Tamriel o la Tienda de Coronas). ZO_SimpleSceneFragment se muestra y oculta
+-- al instante, dentro del propio flujo del juego; el fundido de entrada lo hace
+-- el addon por su cuenta, sin intervenir en el cambio de escena.
+local fadeN = 0
+function NWUI.SafeFragment(control, fadeMs)
+    local f = ZO_SimpleSceneFragment:New(control)
+    fadeMs = fadeMs or 150
+    fadeN = fadeN + 1
+    local key = "NWUI_FragFade" .. fadeN
+    f:RegisterCallback("StateChange", function(_, newState)
+        if newState == SCENE_FRAGMENT_SHOWING then
+            local t0 = (GetFrameTimeMilliseconds()) or 0
+            control:SetAlpha(0)
+            EM:RegisterForUpdate(key, 0, function()
+                local now = (GetFrameTimeMilliseconds()) or (t0 + fadeMs)
+                local p = math.min(1, (now - t0) / fadeMs)
+                control:SetAlpha(p)
+                if p >= 1 then EM:UnregisterForUpdate(key) end
+            end)
+        elseif newState == SCENE_FRAGMENT_HIDING or newState == SCENE_FRAGMENT_HIDDEN then
+            EM:UnregisterForUpdate(key)
+            control:SetAlpha(1)
+        end
+    end)
+    return f
+end
+
 -- Parpadeo suave (se enciende y se apaga) para las marcas de "nuevo".
 -- Un único bucle para todas las marcas visibles; se detiene si no hay ninguna.
 local pulsing = setmetatable({}, { __mode = "k" })
 local PULSE_MS = 1100
 local function PulseStep()
-    local now = (GetFrameTimeMilliseconds and GetFrameTimeMilliseconds()) or 0
+    local now = (GetFrameTimeMilliseconds()) or 0
     local a = 0.20 + 0.80 * (0.5 + 0.5 * math.cos(2 * math.pi * (now % PULSE_MS) / PULSE_MS))
     local any = false
     for tex in pairs(pulsing) do
@@ -443,16 +455,7 @@ end
 -- ¿Está oculto el control o alguno de sus padres?
 function NWUI.IsReallyHidden(c)
     if not c then return true end
-    if c.IsControlHidden then
-        local ok, h = pcall(c.IsControlHidden, c)
-        if ok then return h end
-    end
-    local p = c
-    while p do
-        if p:IsHidden() then return true end
-        p = p.GetParent and p:GetParent() or nil
-    end
-    return false
+    return c:IsControlHidden()
 end
 
 -- =====================================================================
@@ -467,7 +470,7 @@ end
 function NWUI.ApplyPosition(m)
     local p = NWUI.sv.positions[m.key]
     -- Posición guardada fuera de la pantalla: se descarta y se usa la de fábrica.
-    if p and GuiRoot and GuiRoot.GetWidth then
+    if p then
         local W, H = GuiRoot:GetWidth(), GuiRoot:GetHeight()
         if type(p.x) ~= "number" or type(p.y) ~= "number"
             or p.x < -40 or p.y < -40 or (W > 0 and p.x > W - 40) or (H > 0 and p.y > H - 40) then
@@ -608,7 +611,7 @@ end
 -- Acciones de objetos (equipar, mover entre bolsas, gremio)
 -- =====================================================================
 local function Hint(text)
-    if ZO_Alert then ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, text) else d("|cC9A35E[NW Interfaz]|r " .. text) end
+    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, text)
 end
 
 function NWUI.Equip(bag, slot, equipSlot)
@@ -626,18 +629,15 @@ function NWUI.Unequip(equipSlot)
 end
 
 function NWUI.BankTargets()
-    local b = (GetBankingBag and GetBankingBag()) or BAG_BANK
+    local b = (GetBankingBag()) or BAG_BANK
     if b == BAG_BANK then
-        if BAG_SUBSCRIBER_BANK then return { BAG_BANK, BAG_SUBSCRIBER_BANK } end
-        return { BAG_BANK }
+        return { BAG_BANK, BAG_SUBSCRIBER_BANK }
     end
     return { b }
 end
 
 local function NoSpace()
-    if ZO_Alert then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, NWUI.T("no_space"))
-    end
+    ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, NWUI.T("no_space"))
 end
 
 -- family: "backpack" | "bank" | "guild"

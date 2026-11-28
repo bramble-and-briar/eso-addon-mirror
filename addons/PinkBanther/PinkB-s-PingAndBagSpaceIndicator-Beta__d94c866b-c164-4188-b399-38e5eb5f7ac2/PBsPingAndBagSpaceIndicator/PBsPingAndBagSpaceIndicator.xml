@@ -1,0 +1,26 @@
+<GuiXml>
+	<!-- The readout. Everything in it is console-safe on purpose, the way PB's other HUD windows are:
+	     - The font is a named gamepad face the console UI already has loaded (Lua picks the size).
+	     - The background is a plain colour texture, not a backdrop template.
+	     - Nothing takes input: a control that wants input takes gamepad buttons away from the game.
+	     The window is shown and hidden by a scene fragment (Hud.lua), so it is there on the game screen only.
+	     The label has no size: it takes the size of its text. Lua anchors it to the corner of the screen the
+	     player picked, and anchors the background around it, so the background follows the text as it grows
+	     and shrinks. The numbers here are only a starting point. The label comes first because the background
+	     is anchored to it; draw levels keep the background behind the text. -->
+	<Controls>
+		<TopLevelControl name="PBsPingAndBagSpaceIndicatorWindow" hidden="true" mouseEnabled="false" tier="HIGH">
+			<Dimensions x="4" y="4"/>
+			<Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT" offsetX="-40" offsetY="-24"/>
+			<Controls>
+				<Label name="$(parent)Text" font="ZoFontGamepad27" color="FFFFFF" horizontalAlignment="LEFT" verticalAlignment="TOP" level="2" hidden="true">
+					<Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT" offsetX="-40" offsetY="-24"/>
+				</Label>
+				<Texture name="$(parent)Background" color="000000" alpha="0.5" level="1" hidden="true">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Text" relativePoint="TOPLEFT" offsetX="-10" offsetY="-4"/>
+					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Text" relativePoint="BOTTOMRIGHT" offsetX="10" offsetY="4"/>
+				</Texture>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

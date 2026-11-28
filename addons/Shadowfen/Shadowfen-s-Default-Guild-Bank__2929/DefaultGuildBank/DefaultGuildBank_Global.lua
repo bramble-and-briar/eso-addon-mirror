@@ -10,7 +10,7 @@ local LL = LibLanguage
 DefaultGuildBank = {
 	name = "DefaultGuildBank",
 	displayname = "Shadowfen's Default Guild Bank",
-	version = "1.24",
+	version = "1.25",
 	author = "Shadowfen",
 
 	evtmgr = SF.EvtMgr:New("DefaultGuildBank")

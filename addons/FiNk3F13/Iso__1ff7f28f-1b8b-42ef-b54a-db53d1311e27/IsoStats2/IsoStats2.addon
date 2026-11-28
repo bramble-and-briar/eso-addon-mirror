@@ -1,7 +1,7 @@
 ## Title: IsoStats2
 ## APIVersion: 101051
-## Version: 2.3.3
-## AddOnVersion: 20303
+## Version: 2.3.6
+## AddOnVersion: 20306
 ## Author: Iso
 ## Description: Eigene Kampfwerte mit Ziel-Debuff-Erkennung und Move UI per rechtem Stick.
 ## DependsOn: LibHarvensAddonSettings
@@ -10,4 +10,5 @@
 Stats.lua
 StatusTracker.lua
 CriticalDamage.lua
+BuffDiagnostics.lua
 IsoStats2.lua

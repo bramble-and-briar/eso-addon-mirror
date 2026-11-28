@@ -1,11 +1,11 @@
 ## Title: |cC9A35ENW|r Interfaz
 ## Author: Kireto
-## Version: 1.8.1
-## AddOnVersion: 181
+## Version: 1.9.7
+## AddOnVersion: 197
 ## APIVersion: 101051 101052
 ## SavedVariables: NWInterfaz_SV
-## OptionalDependsOn: LibAddonMenu-2.0>=30 TamrielTradeCentre TamrielTradeCentreSimplePrice BanditsUserInterface Azurah
-## Description: HUD, inventario, vista de equipo y bancos con un diseño plano inspirado en New World. No necesita otros addons; LibAddonMenu-2.0 solo para el menú de ajustes.
+## OptionalDependsOn: LibAddonMenu-2.0 TamrielTradeCentre TamrielTradeCentreSimplePrice
+## Description: HUD, inventario, vista de equipo y bancos con un diseño plano inspirado en New World. No necesita otros addons; LibAddonMenu-2.0 es opcional (solo para el menú de ajustes).
 ## IsLibrary: false
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.

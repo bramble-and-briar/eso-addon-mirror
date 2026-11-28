@@ -284,6 +284,24 @@ function T.DefineCyrodiil(pos, block)
 	DefineInto(T.cyrodiilLexicon, pos, block)
 end
 
+-- Add a secondary part-of-speech reading without displacing the existing default entry.
+function T.DefineAlt(pos, block)
+	for line in (block .. "\n"):gmatch("(.-)\r?\n") do
+		local key, entry = ParseLine(pos, line)
+		if key and entry.ja and entry.ja ~= "" then
+			local existing = lexicon[key]
+			if not existing then
+				Add(key, entry, lexicon)
+			elseif existing.pos ~= pos and not (existing.alts and existing.alts[pos]) then
+				existing.alts = existing.alts or {}
+				T.defineSeq = (T.defineSeq or 0) + 1
+				entry.seq = T.defineSeq
+				existing.alts[pos] = entry
+			end
+		end
+	end
+end
+
 function T.SetCyrodiilPriority(enabled)
 	T.cyrodiilPriority = enabled == true
 end

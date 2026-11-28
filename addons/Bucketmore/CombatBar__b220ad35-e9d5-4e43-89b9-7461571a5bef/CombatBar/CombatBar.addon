@@ -1,8 +1,8 @@
 ## Title: Combat Bar
 ## Author: Private build (reference: Fancy Action Bar+ behavior, independent implementation)
-## Description: PS5/Console向け 戦闘用アクションバー拡張。表/裏バーのスキル効果時間・ULT・クイックスロット・キャスト・GCD表示。
-## Version: 1.0.0
-## AddOnVersion: 100
+## Description: PS5/Console向け 自分専用HUD。HP/MP/STバー・表裏バーの自分のスキル効果時間・ULT・クイックスロット・キャスト・GCD。ROYAL CYBER。
+## Version: 1.1.0
+## AddOnVersion: 110
 ## APIVersion: 101050
 ## SavedVariables: CombatBarSV
 ## PCDependsOn: LibAddonMenu-2.0>=40
@@ -14,5 +14,7 @@ lang/jp.lua
 init.lua
 core.lua
 ui.lua
+resources.lua
+preview.lua
 menu.lua
 main.lua

@@ -1,0 +1,17 @@
+## Title: WayShrine Pathfinder
+## Description: Overland ground arrows for the player's native personal map waypoint.
+## Author: ShadowStrikerr
+## Version: 0.1.0
+## AddOnVersion: 100
+## APIVersion: 101051
+## SavedVariables: ShadowStrikerrWaypointPathfinderSavedVariables
+## OptionalDependsOn: LibAddonMenu-2.0 AUI
+
+Navigation.lua
+WalkedPaths.lua
+Renderer.lua
+Minimap.lua
+Panel.lua
+Settings.lua
+WaypointPathfinder.lua
+Bindings.xml

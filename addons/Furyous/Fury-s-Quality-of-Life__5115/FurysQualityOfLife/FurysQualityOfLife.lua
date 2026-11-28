@@ -13,7 +13,7 @@ local QOL = FurysQualityOfLife
 
 QOL.name    = "FurysQualityOfLife"
 QOL.title   = "Fury's Quality of Life"
-QOL.version = "0.5.5"
+QOL.version = "0.6.0"
 
 -- Everything a new install starts with. Every switch is off; the "take" switches are extra
 -- kinds of items Select all may pick up, so off is the careful choice.
@@ -195,8 +195,7 @@ local function OnAddOnLoaded(_, name)
     if name ~= QOL.name then return end
     EVENT_MANAGER:UnregisterForEvent(QOL.name, EVENT_ADD_ON_LOADED)
 
-    FurysQualityOfLife_SV = FurysQualityOfLife_SV or {}
-    sv = FurysQualityOfLife_SV
+    sv = QOL.Theme.SavedVars("FurysQualityOfLife_SV")
     for key, value in pairs(defaults) do
         if sv[key] == nil then sv[key] = value end
     end

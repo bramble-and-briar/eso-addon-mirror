@@ -43,7 +43,16 @@ local NORMALIZE = {
 	okay = "ok", yea = "yes", yeah = "yes", yep = "yes", yup = "yes", nope = "no", nah = "no",
 	ppl = "people", msg = "message", pic = "picture", ez = "easy", srsly = "seriously",
 	prob = "probably", probs = "probably", sry = "sorry", soz = "sorry",
-	plsss = "please", pleeease = "please", someone = "someone", sb = "somebody",
+	plsss = "please", pleeease = "please", plss = "please", plzz = "please", plzzz = "please",
+	someone = "someone", sb = "somebody", smth = "something", sth = "something",
+	["w/o"] = "without", ["b/c"] = "because",
+}
+
+-- Apostrophe past-tense shorthand in MMO chat ("dc'd", "rez'd", "res'd") is not "would".
+local APOSTROPHE_PAST = {
+	dc = "dced",
+	rez = "rezzed",
+	res = "resed",
 }
 
 -- 's after these is "is"; after anything else it is the possessive.
@@ -99,7 +108,12 @@ local function PushWord(tokens, orig)
 			PushWords(tokens, head .. " will", orig)
 			return
 		elseif tail == "d" then
-			PushWords(tokens, head .. " would", orig)
+			local pastShorthand = APOSTROPHE_PAST[head]
+			if pastShorthand then
+				PushWords(tokens, pastShorthand, orig)
+			else
+				PushWords(tokens, head .. " would", orig)
+			end
 			return
 		elseif tail == "s" or tail == "" then
 			if tail == "s" and S_IS[head] then
@@ -156,9 +170,25 @@ function T.Tokenize(text)
 		elseif c:match("[ \t\r\n]") then
 			i = i + 1
 		elseif c:match("[A-Za-z]") then
-			local word = text:match("^[A-Za-z][A-Za-z0-9]*'[A-Za-z]+'[Vv][Ee]", i) or text:match("^[A-Za-z][A-Za-z0-9]*'[A-Za-z]+", i) or text:match("^[A-Za-z][A-Za-z0-9]*", i)
-			PushWord(tokens, word)
-			i = i + #word
+			local word
+			if text:match("^[Ww]/[OoEe]", i) and not text:sub(i + 3, i + 3):match("[A-Za-z0-9]") then
+				word = text:sub(i, i + 2)
+			elseif text:match("^[Bb]/[Cc]", i) and not text:sub(i + 3, i + 3):match("[A-Za-z0-9]") then
+				word = text:sub(i, i + 2)
+			elseif text:match("^[Ww]/", i) and (i + 2 > length or text:sub(i + 2, i + 2):match("[ \t\r\n]")) then
+				PushWords(tokens, "with", text:sub(i, i + 1))
+				i = i + 2
+				word = nil
+			else
+				word = text:match("^[vVnN][A-Za-z]+%+[0-3]", i)
+					or text:match("^[A-Za-z][A-Za-z0-9]*'[A-Za-z]+'[Vv][Ee]", i)
+					or text:match("^[A-Za-z][A-Za-z0-9]*'[A-Za-z]+", i)
+					or text:match("^[A-Za-z][A-Za-z0-9]*", i)
+			end
+			if word then
+				PushWord(tokens, word)
+				i = i + #word
+			end
 		elseif c:match("[0-9]") then
 			local word = text:match("^[0-9]+[A-Za-z][A-Za-z0-9]*", i)
 			if word then

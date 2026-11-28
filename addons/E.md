@@ -148,6 +148,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ExoYs Support Icon Extention](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Support-Icon-Extention__2913) | ExoY | PC / Mac | 2.1.1 |
 | [ExoYs Tributes Enhancement](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/ExoYs-Tributes-Enhancement__3364) | ExoY | PC / Mac | 1.6.1 |
 | [ExoYsProcSetTimerZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/ExoYsProcSetTimerZHPatch__3914) | FusRoDah | PC / Mac | 2.12.1 |
+| [Expanded Camera](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/Expanded-Camera__a81be41a-b218-428d-a90f-c54380141fa6) | m1lkst3ak | Console | — |
 | [ExpenseReport](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Whiskers/ExpenseReport__4715) | Whiskers | PC / Mac | 1.1 |
 | [experiment](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/experiment__2b323144-77d2-41bc-9e3e-d016c4dd0f30) | Vixen_Hunny | Console | — |
 | [Experimental Dummy Pvp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/Experimental-Dummy-Pvp__4781) | lebiez | PC / Mac | 1.0 |

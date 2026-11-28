@@ -1,7 +1,7 @@
 -- Vista del equipo equipado alrededor del personaje (como en New World):
 -- armadura agrupada por peso, armas por barra, joyería y estadísticas
 -- completas del juego con su descripción al pasar el ratón, y Mundus.
-local NWUI = NWUI
+local NWUI = NWInterfaz
 local EQ = {}
 NWUI.Equipment = EQ
 
@@ -76,29 +76,19 @@ local STATS = {
       "st_cres_d" },
 }
 
-local function GameString(prefix, id)
-    if not (prefix and id and GetString) then return nil end
-    local ok, s = pcall(GetString, prefix, id)
-    if ok and type(s) == "string" and s ~= "" then return s end
-end
-
 local function StatName(def, st)
-    return GameString("SI_DERIVEDSTATS", st) or NWUI.T(def[2])
+    local s = GetString("SI_DERIVEDSTATS", st)
+    if s ~= "" then return s end
+    return NWUI.T(def[2])
 end
 
-local function StatDescription(def, st)
-    for _, prefix in ipairs({ "SI_STAT_TOOLTIP_DESCRIPTION", "SI_STATTOOLTIPDESCRIPTION", "SI_STAT_DESCRIPTION" }) do
-        local s = GameString(prefix, st)
-        if s then return s end
-    end
+local function StatDescription(def)
     return NWUI.T(def[3])
 end
 
 local function EmptyTexture(slot, fallback)
-    if ZO_Character_GetEmptyEquipSlotTexture then
-        local ok, t = pcall(ZO_Character_GetEmptyEquipSlotTexture, slot)
-        if ok and type(t) == "string" and t ~= "" then return t end
-    end
+    local t = ZO_Character_GetEmptyEquipSlotTexture(slot)
+    if type(t) == "string" and t ~= "" then return t end
     return "EsoUI/Art/CharacterWindow/" .. fallback .. ".dds"
 end
 
@@ -106,7 +96,7 @@ local function WornData(def, side)
     local slot = S(def[1])
     if HasItemInSlot(BAG_WORN, slot) then
         local icon, stack, _, _, locked, equipType, _, quality = GetItemInfo(BAG_WORN, slot)
-        if GetItemDisplayQuality then quality = GetItemDisplayQuality(BAG_WORN, slot) end
+        quality = GetItemDisplayQuality(BAG_WORN, slot)
         local d = {
             kind = "worn", hasItem = true, bagId = BAG_WORN, slotIndex = slot, icon = icon,
             stack = (equipType == EQUIP_TYPE_POISON) and stack or 1, quality = quality or 1,
@@ -115,8 +105,8 @@ local function WornData(def, side)
             name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(BAG_WORN, slot)),
         }
         -- candado blanco si la pieza equipada está bloqueada (como en el inventario)
-        if IsItemPlayerLocked then d.locked = IsItemPlayerLocked(BAG_WORN, slot) or locked end
-        if DoesItemHaveDurability and DoesItemHaveDurability(BAG_WORN, slot) then
+        d.locked = IsItemPlayerLocked(BAG_WORN, slot)
+        if DoesItemHaveDurability(BAG_WORN, slot) then
             d.condition = GetItemCondition(BAG_WORN, slot)
         end
         return d
@@ -156,15 +146,10 @@ end
 -- ---------------------------------------------------------------------
 local function ShowInfo(control, title, body)
     InitializeTooltip(InformationTooltip, control, LEFT, 12, 0, RIGHT)
-    local ok = pcall(function()
-        InformationTooltip:AddLine(title, "ZoFontHeader2", 1, 1, 1, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
-        if body and body ~= "" then
-            ZO_Tooltip_AddDivider(InformationTooltip)
-            InformationTooltip:AddLine(body, "ZoFontGame", 0.89, 0.80, 0.55, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
-        end
-    end)
-    if not ok then
-        SetTooltipText(InformationTooltip, title .. ((body and body ~= "") and ("\n" .. body) or ""))
+    InformationTooltip:AddLine(title, "ZoFontHeader2", 1, 1, 1, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
+    if body and body ~= "" then
+        ZO_Tooltip_AddDivider(InformationTooltip)
+        InformationTooltip:AddLine(body, "ZoFontGame", 0.89, 0.80, 0.55, CENTER, MODIFY_TEXT_TYPE_NONE, TEXT_ALIGN_CENTER, true)
     end
 end
 
@@ -172,15 +157,7 @@ local function HideInfo() ClearTooltip(InformationTooltip) end
 
 local function GetMundus()
     local out = {}
-    local indices = {}
-    if GetUnitActiveMundusStoneBuffIndices then
-        local r = { pcall(GetUnitActiveMundusStoneBuffIndices, "player") }
-        if r[1] then
-            for i = 2, #r do
-                if type(r[i]) == "number" then indices[#indices + 1] = r[i] end
-            end
-        end
-    end
+    local indices = { GetUnitActiveMundusStoneBuffIndices("player") }
     local function add(bi)
         local name, _, _, _, _, icon, _, _, _, _, abilityId = GetUnitBuffInfo("player", bi)
         if name and name ~= "" then
@@ -190,7 +167,7 @@ local function GetMundus()
     end
     if #indices > 0 then
         for _, bi in ipairs(indices) do add(bi) end
-    elseif GetNumBuffs then
+    else
         for bi = 1, GetNumBuffs("player") do
             local name = GetUnitBuffInfo("player", bi)
             if name and (name:find("^Don") or name:find("^Boon")) then add(bi) end
@@ -303,14 +280,10 @@ function EQ.Refresh()
     LayoutArmor()
     LayoutStatic()
 
-    if NWUI.Inventory and NWUI.Inventory.AlignMountIcon then pcall(NWUI.Inventory.AlignMountIcon) end
+    NWUI.Inventory.AlignMountIcon()
 
     -- Barra de armas activa
-    local active = 1
-    if GetActiveWeaponPairInfo then
-        local pair = GetActiveWeaponPairInfo()
-        if ACTIVE_WEAPON_PAIR_BACKUP and pair == ACTIVE_WEAPON_PAIR_BACKUP then active = 2 end
-    end
+    local active = GetActiveWeaponPairInfo() == ACTIVE_WEAPON_PAIR_BACKUP and 2 or 1
     NWUI.SetColor(EQ.barLabel1, active == 1 and C.gold or C.textDim)
     NWUI.SetColor(EQ.barLabel2, active == 2 and C.gold or C.textDim)
 
@@ -319,13 +292,10 @@ function EQ.Refresh()
         local st = S(row.def[1])
         local text
         if st then
-            local ok, v = pcall(GetPlayerStat, st, STAT_BONUS_OPTION_APPLY_BONUS)
-            if ok and type(v) == "number" then
-                text = ZO_CommaDelimitNumber(v)
-                if row.def[4] == "crit" and GetCriticalStrikeChance then
-                    local ok2, pct = pcall(GetCriticalStrikeChance, v, true)
-                    if ok2 and type(pct) == "number" then text = string.format("%.1f %%", pct) end
-                end
+            local v = GetPlayerStat(st, STAT_BONUS_OPTION_APPLY_BONUS)
+            text = ZO_CommaDelimitNumber(v)
+            if row.def[4] == "crit" then
+                text = string.format("%.1f %%", GetCriticalStrikeChance(v))
             end
             row.name:SetText(StatName(row.def, st))
         end
@@ -462,7 +432,7 @@ local function MakeStatRow(parent, def)
     row:SetHandler("OnMouseEnter", function(self)
         hl:SetHidden(false)
         local st = S(def[1])
-        ShowInfo(self, StatName(def, st), StatDescription(def, st))
+        ShowInfo(self, StatName(def, st), StatDescription(def))
     end)
     row:SetHandler("OnMouseExit", function()
         hl:SetHidden(true)
@@ -644,7 +614,7 @@ function EQ.Init()
         end
     end, NWUI.T("mv_vitals"), false)
 
-    EQ.fragment = ZO_FadeSceneFragment:New(tlw)
+    EQ.fragment = NWUI.SafeFragment(tlw, 120)
     EQ.fragment:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_FRAGMENT_SHOWING then
             -- Las estadísticas siempre visibles al abrir el inventario
@@ -652,17 +622,16 @@ function EQ.Init()
                 EQ.stats:SetHidden(false)
                 if EQ.statsMovable then NWUI.ApplyPosition(EQ.statsMovable) end
             end
-            pcall(EQ.RefreshVitals)
-            local ok, err = pcall(EQ.Refresh)
-            if not ok then d("|cFF6666[NW Interfaz]|r " .. NWUI.T("eq_error", tostring(err))) end
+            EQ.RefreshVitals()
+            EQ.Refresh()
         end
     end)
 
     NWUI.On("NWUI_EQ_Worn", "EVENT_INVENTORY_SINGLE_SLOT_UPDATE", EQ.QueueRefresh, REGISTER_FILTER_BAG_ID, BAG_WORN)
     NWUI.On("NWUI_EQ_Stats", "EVENT_STATS_UPDATED", EQ.QueueRefresh)
-    NWUI.On("NWUI_EQ_Power", "EVENT_POWER_UPDATE", function(_, unitTag)
-        if unitTag == "player" and EQ.tlw and not EQ.tlw:IsHidden() then EQ.RefreshVitals() end
-    end)
+    NWUI.On("NWUI_EQ_Power", "EVENT_POWER_UPDATE", function()
+        if EQ.tlw and not EQ.tlw:IsHidden() then EQ.RefreshVitals() end
+    end, REGISTER_FILTER_UNIT_TAG, "player")
     NWUI.On("NWUI_EQ_Pair", "EVENT_ACTIVE_WEAPON_PAIR_CHANGED", EQ.QueueRefresh)
     NWUI.On("NWUI_EQ_Level", "EVENT_LEVEL_UPDATE", EQ.QueueRefresh)
     NWUI.On("NWUI_EQ_Effect", "EVENT_EFFECT_CHANGED", EQ.QueueRefresh, REGISTER_FILTER_UNIT_TAG, "player")

@@ -36,7 +36,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [New motifs and fixes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pesakm/New-motifs-and-fixes__3380) | pesakm | PC / Mac | 11.5.04 |
 | [new test ps5](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/new-test-ps5__2b60cc83-ca16-4441-ac8d-8aeabbf9bf14) | Lofand | Console | — |
 | [New World UI - NWUI · Discontinued](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/New-World-UI---NWUI-Discontinued__4587) | Wrynch | PC / Mac | 1.1.0 |
-| [NEW WORLD X ESO UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kireto/NEW-WORLD-X-ESO-UI__5125) | kireto | PC / Mac | 1.8.1 |
+| [NEW WORLD X ESO UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kireto/NEW-WORLD-X-ESO-UI__5125) | kireto | PC / Mac | 1.9.7 |
 | [Next Boss Stage(Custom Boss Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/Next-Boss-Stage-Custom-Boss-Frame__2889) | awfuldead | PC / Mac | 2.0.6 |
 | [NextQuest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/NextQuest__dfed21f9-988b-44b9-a054-89bfcce20639) | dicen9 | Console | — |
 | [NextTry StatusTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/R0ctan/NextTry-StatusTracker__4589) | R0ctan | PC / Mac | 1.2.0 |

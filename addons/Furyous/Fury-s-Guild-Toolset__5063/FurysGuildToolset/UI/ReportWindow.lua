@@ -80,6 +80,15 @@ function Report.HideTip()
     ClearTooltip(InformationTooltip)
 end
 
+-- Hover text for a right-click menu item: shown to the right of the menu so it never covers
+-- the other items (1.34.7).
+function Report.ShowMenuTip(control, text)
+    if not text or text == "" then return end
+    ClearTooltip(InformationTooltip)
+    InitializeTooltip(InformationTooltip, ZO_Menu, LEFT, 12, 0, RIGHT)
+    SetTooltipText(InformationTooltip, text)
+end
+
 -- Gives a control hover text. tip can be a string, a function, or nil for none.
 -- Pooled controls are reused, so the handlers read the tip stored on the control.
 function Report.SetTip(control, tip)
@@ -103,14 +112,21 @@ function Report.AddMenu(row, items)
     row.OnRightClick = function(control)
         ClearMenu()
         for _, item in ipairs(items) do
+            -- 1.34.7: an item's tip shows beside the menu while the mouse is over it.
+            local onEnter, onExit
+            if item.tip then
+                onEnter = function(itemControl) Report.ShowMenuTip(itemControl, Resolve(item.tip)) end
+                onExit = Report.HideTip
+            end
             AddMenuItem(item.label, function()
+                Report.HideTip()
                 -- A menu can't open while this one is closing, so wait a moment.
                 if item.opensMenu then
                     zo_callLater(function() item.fn(control) end, 50)
                 else
                     item.fn(control)
                 end
-            end)
+            end, nil, nil, nil, nil, nil, nil, nil, onEnter, onExit)
         end
         ShowMenu(control)
     end
@@ -124,7 +140,44 @@ function Report.ContactItems(displayName)
         { label = "Whisper " .. displayName, tip = "Starts a whisper to them in the chat box.", fn = function() GT.Actions.Warn(displayName, "", "", "whisper") end },
         { label = "Mail " .. displayName, tip = "Opens an empty mail to them.", fn = function() GT.Actions.Warn(displayName, "", "", "mail") end },
         Report.CopyItem(displayName),
+        Report.TravelItem(displayName),
+        Report.HouseItem(displayName),
     }
+end
+
+-- "Travel to @name" and "Visit @name's Primary Residence" (1.34.7, Albert). Same as the game's
+-- own Travel to Player and Visit Primary Residence: nothing happens until you pick one, and the
+-- game shows its loading screen (or says why it can't go, for example they are offline).
+local function JumpToPlayer(displayName)
+    for _, guildId in ipairs(GT.Util.GetGuildIds()) do
+        if GT.Util.IsMember(guildId, displayName) then
+            JumpToGuildMember(displayName)
+            return
+        end
+    end
+    if IsFriend(displayName) then
+        JumpToFriend(displayName)
+        return
+    end
+    for i = 1, GetGroupSize() do
+        if GetUnitDisplayName(GetGroupUnitTagByIndex(i)) == displayName then
+            JumpToGroupMember(displayName)
+            return
+        end
+    end
+    GT.Util.Print("You can only travel to guildmates, friends and group members. %s is none of those now.", displayName)
+end
+
+function Report.TravelItem(displayName)
+    return { label = "Travel to " .. displayName,
+        tip = "Jumps to them, like the game's Travel to Player. Free, but they must be online and somewhere you can travel to.",
+        fn = function() JumpToPlayer(displayName) end }
+end
+
+function Report.HouseItem(displayName)
+    return { label = "Visit " .. displayName .. "'s Primary Residence",
+        tip = "Takes you to their primary house, like the game's Visit Primary Residence. They don't have to be online, but their house must let visitors in.",
+        fn = function() JumpToHouse(displayName) end }
 end
 
 -- "Copy @name" for a right-click menu (1.14.0).

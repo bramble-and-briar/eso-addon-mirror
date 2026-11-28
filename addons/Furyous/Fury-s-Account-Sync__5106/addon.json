@@ -5,7 +5,7 @@
   "archived": true,
   "author": "Furyous",
   "canonical_id": "esoui:5106",
-  "category_id": "159",
+  "category_id": "27",
   "compatibility": [
     {
       "name": "Echoes of Skyrim",
@@ -22,7 +22,7 @@
     "FurysAccountSync"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5106/",
-  "fingerprint": "1b6e02891cf0bfe9dccb394b002d7db6f9d1ac5e79e08ee2cff7f8ade15c4340",
+  "fingerprint": "b993e35889609facfeb2882b354979daa64ec315d0e6fb2d5d058b8a072181d3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw18771.png",
     "https://cdn-eso.mmoui.com/preview/pvw18770.png"
@@ -33,11 +33,11 @@
   "source_id": "5106",
   "source_url": "https://www.esoui.com/downloads/info5106-FurysAccountSync.html",
   "stats": {
-    "downloads": 59,
+    "downloads": 94,
     "favorites": 1,
-    "monthly_downloads": 48
+    "monthly_downloads": 92
   },
   "title": "Fury's Account Sync",
-  "updated_at": 1795674505000,
-  "version": "0.6.4"
+  "updated_at": 1795824210000,
+  "version": "0.6.9"
 }

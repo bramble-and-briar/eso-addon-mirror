@@ -1,0 +1,18 @@
+## Title: SkyShard Pathfinder
+## Description: Overland SkyShard trails, world-map pins, and an optional AUI minimap overlay.
+## Author: ShadowStrikerr
+## Version: 0.4.24
+## APIVersion: 101051
+## SavedVariables: SkyshardPathfinderSavedVariables
+## OptionalDependsOn: LibAddonMenu-2.0 AUI
+
+Navigation.lua
+WalkedPaths.lua
+Skyshards.lua
+Renderer.lua
+Minimap.lua
+MapPins.lua
+QuickSettings.lua
+Settings.lua
+Prototype.lua
+Bindings.xml

@@ -1,6 +1,6 @@
 -- Independent implementation. Ability IDs and nominal debuff values were
 -- cross-checked against the user's local Meterskull 1.6.1 reference.
-IsoStats2 = { name = "IsoStats2", version = "2.3.3" }
+IsoStats2 = { name = "IsoStats2", version = "2.3.6" }
 local S = IsoStats2
 
 -- Same-family effects do not stack, including trial-dummy equivalents.
@@ -132,6 +132,7 @@ function S.ReadStats()
     result.targetBonusesEnabled=S.includeTargetBonuses~=false
     result.displayPenetration=result.penetration+(result.targetBonusesEnabled and result.targetPenetration or 0)
     S.AddCriticalDamageData(result,bonus or 0,cp.criticalSources)
+    if S.CaptureCriticalBuffs then S.CaptureCriticalBuffs(result) end
     S.current = result
     if target then S.lastTargetSample=result end
     if S.RecordPenDiagnosticSample then S.RecordPenDiagnosticSample(result) end
@@ -140,6 +141,7 @@ end
 
 local diagnostic={test=1,sequence=0,samples=0,active=false}
 function S.ResetPenDiagnosticHistory()
+    if S.ResetCriticalBuffDiagnostics then S.ResetCriticalBuffDiagnostics() end
     diagnostic={test=diagnostic.test+1,sequence=diagnostic.sequence,samples=0,active=diagnostic.active}
 end
 function S.BeginPenDiagnosticTest()

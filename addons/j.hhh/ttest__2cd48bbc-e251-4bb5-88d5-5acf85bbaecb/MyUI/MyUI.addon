@@ -1,7 +1,7 @@
 ## Title: My UI
 ## Description: My UI - LAM-only settings interface.
 ## Author: Satuve, j.hhh
-## Version: 1.9.28
+## Version: 1.9.37
 ## APIVersion: 101050 101051
 ## SavedVariables: SATUVE_XBOX_UI_VARS SATUVE_XBOX_UI_REPORTS SATUVE_XBOX_UI_CP_CHAR OffBalanceTrackerVariables AltBossBarSavedVariables AltGroupFramesSavedVariables AutoInteractVars BASV AutoRecharge_SavedVariables AutoClaimTomePointsSavedVariables
 ## OptionalDependsOn: LibAddonMenu-2.0 LibStub LibGamepad CrutchAlerts

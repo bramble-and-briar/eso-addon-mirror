@@ -1021,3 +1021,54 @@ no soft stack=間隔を空けた集合はしないでください
 D("v", [[
 get out of red=赤い範囲から出る/1
 ]])
+
+-- Essential ESO materials, dungeon/trial shorthand, and combat calls.
+D("n", [[
+hs=重い袋
+heavy sack=重い袋
+load screen=ロード画面
+loading screen=ロード画面
+dreugh wax=ドレウグのワックス
+tempering alloy=鍛造用合金
+rosin=ロジン
+kuta=クタ
+chromium plating=クロムめっき
+zircon plating=ジルコンめっき
+perfect roe=完璧な魚卵
+hakeijo=ハケイジョ
+aetherial dust=エーテルの塵
+vcr+0=vCR+0
+vcr+1=vCR+1
+vcr+2=vCR+2
+vcr+3=vCR+3
+vas+0=vAS+0
+vas+1=vAS+1
+vas+2=vAS+2
+ncr+0=nCR+0
+nas+0=nAS+0
+]])
+
+D("x", [[
+oos=スタミナ切れ
+out of range=射程外です
+do not stand in stupid=危険範囲に立たないでください
+free to good home=大事にしてくれる人に無料で譲ります
+my first time here=ここは初めてです
+]])
+
+-- Secondary POS readings that preserve existing defaults.
+local DA = PBsTranslate.DefineAlt
+if DA then
+	DA("v", [[
+head=向かう/5/に
+bash=妨害する/s
+]])
+	DA("n", [[
+taunt=挑発
+repair=修理
+camp=前線キャンプ
+]])
+	DA("a", [[
+open=空いている/na
+]])
+end

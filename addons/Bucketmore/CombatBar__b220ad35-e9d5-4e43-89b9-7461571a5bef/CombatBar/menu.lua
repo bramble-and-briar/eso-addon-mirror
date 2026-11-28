@@ -1,4 +1,5 @@
--- Combat Bar : LibAddonMenu設定画面(コンソール対応・スライダー/チェックボックス/ドロップダウン中心)
+-- Combat Bar : LibAddonMenu設定画面(12カテゴリ・各カテゴリ先頭に説明)
+-- 表示名だけを変更し、保存キー(SV内の名前)は v1.0.0 から変えていない。
 local CB = CombatBar
 local WM = WINDOW_MANAGER
 local T = CB.T
@@ -11,19 +12,28 @@ local function CurrentSkill()
     return selectedSkill or skillNames[1]
 end
 
+local function Preview()
+    if CB.RefreshPreview then CB.RefreshPreview() end
+end
+
 local function ApplyAll()
     CB.RefreshSlots()
     CB.ApplyLayout()
     CB.RebuildWidgets()
     CB.UpdateQuickslot()
     CB.UpdateDisplay()
+    Preview()
+end
+
+local function Desc(key)
+    return { type = "description", text = T(key) }
 end
 
 local function Check(nameKey, key, after)
     return {
         type = "checkbox", name = T(nameKey), default = defaults[key],
         getFunc = function() return SV[key] end,
-        setFunc = function(v) SV[key] = v; if after then after() end end,
+        setFunc = function(v) SV[key] = v; if after then after() end; Preview() end,
     }
 end
 
@@ -31,23 +41,77 @@ local function Slider(nameKey, key, min, max, step, after)
     return {
         type = "slider", name = T(nameKey), min = min, max = max, step = step or 1, default = defaults[key],
         getFunc = function() return SV[key] end,
-        setFunc = function(v) SV[key] = v; if after then after() end end,
+        setFunc = function(v) SV[key] = v; if after then after() end; Preview() end,
     }
 end
 
 local function Color(nameKey, key, after)
     return {
-        type = "colorpicker", name = T(nameKey), default = nil,
+        type = "colorpicker", name = T(nameKey),
         getFunc = function() local c = SV[key]; return c[1], c[2], c[3], c[4] end,
         setFunc = function(r, g, b, a)
             local old = SV[key]
             SV[key] = { r, g, b, (old and old[4]) and a or nil }
             if after then after() end
+            Preview()
         end,
     }
 end
 
--- 現在スロットにあるスキル名 -> ID
+---------------------------------------------------------------
+-- HP・MP・ST(3本それぞれ独立)
+---------------------------------------------------------------
+local function ResControls(kind, headerKey)
+    local function cfg() return SV.resources[kind] end
+    local function def(key) return defaults.resources[kind][key] end
+    local function Apply() CB.ApplyResources(); Preview() end
+
+    local function RCheck(nameKey, key)
+        return {
+            type = "checkbox", name = T(nameKey), default = def(key),
+            getFunc = function() return cfg()[key] end,
+            setFunc = function(v) cfg()[key] = v; Apply() end,
+        }
+    end
+    local function RSlider(nameKey, key, min, max)
+        return {
+            type = "slider", name = T(nameKey), min = min, max = max, step = 1, default = def(key),
+            getFunc = function() return cfg()[key] end,
+            setFunc = function(v) cfg()[key] = v; Apply() end,
+        }
+    end
+    local function RColor(nameKey, key)
+        return {
+            type = "colorpicker", name = T(nameKey),
+            getFunc = function() local c = cfg()[key]; return c[1], c[2], c[3], c[4] end,
+            setFunc = function(r, g, b, a)
+                local old = cfg()[key]
+                cfg()[key] = { r, g, b, (old and old[4]) and a or nil }
+                Apply()
+            end,
+        }
+    end
+
+    return {
+        { type = "header", name = T(headerKey) },
+        RCheck("RES_SHOW", "enabled"),
+        RSlider("RES_X", "x", -1500, 1500),
+        RSlider("RES_Y", "y", -1000, 1000),
+        RSlider("RES_W", "w", 60, 600),
+        RSlider("RES_H", "h", 8, 80),
+        RColor("RES_COLOR", "color"),
+        RColor("RES_BG", "bgColor"),
+        RSlider("RES_ALPHA", "alpha", 10, 100),
+        RCheck("RES_VALUE", "showValue"),
+        RCheck("RES_PERCENT", "showPercent"),
+        RCheck("RES_LABEL", "showLabel"),
+        RSlider("RES_FONT", "fontSize", 10, 36),
+    }
+end
+
+---------------------------------------------------------------
+-- スキル一覧
+---------------------------------------------------------------
 local function SlottedSkills()
     local names, ids, seen = {}, {}, {}
     for _, hb in ipairs({ CB.HB_FRONT, CB.HB_BACK }) do
@@ -85,9 +149,18 @@ local function SetWidgetField(field, v)
     if cfg then
         cfg[field] = v
         CB.RebuildWidgets()
+        Preview()
     end
 end
 
+local function UpdateDropdown(ref, names)
+    local dd = WM:GetControlByName(ref)
+    if dd and dd.UpdateChoices then dd:UpdateChoices(names) end
+end
+
+---------------------------------------------------------------
+-- メニュー本体
+---------------------------------------------------------------
 function CB.BuildMenu(sv)
     SV, defaults = sv, CB.defaults
     local LAM = LibAddonMenu2
@@ -104,14 +177,20 @@ function CB.BuildMenu(sv)
         CB.RefreshSlots()
         local names, ids = SlottedSkills()
         skillNames, skillIds = names, ids
-        for _, ref in ipairs({ "CB_EffectSkillDropdown", "CB_AddSkillDropdown" }) do
-            local dd = WM:GetControlByName(ref)
-            if dd and dd.UpdateChoices then dd:UpdateChoices(names) end
-        end
+        UpdateDropdown("CB_EffectSkillDropdown", names)
+        UpdateDropdown("CB_AddSkillDropdown", names)
     end
+
+    -- 設定画面を開いている間だけプレビューを出す
     if CALLBACK_MANAGER then
         CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(openedPanel)
-            if openedPanel == panelRef and CB.RefreshMenuChoices then CB.RefreshMenuChoices() end
+            if openedPanel == panelRef then
+                if CB.RefreshMenuChoices then CB.RefreshMenuChoices() end
+                CB.PreviewShow()
+            end
+        end)
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(closedPanel)
+            if closedPanel == panelRef then CB.PreviewHide() end
         end)
     end
 
@@ -119,34 +198,64 @@ function CB.BuildMenu(sv)
     widgetNames, widgetIds = WidgetNames()
     local addSkill
 
+    local effectValue = {
+        type = "editbox", name = T("EFFID_VALUE"), isMultiline = false,
+        getFunc = function()
+            local id = CurrentSkill() and skillIds[CurrentSkill()]
+            return tostring((id and SV.effectOverride[id]) or "")
+        end,
+        setFunc = function(text)
+            local id = CurrentSkill() and skillIds[CurrentSkill()]
+            local n = tonumber(text)
+            if id and n and n > 0 then
+                SV.effectOverride[id] = zo_floor(n)
+                CB.RefreshSlots()
+                CB.SyncPlayerBuffs()
+            end
+        end,
+    }
+    if TEXT_TYPE_NUMERIC then effectValue.textType = TEXT_TYPE_NUMERIC end
+
+    local resControls = {}
+    resControls[#resControls + 1] = Desc("D_RES")
+    for _, kind in ipairs(CB.ResourceKinds) do
+        local list = ResControls(kind, "RES_" .. string.upper(kind))
+        for _, c in ipairs(list) do resControls[#resControls + 1] = c end
+    end
+
     local options = {
-        { type = "description", text = T("PANEL_DESC") },
-        Check("ENABLE_ALL", "enabled", ApplyAll),
-        {
-            type = "dropdown", name = T("LANGUAGE"),
-            choices = { T("LANG_AUTO"), T("LANG_JP"), T("LANG_EN") }, choicesValues = { "auto", "jp", "en" },
-            getFunc = function() return SV.language end,
-            setFunc = function(v) SV.language = v end,
-            warning = T("RELOAD_NOTE"),
-        },
+        { type = "submenu", name = T("SUB_GENERAL"), controls = {
+            Desc("D_GENERAL"),
+            Check("ENABLE_ALL", "enabled", ApplyAll),
+            {
+                type = "dropdown", name = T("LANGUAGE"),
+                choices = { T("LANG_AUTO"), T("LANG_JP"), T("LANG_EN") }, choicesValues = { "auto", "jp", "en" },
+                getFunc = function() return SV.language end,
+                setFunc = function(v) SV.language = v end,
+                warning = T("RELOAD_NOTE"),
+            },
+            Slider("PREVIEW_X", "previewX", 0, 2000, 1),
+            Slider("PREVIEW_Y", "previewY", 0, 1000, 1),
+        } },
+
+        { type = "submenu", name = T("SUB_RES"), controls = resControls },
 
         { type = "submenu", name = T("SUB_BARS"), controls = {
+            Desc("D_BARS"),
             Check("SHOW_FRONT", "showFront", CB.UpdateDisplay),
             Check("SHOW_BACK", "showBack", CB.RefreshIcons),
             Slider("BACK_X", "backOffsetX", -300, 300, 1, CB.ApplyLayout),
             Slider("BACK_Y", "backOffsetY", -300, 300, 1, CB.ApplyLayout),
             Slider("BACK_SCALE", "backScale", 40, 150, 1, CB.ApplyLayout),
+            Slider("INACTIVE_ALPHA", "inactiveAlpha", 0, 100, 1, CB.RefreshIcons),
+            Slider("INACTIVE_DESAT", "inactiveDesat", 0, 100, 1, CB.RefreshIcons),
             Check("MANAGE_STD", "manageStandardBar", CB.ApplyLayout),
             Slider("STD_X", "stdOffsetX", -600, 600, 1, CB.ApplyLayout),
             Slider("STD_Y", "stdOffsetY", -600, 600, 1, CB.ApplyLayout),
         } },
 
-        { type = "submenu", name = T("SUB_INACTIVE"), controls = {
-            Slider("INACTIVE_ALPHA", "inactiveAlpha", 0, 100, 1, CB.RefreshIcons),
-            Slider("INACTIVE_DESAT", "inactiveDesat", 0, 100, 1, CB.RefreshIcons),
-        } },
-
         { type = "submenu", name = T("SUB_TIMER"), controls = {
+            Desc("D_TIMER"),
             Slider("DUR_MIN", "durationMin", 0, 30, 1),
             Slider("DUR_MAX", "durationMax", 10, 600, 1),
             Slider("TIMER_SIZE", "timerSize", 10, 40, 1, CB.ApplyLayout),
@@ -157,9 +266,6 @@ function CB.BuildMenu(sv)
             Check("STACK_SHOW", "showStacks", CB.UpdateDisplay),
             Slider("STACK_SIZE", "stackSize", 10, 36, 1, CB.ApplyLayout),
             Color("STACK_COLOR", "stackColor", CB.UpdateDisplay),
-        } },
-
-        { type = "submenu", name = T("SUB_HIGHLIGHT"), controls = {
             Check("HL_SHOW", "showHighlight", CB.UpdateDisplay),
             Color("HL_COLOR", "highlightColor", CB.UpdateDisplay),
             Check("HL_EXPIRE", "highlightExpire", CB.UpdateDisplay),
@@ -167,12 +273,13 @@ function CB.BuildMenu(sv)
         } },
 
         { type = "submenu", name = T("SUB_ULT"), controls = {
+            Desc("D_ULT"),
             Check("ULT_VALUE", "ultShowValue", CB.UpdateDisplay),
             {
                 type = "dropdown", name = T("ULT_MODE"),
                 choices = { T("ULT_MODE1"), T("ULT_MODE2"), T("ULT_MODE3") }, choicesValues = { 1, 2, 3 },
                 getFunc = function() return SV.ultValueMode end,
-                setFunc = function(v) SV.ultValueMode = v; CB.UpdateDisplay() end,
+                setFunc = function(v) SV.ultValueMode = v; CB.UpdateDisplay(); Preview() end,
             },
             Slider("ULT_SIZE", "ultSize", 10, 40, 1, CB.ApplyLayout),
             Color("ULT_COLOR", "ultColor", CB.UpdateDisplay),
@@ -181,17 +288,20 @@ function CB.BuildMenu(sv)
         } },
 
         { type = "submenu", name = T("SUB_QS"), controls = {
+            Desc("D_QS"),
             Check("QS_TIMER", "qsShowTimer", CB.UpdateQuickslot),
             Check("QS_COUNT", "qsShowCount", CB.UpdateQuickslot),
             Slider("QS_SIZE", "qsSize", 10, 40, 1, CB.ApplyLayout),
         } },
 
         { type = "submenu", name = T("SUB_CAST"), controls = {
+            Desc("D_CAST"),
             Check("CAST_SHOW", "showCast"),
             Color("CAST_COLOR", "castColor", CB.UpdateDisplay),
         } },
 
         { type = "submenu", name = T("SUB_GCD"), controls = {
+            Desc("D_GCD"),
             Check("GCD_ENABLE", "gcdEnabled", CB.ApplyLayout),
             Slider("GCD_X", "gcdX", 0, 3840, 1, CB.ApplyLayout),
             Slider("GCD_Y", "gcdY", 0, 2160, 1, CB.ApplyLayout),
@@ -201,7 +311,7 @@ function CB.BuildMenu(sv)
         } },
 
         { type = "submenu", name = T("SUB_WIDGET"), controls = {
-            { type = "description", text = T("WIDGET_DESC") },
+            Desc("D_WIDGET"),
             {
                 type = "dropdown", name = T("WIDGET_ADD_SKILL"), reference = "CB_AddSkillDropdown",
                 choices = {},
@@ -211,15 +321,16 @@ function CB.BuildMenu(sv)
             {
                 type = "button", name = T("WIDGET_ADD"),
                 func = function()
-                    local id = (addSkill or skillNames[1]) and skillIds[addSkill or skillNames[1]]
+                    local pick = addSkill or skillNames[1]
+                    local id = pick and skillIds[pick]
                     if id and not SV.widgets[id] then
                         SV.widgets[id] = { x = 800, y = 600, size = 64, inactiveAlpha = 0 }
                         selectedWidget = id
                         CB.RebuildWidgets()
                         local names, ids = WidgetNames()
                         widgetIds = ids
-                        local dd = WM:GetControlByName("CB_WidgetDropdown")
-                        if dd and dd.UpdateChoices then dd:UpdateChoices(names) end
+                        UpdateDropdown("CB_WidgetDropdown", names)
+                        Preview()
                     end
                 end,
             },
@@ -263,37 +374,22 @@ function CB.BuildMenu(sv)
                         CB.RebuildWidgets()
                         local names, ids = WidgetNames()
                         widgetIds = ids
-                        local dd = WM:GetControlByName("CB_WidgetDropdown")
-                        if dd and dd.UpdateChoices then dd:UpdateChoices(names) end
+                        UpdateDropdown("CB_WidgetDropdown", names)
+                        Preview()
                     end
                 end,
             },
         } },
 
         { type = "submenu", name = T("SUB_EFFECTID"), controls = {
-            { type = "description", text = T("EFFID_DESC") },
+            Desc("D_EFFID"),
             {
                 type = "dropdown", name = T("EFFID_SKILL"), reference = "CB_EffectSkillDropdown",
                 choices = {},
                 getFunc = function() return CurrentSkill() end,
                 setFunc = function(v) selectedSkill = v end,
             },
-            {
-                type = "editbox", name = T("EFFID_VALUE"), isMultiline = false,
-                getFunc = function()
-                    local id = CurrentSkill() and skillIds[CurrentSkill()]
-                    return tostring((id and SV.effectOverride[id]) or "")
-                end,
-                setFunc = function(text)
-                    local id = CurrentSkill() and skillIds[CurrentSkill()]
-                    local n = tonumber(text)
-                    if id and n and n > 0 then
-                        SV.effectOverride[id] = zo_floor(n)
-                        CB.RefreshSlots()
-                        CB.SyncPlayerBuffs()
-                    end
-                end,
-            },
+            effectValue,
             {
                 type = "button", name = T("EFFID_CLEAR"),
                 func = function()
@@ -311,7 +407,14 @@ function CB.BuildMenu(sv)
             },
         } },
 
+        { type = "submenu", name = T("SUB_DESIGN"), controls = {
+            Desc("D_DESIGN"),
+            Check("DESIGN_FRAME", "designFrame", ApplyAll),
+            Slider("DESIGN_GLOW", "designGlow", 0, 100, 1, CB.ApplyResources),
+        } },
+
         { type = "submenu", name = T("SUB_PRESET"), controls = {
+            Desc("D_PRESET"),
             {
                 type = "button", name = T("PRESET_PVE"),
                 func = function()

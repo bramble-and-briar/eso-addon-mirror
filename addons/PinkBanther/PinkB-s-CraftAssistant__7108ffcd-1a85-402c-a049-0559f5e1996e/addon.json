@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/PinkBanther/PinkB-s-CraftAssistant__7108ffcd-1a85-402c-a049-0559f5e1996e",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PinkBanther",
+  "canonical_id": "bethesda:7108ffcd-1a85-402c-a049-0559f5e1996e",
+  "content_id": "7108ffcd-1a85-402c-a049-0559f5e1996e",
+  "deleted": false,
+  "fingerprint": "541e7cbf02f3ec40463336419218eb5d4b25d3e308d0e588b6b502a07dd7d68a",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "7108ffcd-1a85-402c-a049-0559f5e1996e",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/7108ffcd-1a85-402c-a049-0559f5e1996e",
+  "title": "PinkB's CraftAssistant"
+}

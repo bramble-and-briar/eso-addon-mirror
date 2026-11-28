@@ -1,4 +1,30 @@
-# IsoStats2 2.3.3
+# IsoStats2 2.3.6 – Kritschadenanzeige bis 200 %
+
+Das HUD zeigt standardmaessig den berechneten Kritschaden bis maximal 200 %, auch oberhalb des Spiel-Caps. Beim ersten Laden dieser Version wird die bisherige Einstellung einmal auf Rohwertanzeige umgestellt. Danach bleiben eigene Aenderungen der Einstellung erhalten.
+
+Das wirkliche Spiel-Cap bleibt separat 125 % bzw. 155 % bei erkannter Meisterschaft. Die Diagnose zeigt weiterhin den vollstaendigen Rohwert (auch ueber 200), den nutzbaren Wert und den Ueberschuss. 200 % sind nur die Anzeigegrenze, kein neues Spiel-Cap. Mit 'CD: nutzbaren Wert anzeigen' laesst sich die alte begrenzte Anzeige wieder einschalten.
+
+# IsoStats2 2.3.4 – Krit-Buffdiagnose
+
+Puppe kurz anvisieren, danach `/isostats2 cdinfo` eingeben. Die Ausgabe zeigt die Live-Rechnung und beim Wegschauen zusaetzlich das zuletzt anvisierte Ziel, deutlich als GESPEICHERT und NICHT LIVE markiert.
+
+- `/isostats2 buffs`: wie cdinfo, kompakte Krit-Buffdiagnose.
+- `/isostats2 buffs all`: zusaetzlich alle von ESO sichtbaren Spieler- und Zieleffekte mit Name, ID, Stapeln und Restzeit zum Messzeitpunkt. Diese Rohliste addiert nichts.
+- `/isostats2 buffs last`: zuletzt anvisiertes Ziel, kein Kampfmaximum.
+- `/isostats2 buffs live`: ausschliesslich aktuelle Messung.
+- `/isostats2 cdinfo live` und `cdinfo last`: bisherige Live-/Kampfmaximum-Diagnose.
+
+Zeigt Basis, Charakterbonus, Hinterhalt, Schatten, jeden eingerechneten Ziel-Kritbonus mit Effektfamilie, Spielname, ID und Erfassungsart sowie Zielsumme, Rohwert, HUD-Wert, Cap und Ueberschuss. Der CD-Diagnoseknopf in den Einstellungen verwendet ebenfalls die neue Ausgabe.
+
+Spielerbuffs wie Lucent Echoes werden nicht pauschal nochmals addiert: Ihr numerischer Anteil ist gegebenenfalls bereits im ESO-Charakterwert enthalten. Ihre Sichtbarkeit allein beweist keinen separaten numerischen Beitrag. Unbekannte Effekte werden nur in der Rohliste angezeigt. Ein unbekannter oder unsichtbarer Effekt wird nicht automatisch erkannt oder geschaetzt.
+
+Die letzte Zielmessung wird bei Zonenwechsel oder Diagnose-Reset geloescht. Sie zeigt den letzten beobachteten Zustand; abgelaufene Effekte der gespeicherten Messung sind nicht als aktuell zu verstehen. Keine Aenderung der bisherigen HUD-Berechnung. Kein Live-Test im Spiel durchgefuehrt.
+
+Validierung: Lua-5.1-Simulation mit vorhandenen Kritschaden-Regressionstests und neuen Tests fuer 67+50+25, Zielverlust, gespeicherte Messung, Rohliste, Reset, deaktivierte Zielboni, Catalyst-Deduplizierung und Chatbefehle.
+
+---
+
+# Vorheriger Stand 2.3.3
 
 
 ## Gespeicherter PEN-Kampfvergleich

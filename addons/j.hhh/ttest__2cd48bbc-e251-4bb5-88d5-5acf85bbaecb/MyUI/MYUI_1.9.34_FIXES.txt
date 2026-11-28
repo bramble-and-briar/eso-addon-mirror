@@ -1,0 +1,7 @@
+MyUI 1.9.34 — Targetframe gamepad spacing and segmented background
+- Gap beneath compass / boss bar: 15 UI units (was 25).
+- Fixed target frame width remains 320 UI units.
+- Correctly resize native BgContainer and its BgCenter using left/right cap widths.
+- Apply same segmented calculation to decorative FrameCenter.
+- Keep original dimensions for keyboard layout restoration.
+- Prior fixes retained.

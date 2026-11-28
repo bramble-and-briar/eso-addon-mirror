@@ -1,0 +1,7 @@
+MyUI 1.9.30 – Gamepad target gap and alternative attribute bar fix
+
+- Gamepad: native target frame now anchored 76 UI units below the bottom of the visible boss bar, or below the compass when no boss bar is visible. This leaves space for waypoint/destination distance text. Keyboard gap stays 20 units.
+- MyUI Alternative Attributes: endcap widths are recalculated from one baseline per platform style application, instead of scaling previously resized endcaps repeatedly. This targets Magicka/Stamina frame-end misalignment in Gamepad mode.
+- All previous 1.9.29 fixes retained.
+
+Note: Actual appearance on PS5/ESO cannot be verified without in-game testing.

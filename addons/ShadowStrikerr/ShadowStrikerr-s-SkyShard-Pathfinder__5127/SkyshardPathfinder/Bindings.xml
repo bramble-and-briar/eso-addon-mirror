@@ -1,0 +1,15 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="SkyShard Pathfinder">
+            <Action name="SKYSHARD_PATHFINDER_QUICK_SETTINGS">
+                <Down>SkyshardPathfinder.ToggleQuickSettings()</Down>
+            </Action>
+            <Action name="SKYSHARD_PATHFINDER_TOGGLE_TRAIL">
+                <Down>SkyshardPathfinder.ToggleGroundTrail()</Down>
+            </Action>
+            <Action name="SKYSHARD_PATHFINDER_MOVE_PANEL">
+                <Down>SkyshardPathfinder.MoveDistancePanel()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

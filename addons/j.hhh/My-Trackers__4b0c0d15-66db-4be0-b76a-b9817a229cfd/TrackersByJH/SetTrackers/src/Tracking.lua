@@ -207,6 +207,38 @@ local function OnCombatCooldownEvent(setKey, _, result, _, abilityName, _, _, _,
   end
 end
 
+-- Set-specific power display: Master Architect / War Machine need the raw
+-- Ultimate POINTS, whereas the older resource-based trackers expect percent.
+local function SetPowerDisplayValue(set, currentPower, effectiveMax)
+  if set.ultimateDurationPreview then
+    return currentPower or 0
+  end
+  if not effectiveMax or effectiveMax <= 0 then return 0 end
+  return ((currentPower or 0) / effectiveMax) * 100
+end
+
+-- Read Ultimate directly even if ESO did not emit a new power event when
+-- an equipment tracker was enabled (e.g. swapping to Master Architect).
+-- Polling is limited to the two duration previews and stops when unequipped.
+local function RefreshUltimateDurationPreview(setKey)
+  local set = JHSetTrackers.Data.Sets[setKey]
+  if not set or not set.enabled or not set.ultimateDurationPreview then return end
+  local current = GetUnitPower("player", POWERTYPE_ULTIMATE)
+  if type(current) == "number" and current >= 0 and set.currentValue ~= current then
+    set.currentValue = current
+    JHSetTrackers.UI.UpdatePower(setKey)
+  end
+end
+
+local function SetUltimatePreviewPolling(setKey, enabled)
+  local eventName = JHSetTrackers.name .. "_UltimatePreview_" .. setKey
+  EM:UnregisterForUpdate(eventName)
+  if enabled then
+    EM:RegisterForUpdate(eventName, 250, function() RefreshUltimateDurationPreview(setKey) end)
+    RefreshUltimateDurationPreview(setKey)
+  end
+end
+
 local function OnPowerUpdate(setKey, eventCode, unitTag, powerIndex, powerType, powerValue, powerMax, powerEffectiveMax)
   local set = JHSetTrackers.Data.Sets[setKey]
   local percent = (powerValue / powerEffectiveMax) * 100
@@ -222,7 +254,7 @@ local function OnPowerUpdate(setKey, eventCode, unitTag, powerIndex, powerType, 
   end
 
   if powerType == set.powerType then
-    set.currentValue = percent
+    set.currentValue = SetPowerDisplayValue(set, powerValue, powerEffectiveMax)
     JHSetTrackers.UI.UpdatePower(setKey)
   end
 end
@@ -333,7 +365,7 @@ local function OnPlayerActivated(_, initial)
         elseif set.powerType == POWERTYPE_MAGICKA then
           set.currentValue = JHSetTrackers.PlayerPower.mag.current
         elseif set.powerType == POWERTYPE_ULTIMATE then
-          set.currentValue = JHSetTrackers.PlayerPower.ult
+          set.currentValue = SetPowerDisplayValue(set, um, ult)
         end
 
 				JHSetTrackers.UI.UpdatePower(key)
@@ -347,7 +379,7 @@ local function OnJorvuld()
     local set = JHSetTrackers.MajorMinorSets[i]
     if set then
       current, max, effective = GetUnitPower("player", JHSetTrackers.Data.Sets[i].powerType)
-      JHSetTrackers.Data.Sets[i].currentValue = (current / effective) * 100
+      JHSetTrackers.Data.Sets[i].currentValue = SetPowerDisplayValue(JHSetTrackers.Data.Sets[i], current, effective)
       JHSetTrackers.UI.UpdatePower(i)
     end
   end
@@ -1053,6 +1085,7 @@ function JHSetTrackers.Tracking.EnableTrackingForSet(setKey, enabled)
 
         set.enabled = true
         JHSetTrackers.UI.Draw(setKey)
+        if set.ultimateDurationPreview then SetUltimatePreviewPolling(setKey, true) end
         return
 
       elseif set.event == EVENT_EFFECT_CHANGED then
@@ -1162,6 +1195,7 @@ function JHSetTrackers.Tracking.EnableTrackingForSet(setKey, enabled)
       end
 
       set.enabled = false
+      if set.ultimateDurationPreview then SetUltimatePreviewPolling(setKey, false) end
 
       if JHSetTrackers.MajorMinorSets[setKey] then JHSetTrackers.MajorMinorSets[setKey] = nil end
 

@@ -14,7 +14,7 @@ local groups = {
     {key='criticalResistance',title='Kritische Resistenz',tag='CR',color='B6A1D7',accent={0.71,0.63,0.84},x=460,y=408},
 }
 local defaults = {enabled=true, target=true, penTarget=18200,criticalCapAutomatic=true,criticalCap=125,
-    criticalShowEffective=true,shadowCorrection=false,modules={},values={}}
+    criticalShowEffective=false,shadowCorrection=false,modules={},values={}}
 for _, g in ipairs(groups) do
     defaults.modules[g.key] = {enabled=true, x=g.x, y=g.y, size=100, spacing=100}
 end
@@ -205,6 +205,11 @@ local function label(name,parent,x,y,width,height,value,size)
 end
 local function initialize()
     db=ZO_SavedVars:NewAccountWide('IsoStats2SavedVariables',1,nil,defaults)
+    -- Show requested uncapped calculation once on upgrade; keep later user choices.
+    if not db.rawCriticalDisplay200 then
+        db.criticalShowEffective=false
+        db.rawCriticalDisplay200=true
+    end
     S.InitializeStatusTracking()
     S.includeTargetBonuses=db.target
     S.InitializePenDiagnostics()
@@ -410,7 +415,7 @@ local function initialize()
         end
         if g.critical then
             settings[#settings+1]={type=lib.ST_CHECKBOX,label='CD: nutzbaren Wert anzeigen',
-                tooltip='Zeigt den am Krit-Cap begrenzten Wert im bestehenden CD-Feld. Aus: rechnerischer Gesamtbonus. Die Aufschlüsselung enthält immer beide Werte. Backstabber setzt weiterhin Flankieren voraus.',
+                tooltip='Standard AUS: berechneter Gesamtbonus bis 200 Prozent, auch ueber dem Spiel-Cap. EIN: am Spiel-Cap begrenzter Wert. Diagnose zeigt den vollstaendigen Rohwert, das Spiel-Cap und den Ueberschuss. Hinterhalt nimmt Flankieren an.',
                 getFunction=function() return db.criticalShowEffective end,
                 setFunction=function(value) db.criticalShowEffective=value; render() end}
             settings[#settings+1]={type=lib.ST_CHECKBOX,label='CD: Krit-Cap automatisch',
@@ -427,7 +432,7 @@ local function initialize()
                 setFunction=function(value) db.shadowCorrection=value; render() end}
             settings[#settings+1]={type=lib.ST_BUTTON,label='CD: Berechnung anzeigen',buttonText='Aufschlüsselung im Chat',
                 tooltip='Aktuelle CD-Werte und gespeicherter höchster Kampfwert: Basis, Charakterbonus, Backstabber, Ziel-Debuffs, Cap und Überschuss.',
-                clickHandler=function() for _,line in ipairs(S.GetCriticalDamageReport()) do d(line) end end}
+                clickHandler=function() for _,line in ipairs(S.GetCriticalBuffReport()) do d(line) end end}
         end
         settings[#settings+1]={type=lib.ST_BUTTON,label='Move UI: '..g.title,buttonText='Anzeige verschieben',
             tooltip='Verschiebt nur diese Anzeige. Speichert nach 3 Sekunden ohne Bewegung.',
@@ -452,7 +457,12 @@ local function initialize()
             return
         end
         if command=='peninfo reset' then S.ResetPenDiagnosticHistory(); d('IsoStats2: PEN- und CD-Testmessungen zurückgesetzt.'); return end
-        if command=='cdinfo' or command=='cdinfo live' or command=='cdinfo last' then
+        if command=='cdinfo' or command=='buffs' or command=='buffs all' or command=='buffs last' or command=='buffs live' then
+            local mode=command=='buffs last' and 'last' or command=='buffs live' and 'live' or nil
+            for _,line in ipairs(S.GetCriticalBuffReport(mode,command=='buffs all')) do d(line) end
+            return
+        end
+        if command=='cdinfo live' or command=='cdinfo last' then
             local mode=command=='cdinfo live' and 'live' or command=='cdinfo last' and 'last' or nil
             for _,line in ipairs(S.GetCriticalDamageReport(mode)) do d(line) end
             return

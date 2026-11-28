@@ -4,7 +4,8 @@
 -- Cualquier otro idioma (alemán, francés, ruso...) usa inglés.
 -- En Ajustes se puede forzar otro idioma (requiere /reloadui).
 -- =====================================================================
-NWUI = NWUI or {}
+NWInterfaz = NWInterfaz or {}
+local NWUI = NWInterfaz
 
 local L = {}
 NWUI.L = L
@@ -83,7 +84,7 @@ L.es = {
     help = "Comandos:\n  /nwui mover  - modo edición con cuadrícula: mover y cambiar tamaño\n  /nwui reset  - restablecer todas las posiciones\n  /nwui menu   - abrir los ajustes (requiere LibAddonMenu-2.0)\n  /nwui diag   - ver qué addons y controles del juego se detectaron",
     compat_azurah = "Azurah: si mueve la barra de acción o las barras de atributos, desactiva esas opciones para que no choquen con NW Interfaz.",
     compat_bui = "Bandits UI: si usas sus marcos de jugador o su barra de acción, desactívalos; NW Interfaz ya oculta sus iconos de objetos rápidos.",
-    yes = "sí", no = "no", mv_vitals = "Atributos", mv_bars = "Barras",
+    yes = "sí", no = "no", mv_vitals = "Atributos", mv_bars = "Barras", mv_death = "Texto al morir",
     -- teclas
     bind_qs = "Seleccionar consumible %d", bind_move = "Mover / bloquear elementos",
     -- ajustes
@@ -98,6 +99,11 @@ L.es = {
     o_abs = "Tamaño de las habilidades", o_ult = "Tamaño de la definitiva", o_abgap = "Separación entre habilidades",
     o_iconb = "Grosor del marco de los iconos",
     o_backbar = "Mostrar la barra inactiva arriba",
+    o_xpbar = "Barra de experiencia (debajo de la salud)",
+    o_hpfx = "Efectos del juego en la barra de vida (armadura rota, etc.)",
+    o_barfont = "Letra de los números de las barras",
+    barfont_nw = "Diseño New World",
+    barfont_eso = "Letra del juego",
     o_weapicon = "Icono del arma equipada",
     o_swapanim = "Animación al cambiar de barra",
     o_sweep = "Barrido circular al cambiar de barra",
@@ -190,7 +196,7 @@ L.en = {
     help = "Commands:\n  /nwui move   - edit mode with grid: move and resize\n  /nwui reset  - reset all positions\n  /nwui menu   - open settings (requires LibAddonMenu-2.0)\n  /nwui diag   - show detected addons and game controls",
     compat_azurah = "Azurah: if it moves the action bar or attribute bars, turn those options off so they don't clash with NW Interfaz.",
     compat_bui = "Bandits UI: if you use its player frames or action bar, turn them off; NW Interfaz already hides its quickslot icons.",
-    yes = "yes", no = "no", mv_vitals = "Attributes", mv_bars = "Bars",
+    yes = "yes", no = "no", mv_vitals = "Attributes", mv_bars = "Bars", mv_death = "Death text",
     bind_qs = "Select quickslot %d", bind_move = "Move / lock elements",
     o_lang = "Addon language", o_lang_tip = "Automatic uses the game language. Requires /reloadui.",
     o_lang_auto = "Automatic (game language)",
@@ -203,6 +209,11 @@ L.en = {
     o_abs = "Ability size", o_ult = "Ultimate size", o_abgap = "Spacing between abilities",
     o_iconb = "Icon frame thickness",
     o_backbar = "Show the inactive bar on top",
+    o_xpbar = "Experience bar (below health)",
+    o_hpfx = "Game effects on the health bar (broken armor, etc.)",
+    o_barfont = "Bar number font",
+    barfont_nw = "New World design",
+    barfont_eso = "Game font",
     o_weapicon = "Equipped weapon icon",
     o_swapanim = "Bar swap animation",
     o_sweep = "Radial sweep on bar swap",
@@ -295,7 +306,7 @@ L.pt = {
     help = "Comandos:\n  /nwui mover  - modo de edição com grade: mover e redimensionar\n  /nwui reset  - restaurar todas as posições\n  /nwui menu   - abrir os ajustes (requer LibAddonMenu-2.0)\n  /nwui diag   - ver addons e controles do jogo detectados",
     compat_azurah = "Azurah: se ele move a barra de ações ou as barras de atributos, desative essas opções para não conflitar com o NW Interfaz.",
     compat_bui = "Bandits UI: se usa seus quadros de jogador ou barra de ações, desative-os; o NW Interfaz já oculta seus ícones de itens rápidos.",
-    yes = "sim", no = "não", mv_vitals = "Atributos", mv_bars = "Barras",
+    yes = "sim", no = "não", mv_vitals = "Atributos", mv_bars = "Barras", mv_death = "Texto ao morrer",
     bind_qs = "Selecionar item rápido %d", bind_move = "Mover / fixar elementos",
     o_lang = "Idioma do addon", o_lang_tip = "Automático usa o idioma do jogo. Requer /reloadui.",
     o_lang_auto = "Automático (idioma do jogo)",
@@ -308,6 +319,11 @@ L.pt = {
     o_abs = "Tamanho das habilidades", o_ult = "Tamanho da suprema", o_abgap = "Espaço entre habilidades",
     o_iconb = "Espessura da moldura dos ícones",
     o_backbar = "Mostrar a barra inativa em cima",
+    o_xpbar = "Barra de experiência (abaixo da vida)",
+    o_hpfx = "Efeitos do jogo na barra de vida (armadura quebrada, etc.)",
+    o_barfont = "Fonte dos números das barras",
+    barfont_nw = "Design New World",
+    barfont_eso = "Fonte do jogo",
     o_weapicon = "Ícone da arma equipada",
     o_swapanim = "Animação ao trocar de barra",
     o_sweep = "Varredura circular ao trocar de barra",
@@ -337,7 +353,7 @@ L.pt = {
 local MAP = { es = "es", mx = "es", en = "en", pt = "pt", br = "pt" }
 
 function NWUI.GameLanguage()
-    local code = GetCVar and GetCVar("language.2") or "en"
+    local code = GetCVar("language.2") or "en"
     code = type(code) == "string" and code:lower():sub(1, 2) or "en"
     return MAP[code] or "en"
 end
@@ -353,9 +369,6 @@ end
 -- Texto traducido; con argumentos se aplica string.format
 function NWUI.T(key, ...)
     local s = (L[NWUI.Lang()] or L.en)[key] or L.en[key] or L.es[key] or key
-    if select("#", ...) > 0 then
-        local ok, r = pcall(string.format, s, ...)
-        if ok then return r end
-    end
+    if select("#", ...) > 0 then return string.format(s, ...) end
     return s
 end

@@ -11,6 +11,7 @@
 ---@field autoOpenMode string "all" | "bound" | "off": which containers are opened the moment they arrive
 ---@field openGeodes boolean Transmute geodes count as openable (off keeps a hoard intact)
 ---@field openUnopened boolean The game's "Unopened" items (stacked treasure maps, survey reports, master writs) count as openable (off keeps the stacks)
+---@field stackAfterOpening boolean The game's Stack All is sent when a run ends, and mid-run when the backpack is full, if it holds split stacks
 
 ---@class SatchelExchangeRunState
 ---@field active boolean
@@ -49,6 +50,9 @@
 ---@field resendUniqueId string|nil The container those sends belong to
 ---@field startedAtMs integer When the run started (all diagnostics log "+Nms" from here)
 ---@field openedCount integer Containers opened this run
+---@field lastOpenedAtMs integer When the run's latest container opened; the run stacks the bag and ends a moment after it
+---@field stackSentAtMs integer When the Stack All in flight was sent; 0 = none in flight
+---@field stackGaveUp boolean A Stack All this run left the stacks split; no more are sent until the next run
 ---@field attemptIntervalMs integer Current send-attempt backoff (grows 16ms per blocked attempt, caps at 200ms)
 ---@field nextAttemptAtMs integer Earliest game time for the next send attempt
 ---@field attemptCount integer Blocked send attempts so far (diagnostics)

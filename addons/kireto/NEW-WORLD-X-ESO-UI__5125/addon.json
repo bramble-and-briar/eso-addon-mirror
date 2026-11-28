@@ -22,9 +22,9 @@
     "NWInterfaz"
   ],
   "download_url": "https://www.esoui.com/downloads/dl5125/",
-  "fingerprint": "d9cfe96bb54aa1e536edadcb48963a24a74f774b354e735dd3a0c59b96ea6566",
+  "fingerprint": "b1d6a337c21f5e86f142d514bac3d768f879273b68af7c053fce37cea0c4fab0",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18842.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18858.png",
     "https://cdn-eso.mmoui.com/preview/pvw18844.png",
     "https://cdn-eso.mmoui.com/preview/pvw18843.png",
     "https://cdn-eso.mmoui.com/preview/pvw18845.png",
@@ -38,11 +38,11 @@
   "source_id": "5125",
   "source_url": "https://www.esoui.com/downloads/info5125-NEWWORLDXESOUI.html",
   "stats": {
-    "downloads": 4,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 45,
+    "favorites": 1,
+    "monthly_downloads": 11
   },
   "title": "NEW WORLD X ESO UI",
-  "updated_at": 1795754735000,
-  "version": "1.8.1"
+  "updated_at": 1795835581000,
+  "version": "1.9.7"
 }

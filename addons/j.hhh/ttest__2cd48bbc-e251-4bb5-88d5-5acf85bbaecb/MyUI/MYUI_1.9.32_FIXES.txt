@@ -1,0 +1,6 @@
+MyUI v1.9.32 — Gamepad native target frame fixed width
+- Locks ZO_TargetUnitFramereticleover to 320 UI units in gamepad mode.
+- Reapplies only when ESO changes the width (250 ms check, no forced resize every tick).
+- Keeps target frame anchored 45 UI units below bossbar/compass.
+- Does not change target height; retains all v1.9.31 fixes.
+- Keyboard mode is not intentionally resized.

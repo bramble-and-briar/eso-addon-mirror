@@ -1,6 +1,6 @@
 -- Paneles de inventario estilo New World con diseño plano:
 -- mochila, banco personal / almacén de casa y banco de gremio.
-local NWUI = NWUI
+local NWUI = NWInterfaz
 local INV = {}
 NWUI.Inventory = INV
 
@@ -139,26 +139,19 @@ end
 local ownNew = {}
 local function NewKey(bag, slot) return tostring(bag) .. ":" .. tostring(slot) end
 function INV.MarkNew(bag, slot)
-    ownNew[NewKey(bag, slot)] = { bag = bag, slot = slot, t = (GetFrameTimeSeconds and GetFrameTimeSeconds()) or 0 }
+    ownNew[NewKey(bag, slot)] = { bag = bag, slot = slot, t = GetFrameTimeSeconds() }
 end
 function INV.ForgetNew(bag, slot) ownNew[NewKey(bag, slot)] = nil end
 
 local function NewInfo(bag, slot)
     local own = ownNew[NewKey(bag, slot)]
     own = own and own.t
-    local si = rawget(_G, "SHARED_INVENTORY")
-    local ok, isNew = false, false
-    if si and si.IsItemNew then ok, isNew = pcall(si.IsItemNew, si, bag, slot) end
-    if not (ok and isNew) then
+    if not SHARED_INVENTORY:IsItemNew(bag, slot) then
         if own then return true, own end
         return false, 0
     end
-    local age = 0
-    if si.GenerateSingleSlotData then
-        local ok2, sd = pcall(si.GenerateSingleSlotData, si, bag, slot)
-        if ok2 and type(sd) == "table" and type(sd.age) == "number" then age = sd.age end
-    end
-    return true, age
+    local sd = SHARED_INVENTORY:GenerateSingleSlotData(bag, slot)
+    return true, (sd and sd.age) or 0
 end
 INV.NewInfo = NewInfo
 
@@ -175,7 +168,7 @@ end
 local function ReadItem(bag, slot, kind)
     local icon, stack, sellPrice, meets, locked, equipType, _, quality = GetItemInfo(bag, slot)
     if not stack or stack <= 0 then return nil end
-    if GetItemDisplayQuality then quality = GetItemDisplayQuality(bag, slot) end
+    quality = GetItemDisplayQuality(bag, slot)
     local d = {
         kind = kind, bagId = bag, slotIndex = slot, hasItem = true,
         icon = icon, stack = stack, value = (sellPrice or 0) * stack, meets = meets,
@@ -186,10 +179,10 @@ local function ReadItem(bag, slot, kind)
         tooltipSide = "left",
     }
     if d.itemType == ITEMTYPE_ARMOR and GetItemArmorType then d.armorType = GetItemArmorType(bag, slot) end
-    d.locked = (IsItemPlayerLocked and IsItemPlayerLocked(bag, slot)) or locked
+    d.locked = (IsItemPlayerLocked(bag, slot)) or locked
     d.equippable = equipType ~= nil and equipType ~= 0 and equipType ~= EQUIP_TYPE_INVALID
-    d.usable = (IsItemUsable and IsItemUsable(bag, slot)) or false
-    if d.equippable and DoesItemHaveDurability and DoesItemHaveDurability(bag, slot) then
+    d.usable = (IsItemUsable(bag, slot)) or false
+    if d.equippable and DoesItemHaveDurability(bag, slot) then
         d.condition = GetItemCondition(bag, slot)
     end
     if kind == "craft" then
@@ -210,22 +203,18 @@ end
 -- Monedas
 -- =====================================================================
 local FALLBACK_ICON = {}
-if CURT_MONEY then FALLBACK_ICON[CURT_MONEY] = "EsoUI/Art/currency/currency_gold.dds" end
-if CURT_ALLIANCE_POINTS then FALLBACK_ICON[CURT_ALLIANCE_POINTS] = "EsoUI/Art/currency/alliancePoints.dds" end
-if CURT_TELVAR_STONES then FALLBACK_ICON[CURT_TELVAR_STONES] = "EsoUI/Art/currency/currency_telvar.dds" end
-if CURT_WRIT_VOUCHERS then FALLBACK_ICON[CURT_WRIT_VOUCHERS] = "EsoUI/Art/currency/currency_writvoucher.dds" end
+FALLBACK_ICON[CURT_MONEY] = "EsoUI/Art/currency/currency_gold.dds"
+FALLBACK_ICON[CURT_ALLIANCE_POINTS] = "EsoUI/Art/currency/alliancePoints.dds"
+FALLBACK_ICON[CURT_TELVAR_STONES] = "EsoUI/Art/currency/currency_telvar.dds"
+FALLBACK_ICON[CURT_WRIT_VOUCHERS] = "EsoUI/Art/currency/currency_writvoucher.dds"
 
 local function CurrencyText(ct, loc, iconSize)
     if ct == nil then return nil end
-    if loc == nil and GetCurrencyPlayerStoredLocation then loc = GetCurrencyPlayerStoredLocation(ct) end
-    if loc == nil then return nil end
-    local ok, amt = pcall(GetCurrencyAmount, ct, loc)
-    if not ok or type(amt) ~= "number" then return nil end
+    loc = loc or GetCurrencyPlayerStoredLocation(ct)
+    local amt = GetCurrencyAmount(ct, loc)
     local icon = ""
-    if ZO_Currency_GetKeyboardFormattedCurrencyIcon then
-        local ok2, i = pcall(ZO_Currency_GetKeyboardFormattedCurrencyIcon, ct, iconSize or 22)
-        if ok2 and type(i) == "string" then icon = i end
-    end
+    local i = ZO_Currency_GetKeyboardFormattedCurrencyIcon(ct, iconSize or 22)
+    if type(i) == "string" then icon = i end
     if icon == "" and FALLBACK_ICON[ct] then icon = zo_iconFormat(FALLBACK_ICON[ct], iconSize or 22, iconSize or 22) end
     return icon .. " " .. ZO_CommaDelimitNumber(amt)
 end
@@ -389,7 +378,7 @@ function Panel:Initialize(id, title, family)
     sbox:SetHandler("OnMouseDown", function() edit:TakeFocus() end)
     edit:SetHandler("OnFocusGained", function()
         NWUI.SetColor(self.searchEdge, {0.89, 0.74, 0.40, 1})
-        if PlaySound and SOUNDS and SOUNDS.EDIT_CLICK then PlaySound(SOUNDS.EDIT_CLICK) end
+        PlaySound(SOUNDS.EDIT_CLICK)
     end)
     edit:SetHandler("OnFocusLost", function()
         NWUI.SetColor(self.searchEdge, {0.25, 0.33, 0.45, 1})
@@ -561,7 +550,7 @@ function Panel:Initialize(id, title, family)
     self.view = "items"
 
     -- Fragmento de escena
-    self.fragment = ZO_FadeSceneFragment:New(tlw)
+    self.fragment = NWUI.SafeFragment(tlw, 120)
     self.fragment:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_FRAGMENT_SHOWING then
             self:OnShowing()
@@ -625,7 +614,7 @@ function Panel:BuildLock(hdr)
         local s = NWUI.sv.inv
         s.panelLocks = s.panelLocks or {}
         s.panelLocks[self.id] = not self:IsLocked()
-        if PlaySound and SOUNDS then PlaySound(s.panelLocks[self.id] and SOUNDS.LOCKPICKING_SUCCESS_CELEBRATION or SOUNDS.DEFAULT_CLICK) end
+        PlaySound(s.panelLocks[self.id] and SOUNDS.LOCKPICKING_SUCCESS_CELEBRATION or SOUNDS.DEFAULT_CLICK)
         self:ApplyLock()
         ctrl:GetHandler("OnMouseEnter")(ctrl)
     end)
@@ -717,7 +706,7 @@ function Panel:OnShowing()
     self:ApplySize()
     self:ApplyLayout(mode)
     if self.family == "bank" then
-        local house = GetBankingBag and GetBankingBag() ~= BAG_BANK
+        local house = GetBankingBag() ~= BAG_BANK
         NWUI.SetTitle(self.titleLabel, house and NWUI.T("title_house") or NWUI.T("title_bank"))
     end
     local hint = ""
@@ -788,16 +777,14 @@ end
 -- el banco retira; en el banco del gremio igual (si tienes permiso).
 function Panel:SetFundsAction(mode)
     local action, dialog
-    local houseBank = GetBankingBag and GetBankingBag() ~= BAG_BANK
+    local houseBank = GetBankingBag() ~= BAG_BANK
     if mode == "bank" and not houseBank then
         if self.family == "backpack" then action, dialog = "deposit", "BANK_DEPOSIT_GOLD"
         elseif self.family == "bank" then action, dialog = "withdraw", "BANK_WITHDRAW_GOLD" end
     elseif mode == "guildbank" then
-        local gid = GetSelectedGuildBankId and GetSelectedGuildBankId()
+        local gid = GetSelectedGuildBankId()
         local function can(perm)
-            if not (gid and perm and DoesPlayerHaveGuildPermission) then return false end
-            local ok, r = pcall(DoesPlayerHaveGuildPermission, gid, perm)
-            return ok and r
+            return gid ~= nil and DoesPlayerHaveGuildPermission(gid, perm)
         end
         if self.family == "backpack" and can(GUILD_PERMISSION_BANK_DEPOSIT) then
             action, dialog = "deposit", "GUILD_BANK_DEPOSIT_GOLD"
@@ -819,8 +806,8 @@ end
 
 function Panel:OpenFundsDialog()
     if not self.fundsDialog then return end
-    if PlaySound and SOUNDS and SOUNDS.DEFAULT_CLICK then PlaySound(SOUNDS.DEFAULT_CLICK) end
-    if ZO_Dialogs_ShowDialog then ZO_Dialogs_ShowDialog(self.fundsDialog) end
+    PlaySound(SOUNDS.DEFAULT_CLICK)
+    ZO_Dialogs_ShowDialog(self.fundsDialog)
 end
 
 -- ---------------- Cabecera y pie ----------------
@@ -885,7 +872,7 @@ end
 function Panel:UpdateSub()
     if not self.subLabel then return end
     if self.family == "bank" then
-        local house = GetBankingBag and GetBankingBag() ~= BAG_BANK
+        local house = GetBankingBag() ~= BAG_BANK
         local zone = zo_strformat("<<C:1>>", GetPlayerActiveZoneName() or "")
         if house then
             self.subLabel:SetText(NWUI.T("house_storage"))
@@ -893,7 +880,7 @@ function Panel:UpdateSub()
             self.subLabel:SetText(NWUI.T("location", zone))
         end
     elseif self.family == "guild" then
-        local gid = GetSelectedGuildBankId and GetSelectedGuildBankId()
+        local gid = GetSelectedGuildBankId()
         local name = (gid and gid ~= 0) and GetGuildName(gid) or NWUI.T("no_guild")
         if self.loading then name = name .. "  |c888888" .. NWUI.T("loading") .. "|r" end
         self.subLabel:SetText(name)
@@ -904,14 +891,14 @@ function Panel:UsedTotal()
     local used, total = 0, 0
     if self.family == "backpack" then
         return GetNumBagUsedSlots(BAG_BACKPACK) or 0,
-            (GetBagUseableSize and GetBagUseableSize(BAG_BACKPACK)) or GetBagSize(BAG_BACKPACK) or 0
+            (GetBagUseableSize(BAG_BACKPACK)) or GetBagSize(BAG_BACKPACK) or 0
     elseif self.family == "guild" then
         used = GetNumBagUsedSlots(BAG_GUILDBANK) or 0
         total = GetBagSize(BAG_GUILDBANK) or 0
     else
         for _, bag in ipairs(self:GetBags()) do
             used = used + (GetNumBagUsedSlots(bag) or 0)
-            total = total + ((GetBagUseableSize and GetBagUseableSize(bag)) or GetBagSize(bag) or 0)
+            total = total + ((GetBagUseableSize(bag)) or GetBagSize(bag) or 0)
         end
     end
     return used, total
@@ -924,23 +911,9 @@ function Panel:NativeInfoVisible()
     return false
 end
 
--- Lingotes comerciales: moneda nueva; se busca por constante y, si no, por
--- nombre entre todas las monedas del juego (funciona en español e inglés).
-local tradeBarsType
+-- Lingotes comerciales
 local function TradeBarsType()
-    if tradeBarsType ~= nil then return tradeBarsType or nil end
-    tradeBarsType = rawget(_G, "CURT_TRADE_BARS") or rawget(_G, "CURT_TRADEBARS") or false
-    if not tradeBarsType and CURT_ITERATION_BEGIN and CURT_ITERATION_END and GetCurrencyName then
-        for ct = CURT_ITERATION_BEGIN, CURT_ITERATION_END do
-            local ok, name = pcall(GetCurrencyName, ct, false, false)
-            local n = ok and type(name) == "string" and zo_strlower(name) or ""
-            if n:find("lingote", 1, true) or n:find("trade bar", 1, true) then
-                tradeBarsType = ct
-                break
-            end
-        end
-    end
-    return tradeBarsType or nil
+    return CURT_TRADE_BARS
 end
 INV.TradeBarsType = TradeBarsType
 
@@ -954,11 +927,11 @@ function Panel:UpdateFooter()
     if self.family == "backpack" then
         -- orden: lingotes comerciales, sellos, AP, Tel Var, vales y llaves de los Intrépidos
         add(CurrencyText(TradeBarsType(), nil, 19))
-        add(CurrencyText(rawget(_G, "CURT_ENDEAVOR_SEALS"), nil, 19))
+        add(CurrencyText(CURT_SEALS, nil, 19))
         add(CurrencyText(CURT_ALLIANCE_POINTS, CURRENCY_LOCATION_CHARACTER, 19))
         add(CurrencyText(CURT_TELVAR_STONES, CURRENCY_LOCATION_CHARACTER, 19))
         add(CurrencyText(CURT_WRIT_VOUCHERS, nil, 19))
-        add(CurrencyText(rawget(_G, "CURT_UNDAUNTED_KEYS"), nil, 19))
+        add(CurrencyText(CURT_UNDAUNTED_KEYS, nil, 19))
         goldLoc = CURRENCY_LOCATION_CHARACTER
     elseif self.family == "bank" then
         add(CurrencyText(CURT_TELVAR_STONES, CURRENCY_LOCATION_BANK))
@@ -997,10 +970,8 @@ function Panel:UpdateFooter()
     goldText = CurrencyText(CURT_MONEY, goldLoc)
     if goldText then
         -- número primero y moneda después, como en la barra original
-        local ok, amt = pcall(GetCurrencyAmount, CURT_MONEY, goldLoc)
-        if ok and type(amt) == "number" then
-            goldText = ZO_CommaDelimitNumber(amt) .. " " .. zo_iconFormat(FALLBACK_ICON[CURT_MONEY] or "", 20, 20)
-        end
+        local amt = GetCurrencyAmount(CURT_MONEY, goldLoc)
+        goldText = ZO_CommaDelimitNumber(amt) .. " " .. zo_iconFormat(FALLBACK_ICON[CURT_MONEY], 20, 20)
     end
     self.goldLabel:SetText(goldText or "")
     self.infoRow:SetHidden(self:NativeInfoVisible())
@@ -1009,7 +980,7 @@ end
 function Panel:CycleGuild(dir)
     local n = GetNumGuilds()
     if n == 0 then return end
-    local cur = GetSelectedGuildBankId and GetSelectedGuildBankId()
+    local cur = GetSelectedGuildBankId()
     local idx = 1
     for i = 1, n do
         if GetGuildId(i) == cur then idx = i end
@@ -1023,7 +994,7 @@ end
 -- ---------------- Contenido ----------------
 -- soft = viene de un evento general del juego: se ignora si el panel se
 -- acaba de dibujar (evita el doble refresco al abrir el banco).
-local function Now() return GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0 end
+local function Now() return GetFrameTimeMilliseconds() or 0 end
 
 function Panel:QueueRefresh(soft)
     if soft and self.lastRefresh and (Now() - self.lastRefresh) < 800 then return end
@@ -1061,10 +1032,9 @@ local CURRENCIES = {
     { "CURT_ALLIANCE_POINTS", "Puntos de Alianza" },
     { "CURT_TELVAR_STONES", "Piedras Tel Var" },
     { "CURT_WRIT_VOUCHERS", "Vales de encargo" },
-    { "CURT_CHAOTIC_CREATIA", "Cristales de transmutación" },
-    { "CURT_EVENT_TICKETS", "Entradas de evento" },
+    { "CURT_TRANSMUTE_CRYSTALS", "Cristales de transmutación" },
     { "CURT_UNDAUNTED_KEYS", "Llaves de los Intrépidos" },
-    { "CURT_ENDEAVOR_SEALS", "Sellos de empeño" },
+    { "CURT_SEALS", "Sellos de empeño" },
     { "CURT_ARCHIVAL_FORTUNES", "Fortunas archivadas" },
     { "CURT_IMPERIAL_FRAGMENTS", "Fragmentos imperiales" },
     { "CURT_STYLE_STONES", "Piedras de estilo" },
@@ -1073,10 +1043,8 @@ local CURRENCIES = {
 }
 
 local function CurrencyIcon(ct, size)
-    if ZO_Currency_GetKeyboardFormattedCurrencyIcon then
-        local ok, i = pcall(ZO_Currency_GetKeyboardFormattedCurrencyIcon, ct, size)
-        if ok and type(i) == "string" then return i end
-    end
+    local i = ZO_Currency_GetKeyboardFormattedCurrencyIcon(ct, size)
+    if type(i) == "string" and i ~= "" then return i end
     if FALLBACK_ICON[ct] then return zo_iconFormat(FALLBACK_ICON[ct], size, size) end
     return ""
 end
@@ -1110,42 +1078,22 @@ local function QuestGroups(q)
             table.insert(groups[key].items, d)
         end
     end
-    local ok, cache = false, nil
-    if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullQuestCache then
-        ok, cache = pcall(SHARED_INVENTORY.GenerateFullQuestCache, SHARED_INVENTORY)
-    end
-    if ok and type(cache) == "table" then
-        for questIndex, list in pairs(cache) do
-            for _, it in pairs(list) do
-                if type(it) == "table" then
-                    add(it.questIndex or questIndex, {
-                        kind = "quest", hasItem = true, quality = 1, meets = true,
-                        icon = it.iconFile, stack = it.stackCount or 1,
-                        name = zo_strformat("<<1>>", it.name or ""),
-                        questIndex = it.questIndex or questIndex, toolIndex = it.toolIndex,
-                        stepIndex = it.stepIndex, conditionIndex = it.conditionIndex,
-                        slotIndex = 0, value = 0, tooltipSide = "left",
-                    })
-                end
-            end
-        end
-    elseif GetNumJournalQuests and GetQuestToolCount and GetQuestToolInfo then
-        for qi = 1, (MAX_JOURNAL_QUESTS or 25) do
-            if IsValidQuestIndex == nil or IsValidQuestIndex(qi) then
-                local okc, n = pcall(GetQuestToolCount, qi)
-                for ti = 1, (okc and n or 0) do
-                    local icon, stack, _, name = GetQuestToolInfo(qi, ti)
-                    add(qi, { kind = "quest", hasItem = true, quality = 1, meets = true, icon = icon,
-                        stack = stack or 1, name = zo_strformat("<<1>>", name or ""), questIndex = qi,
-                        toolIndex = ti, slotIndex = 0, value = 0, tooltipSide = "left" })
-                end
-            end
+    for questIndex, list in pairs(SHARED_INVENTORY:GenerateFullQuestCache()) do
+        for _, it in pairs(list) do
+            add(it.questIndex or questIndex, {
+                kind = "quest", hasItem = true, quality = 1, meets = true,
+                icon = it.iconFile, stack = it.stackCount or 1,
+                name = zo_strformat("<<1>>", it.name),
+                questIndex = it.questIndex or questIndex, toolIndex = it.toolIndex,
+                stepIndex = it.stepIndex, conditionIndex = it.conditionIndex,
+                slotIndex = 0, value = 0, tooltipSide = "left",
+            })
         end
     end
     local list = {}
     for _, key in ipairs(order) do
         local g = groups[key]
-        if #g.items > 0 then list[#list + 1] = { key = "quest" .. tostring(key), name = zo_strupper and zo_strupper(g.name) or g.name, items = g.items } end
+        if #g.items > 0 then list[#list + 1] = { key = "quest" .. tostring(key), name = zo_strupper(g.name), items = g.items } end
     end
     return list
 end
@@ -1221,7 +1169,7 @@ function Panel:ToggleGroup(key)
     local ck = self:CollapseKey(key)
     local collapsing = not self:IsCollapsed(key)
     if self.search ~= "" then return end
-    if PlaySound and SOUNDS and SOUNDS.DEFAULT_CLICK then PlaySound(SOUNDS.DEFAULT_CLICK) end
+    PlaySound(SOUNDS.DEFAULT_CLICK)
 
     -- una animación anterior se termina al instante en su posición actual
     if self.anim and self.anim.fading then self:StopAnim(true) end
@@ -1423,14 +1371,12 @@ function Panel:RenderCurrency()
         local ct
         if def[1] == "TRADE_BARS" then ct = TradeBarsType() else ct = _G[def[1]] end
         if ct then
-            local loc = GetCurrencyPlayerStoredLocation and GetCurrencyPlayerStoredLocation(ct)
-            local ok, amt = pcall(GetCurrencyAmount, ct, loc)
-            if ok and type(amt) == "number" then
+            local loc = GetCurrencyPlayerStoredLocation(ct)
+            local amt = GetCurrencyAmount(ct, loc)
+            do
                 local name = (def[1] == "TRADE_BARS") and NWUI.T("trade_bars") or def[2]
-                if GetCurrencyName then
-                    local okn, n = pcall(GetCurrencyName, ct, false, false)
-                    if okn and type(n) == "string" and n ~= "" then name = zo_strformat("<<C:1>>", n) end
-                end
+                local n = GetCurrencyName(ct, false, false)
+                if n ~= "" then name = zo_strformat("<<C:1>>", n) end
                 local c = self.cardPool:AcquireObject()
                 local col = i % 2
                 local row = math.floor(i / 2)
@@ -1441,19 +1387,10 @@ function Panel:RenderCurrency()
                 c.amount:SetText(ZO_CommaDelimitNumber(amt))
                 local sub = ""
                 -- toda moneda que se pueda guardar en el banco y que tengas allí
-                if CURRENCY_LOCATION_BANK and loc ~= CURRENCY_LOCATION_BANK then
-                    local can = true
-                    if CanCurrencyBeStoredInLocation then
-                        local okc, r = pcall(CanCurrencyBeStoredInLocation, ct, CURRENCY_LOCATION_BANK)
-                        if okc then can = r and true or false end
-                    elseif loc == CURRENCY_LOCATION_ACCOUNT then
-                        can = false
-                    end
-                    if can then
-                        local okb, bank = pcall(GetCurrencyAmount, ct, CURRENCY_LOCATION_BANK)
-                        if okb and type(bank) == "number" and bank > 0 then
-                            sub = NWUI.T("bank_amount", ZO_CommaDelimitNumber(bank))
-                        end
+                if loc ~= CURRENCY_LOCATION_BANK and CanCurrencyBeStoredInLocation(ct, CURRENCY_LOCATION_BANK) then
+                    local bank = GetCurrencyAmount(ct, CURRENCY_LOCATION_BANK)
+                    if bank > 0 then
+                        sub = NWUI.T("bank_amount", ZO_CommaDelimitNumber(bank))
                     end
                 end
                 c.sub:SetText(sub)
@@ -1484,7 +1421,7 @@ function Panel:RenderQuickslots()
     local s = NWUI.sv.inv
     local size = math.max(s.iconSize, 54)
     local gap = GAP()
-    local current = GetCurrentQuickslot and GetCurrentQuickslot()
+    local current = GetCurrentQuickslot()
     self.qsTarget = self.qsTarget or current or QS_MAP[1]
     local fullW = self.colW * 2 + COLGAP
 
@@ -1521,12 +1458,12 @@ function Panel:RenderQuickslots()
         c:SetDimensions(NWUI.PixelSnap(size), NWUI.PixelSnap(size))
         c:SetAnchor(TOPLEFT, self.content, TOPLEFT, NWUI.PixelSnap(px), NWUI.PixelSnap(py))
         c:SetHidden(false)
-        local okt, tex = pcall(GetSlotTexture, wheelSlot, QS_CAT)
-        local okc, count = pcall(GetSlotItemCount, wheelSlot, QS_CAT)
-        local has = okt and tex and tex ~= ""
+        local tex = GetSlotTexture(wheelSlot, QS_CAT)
+        local count = GetSlotItemCount(wheelSlot, QS_CAT)
+        local has = tex ~= ""
         NWUI.Slot.Setup(c, {
             kind = "wheel", wheelSlot = wheelSlot, hasItem = has, icon = has and tex or nil,
-            stack = (okc and count) or 0, quality = 1, meets = true, panel = self,
+            stack = count or 0, quality = 1, meets = true, panel = self,
             emptyName = NWUI.T("wheel_empty"), tooltipSide = "left",
         })
         if wheelSlot == self.qsTarget then NWUI.SetColor(c.border, C.gold) end
@@ -1633,30 +1570,27 @@ end
 -- ---------------- Rueda original del juego (objetos rápidos) ----------------
 -- La pestaña OBJETOS RÁPIDOS y la tecla Q (la del juego) muestran la rueda
 -- original en el centro; los objetos asignables se arrastran a ella.
+-- esoui/ingame/inventory/inventorymenubar.lua y quickslot/keyboard/quickslot_keyboard.lua
 local function NativeBar()
-    local mb = rawget(_G, "INVENTORY_MENU_BAR")
-    local bar = type(mb) == "table" and mb.modeBar
-    if type(bar) == "table" and bar.SelectFragment and SI_INVENTORY_MODE_QUICKSLOTS and SI_INVENTORY_MODE_ITEMS then return bar end
+    return INVENTORY_MENU_BAR.modeBar
 end
 
 local function NativeWheelShowing()
-    local f = rawget(_G, "KEYBOARD_QUICKSLOT_CIRCLE_FRAGMENT")
-    return type(f) == "table" and f.IsShowing and f:IsShowing() or false
+    return KEYBOARD_QUICKSLOT_CIRCLE_FRAGMENT:IsShowing()
 end
 
 INV.NativeWheelShowing = function() return NativeWheelShowing() end
 
 function INV.NativeWheelAvailable()
-    return NativeBar() ~= nil and type(rawget(_G, "KEYBOARD_QUICKSLOT_CIRCLE_FRAGMENT")) == "table"
+    return not IsInGamepadPreferredMode()
 end
 
 function INV.ShowNativeWheel(on)
     local bar = NativeBar()
-    if not bar then return end
-    if SCENE_MANAGER and SCENE_MANAGER.IsShowing and not SCENE_MANAGER:IsShowing("inventory") then return end
+    if not SCENE_MANAGER:IsShowing("inventory") then return end
     if on == NativeWheelShowing() then return end
     INV.syncingWheel = true
-    pcall(bar.SelectFragment, bar, on and SI_INVENTORY_MODE_QUICKSLOTS or SI_INVENTORY_MODE_ITEMS)
+    bar:SelectFragment(on and SI_INVENTORY_MODE_QUICKSLOTS or SI_INVENTORY_MODE_ITEMS)
     INV.syncingWheel = false
 end
 
@@ -1671,13 +1605,10 @@ end
 -- del resto mientras la rueda está abierta.
 local isolated = {}
 function INV.IsolateNativeWheel(on)
-    local tl = rawget(_G, "ZO_QuickSlot_Keyboard_TopLevel")
-    if type(tl) ~= "userdata" and type(tl) ~= "table" then return end
-    if type(tl.GetNumChildren) ~= "function" then return end
-    local qk = rawget(_G, "QUICKSLOT_KEYBOARD")
-    local wheel = type(qk) == "table" and qk.wheelControl or nil
+    local tl = ZO_QuickSlot_Keyboard_TopLevel
+    local wheel = QUICKSLOT_KEYBOARD.wheelControl
     if on then
-        pcall(tl.SetMouseEnabled, tl, false)
+        tl:SetMouseEnabled(false)
         for i = 1, tl:GetNumChildren() do
             local ch = tl:GetChild(i)
             if ch and ch ~= wheel and not ch:IsHidden() then
@@ -1688,7 +1619,7 @@ function INV.IsolateNativeWheel(on)
     else
         for _, ch in ipairs(isolated) do ch:SetHidden(false) end
         isolated = {}
-        pcall(tl.SetMouseEnabled, tl, true)
+        tl:SetMouseEnabled(true)
     end
 end
 
@@ -1703,10 +1634,9 @@ function INV.RaisePanels(on)
 end
 
 function INV.HookNativeWheel()
-    local f = rawget(_G, "KEYBOARD_QUICKSLOT_CIRCLE_FRAGMENT")
-    if type(f) ~= "table" or not f.RegisterCallback or INV.wheelHooked then return end
+    if INV.wheelHooked then return end
     INV.wheelHooked = true
-    f:RegisterCallback("StateChange", function(_, newState)
+    KEYBOARD_QUICKSLOT_CIRCLE_FRAGMENT:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_FRAGMENT_SHOWING or newState == SCENE_FRAGMENT_SHOWN then
             INV.IsolateNativeWheel(true)
             INV.RaisePanels(true)
@@ -1815,7 +1745,7 @@ function INV.CreateTabs()
         end)
         b:SetHandler("OnMouseUp", function(_, button, inside)
             if inside and button == MOUSE_BUTTON_INDEX_LEFT then
-                if PlaySound and SOUNDS and SOUNDS.MENU_BAR_CLICK then PlaySound(SOUNDS.MENU_BAR_CLICK) end
+                PlaySound(SOUNDS.MENU_BAR_CLICK)
                 p:SetView(v.key)
             end
         end)
@@ -1830,13 +1760,10 @@ end
 -- ¿Hay objetos nuevos en esta bolsa? (opcional: que cumplan 'pred')
 local function AnyNew(bag, pred)
     if bag == nil then return false end
-    local si = rawget(_G, "SHARED_INVENTORY")
-    if si and si.GetBagCache then
-        local ok, cache = pcall(si.GetBagCache, si, bag)
-        if ok and type(cache) == "table" then
-            for slot, sd in pairs(cache) do
-                if type(sd) == "table" and sd.brandNew and (not pred or pred(bag, slot)) then return true end
-            end
+    local cache = SHARED_INVENTORY:GetBagCache(bag)
+    if cache then
+        for slot, sd in pairs(cache) do
+            if sd.brandNew and (not pred or pred(bag, slot)) then return true end
         end
     end
     for _, e in pairs(ownNew) do
@@ -1870,7 +1797,7 @@ function INV.UpdateTabNew()
 end
 
 function INV.QueueTabNew()
-    NWUI.Throttle("NWUI_TabNew", 200, function() pcall(INV.UpdateTabNew) end)
+    NWUI.Throttle("NWUI_TabNew", 200, INV.UpdateTabNew)
 end
 
 function INV.ApplyPanelAlpha()
@@ -1885,15 +1812,12 @@ end
 local ACTOR_PLAYER = GAMEPLAY_ACTOR_CATEGORY_PLAYER or 0
 local MOUNT_CAT = COLLECTIBLE_CATEGORY_TYPE_MOUNT
 local RANDOM_ICONS = {}
-if RANDOM_MOUNT_TYPE_FAVORITE then RANDOM_ICONS[RANDOM_MOUNT_TYPE_FAVORITE] = "EsoUI/Art/Collections/Random_FavoriteMount.dds" end
-if RANDOM_MOUNT_TYPE_ANY then RANDOM_ICONS[RANDOM_MOUNT_TYPE_ANY] = "EsoUI/Art/Collections/Random_AnyMount.dds" end
+RANDOM_ICONS[RANDOM_MOUNT_TYPE_FAVORITE] = "EsoUI/Art/Collections/Random_FavoriteMount.dds"
+RANDOM_ICONS[RANDOM_MOUNT_TYPE_ANY] = "EsoUI/Art/Collections/Random_AnyMount.dds"
 
 local function CleanName(n)
     if not n or n == "" then return "" end
-    if zo_strformat then
-        local ok, r = pcall(zo_strformat, "<<1>>", n)
-        if ok and type(r) == "string" then n = r end
-    end
+    n = zo_strformat("<<1>>", n)
     -- quita los sufijos gramaticales del juego (^m, ^f, ^n...)
     return (n:gsub("%^.*$", ""))
 end
@@ -1901,7 +1825,7 @@ end
 -- Devuelve: nombre, icono, id de coleccionable (o nil), descripción
 function INV.GetMountInfo()
     local id = (MOUNT_CAT and GetActiveCollectibleByType) and GetActiveCollectibleByType(MOUNT_CAT, ACTOR_PLAYER) or 0
-    local rtype = GetRandomMountType and GetRandomMountType(ACTOR_PLAYER)
+    local rtype = GetRandomMountType(ACTOR_PLAYER)
     if rtype and RANDOM_MOUNT_TYPE_NONE and rtype ~= RANDOM_MOUNT_TYPE_NONE then
         local name = GetString("SI_RANDOMMOUNTTYPE", rtype)
         if not name or name == "" then name = NWUI.T("mount_random_name") end
@@ -1911,7 +1835,7 @@ function INV.GetMountInfo()
     end
     if id and id > 0 then
         return CleanName(GetCollectibleName(id)), GetCollectibleIcon(id) or "", id,
-            (GetCollectibleDescription and GetCollectibleDescription(id)) or ""
+            (GetCollectibleDescription(id)) or ""
     end
     return nil
 end
@@ -1984,11 +1908,10 @@ function INV.CreateMountBox(parent, w)
     box:SetHandler("OnMouseEnter", function(self)
         self.hl:SetHidden(false)
         local name, _, id, desc, sub = INV.GetMountInfo()
-        if id and ItemTooltip and ItemTooltip.SetCollectible then
+        if id then
             InitializeTooltip(ItemTooltip, self, RIGHT, -8, 0, LEFT)
-            local ok = pcall(ItemTooltip.SetCollectible, ItemTooltip, id, true, false, false)
-            if ok then return end
-            ClearTooltip(ItemTooltip)
+            ItemTooltip:SetCollectible(id, true, false, false)
+            return
         end
         InitializeTooltip(InformationTooltip, self, RIGHT, -8, 0, LEFT)
         local text = name or NWUI.T("no_mount")
@@ -2021,10 +1944,10 @@ function INV.AlignMountIcon()
     local EQ = NWUI.Equipment
     local mid = EQ and EQ.w1 and EQ.w1[2]
     local dx = 0
-    if mid and mid.GetCenter and block.GetLeft then
-        local okA, cx = pcall(mid.GetCenter, mid)
-        local okB, left = pcall(block.GetLeft, block)
-        if okA and okB and type(cx) == "number" and type(left) == "number" and cx > 0 then
+    if mid then
+        local cx = mid:GetCenter()
+        local left = block:GetLeft()
+        if cx > 0 then
             local w = block:GetWidth()
             local room = math.max(0, w / 2 - MOUNT_BOX / 2)
             dx = zo_clamp((cx - left) - w / 2, -room, room)
@@ -2037,8 +1960,7 @@ end
 function INV.UpdateMount()
     local box = INV.mountBox
     if not box then return end
-    local ok, name, icon, _, _, sub = pcall(INV.GetMountInfo)
-    if not ok then name, sub = nil, nil end
+    local name, icon, _, _, sub = INV.GetMountInfo()
     box.title:SetText(sub and NWUI.T("mount_random") or NWUI.T("mount"))
     if name then
         box.name:SetText(sub or name)
@@ -2059,14 +1981,10 @@ function INV.UpdateMount()
     end
     -- Entrenamiento del establo
     local vals = { "—", "—", "—" }
-    if GetRidingStats then
-        local okS, inv, invMax, sta, staMax, spd, spdMax = pcall(GetRidingStats)
-        if okS and type(spd) == "number" then
-            vals[1] = string.format("%d%% / %d%%", spd, spdMax or 60)
-            vals[2] = string.format("%d / %d", sta or 0, staMax or 60)
-            vals[3] = string.format("%d / %d", inv or 0, invMax or 60)
-        end
-    end
+    local inv, invMax, sta, staMax, spd, spdMax = GetRidingStats()
+    vals[1] = string.format("%d%% / %d%%", spd, spdMax)
+    vals[2] = string.format("%d / %d", sta, staMax)
+    vals[3] = string.format("%d / %d", inv, invMax)
     for i, row in ipairs(box.statRows) do row.value:SetText(vals[i]) end
     INV.AlignMountIcon()
 end
@@ -2134,7 +2052,7 @@ function INV.Init()
         if slot ~= nil then if isNewItem then INV.MarkNew(bag, slot) else INV.ForgetNew(bag, slot) end end
         INV.QueueTabNew()
         if bag == BAG_BACKPACK or bag == BAG_WORN then INV.backpack:QueueRefresh() end
-        if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or (IsHouseBankBag and IsHouseBankBag(bag)) then
+        if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or (IsHouseBankBag(bag)) then
             INV.bank:QueueRefresh()
         end
         if bag == BAG_GUILDBANK then INV.guild:QueueRefresh() end

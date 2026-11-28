@@ -58,11 +58,19 @@
                     <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                 </Button>
 
-                <Button name="$(parent)Copy" inherits="ZO_DefaultButton" text="Copy for Excel">
-                    <Dimensions x="200" y="30" />
+                <Button name="$(parent)Copy" inherits="ZO_DefaultButton" text="Export / Copy">
+                    <Dimensions x="170" y="30" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-16" />
                     <OnClicked>FurysInventoryLedger.SummaryToCopy()</OnClicked>
-                    <OnMouseEnter>InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, "Opens the whole list as text you can copy and paste into Excel (also /ledger copy).")</OnMouseEnter>
+                    <OnMouseEnter>InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, "Opens the whole list as text you can select, copy and paste into Excel, Google Sheets or anywhere else (also /ledger copy).")</OnMouseEnter>
+                    <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
+                </Button>
+
+                <Button name="$(parent)Export" inherits="ZO_DefaultButton" text="Prepare the Excel file">
+                    <Dimensions x="230" y="30" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Copy" relativePoint="LEFT" offsetX="-10" />
+                    <OnClicked>FurysInventoryLedger.PrepareExport()</OnClicked>
+                    <OnMouseEnter>InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -4); SetTooltipText(InformationTooltip, "Builds the full list for ExportToExcel.cmd in the Windows tools. The game only writes it to your PC when the interface reloads or you log out, so it asks before it reloads (also /ledger export).")</OnMouseEnter>
                     <OnMouseExit>ClearTooltip(InformationTooltip)</OnMouseExit>
                 </Button>
             </Controls>

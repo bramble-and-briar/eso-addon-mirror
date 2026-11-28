@@ -925,30 +925,11 @@ function BUI.Automation_Init()
 		EVENT_MANAGER:UnregisterForEvent("ChatRouter", EVENT_FRIEND_PLAYER_STATUS_CHANGED)
 	end
 
-	-- PS5: keep the native console invite handler. The PC replacement below
-	-- calls ZO_ConsoleAttemptInteractOrError with unsupported arguments,
-	-- causing a UI error when accepting or inviting group members.
-	if BUI.Vars.LargeGroupInvite and not IsConsoleUI() then
-	TryGroupInviteByName=function(Name,sentFromChat,displayInvitedMessage)
-		if IsPlayerInGroup(Name) then ZO_Alert(UI_ALERT_CATEGORY_ALERT,nil,SI_GROUP_ALERT_INVITE_PLAYER_ALREADY_MEMBER) return end
-		if not IsUnitGroupLeader("player") and GetGroupSize()>0 then ZO_Alert(UI_ALERT_CATEGORY_ALERT,nil,GetString("SI_GROUPINVITERESPONSE",GROUP_INVITE_RESPONSE_ONLY_LEADER_CAN_INVITE)) return end
-		if IsConsoleUI() then
-			local function GroupInviteCallback(success)
-				if success then
-					GroupInviteByName(Name)
-					ZO_Menu_SetLastCommandWasFromMenu(not sentFromChat)
-					if displayInvitedMessage then ZO_Alert(ALERT,nil,zo_strformat(GetString("SI_GROUPINVITERESPONSE",GROUP_INVITE_RESPONSE_INVITED),ZO_FormatUserFacingName(Name))) end
-				end
-			end
-			ZO_ConsoleAttemptInteractOrError(GroupInviteCallback,Name,ZO_PLAYER_CONSOLE_INFO_REQUEST_DONT_BLOCK,ZO_CONSOLE_CAN_COMMUNICATE_ERROR_ALERT,ZO_ID_REQUEST_TYPE_DISPLAY_NAME,displayName)
-		else
-			if IsIgnored(Name) then ZO_Alert(UI_ALERT_CATEGORY_ALERT,nil,SI_GROUP_ALERT_INVITE_PLAYER_BLOCKED) return end
-			GroupInviteByName(Name)
-			ZO_Menu_SetLastCommandWasFromMenu(not sentFromChat)
-			if displayInvitedMessage then ZO_Alert(ALERT,nil,zo_strformat(GetString("SI_GROUPINVITERESPONSE",GROUP_INVITE_RESPONSE_INVITED),Name)) end
-		end
-	end
-	end
+	-- ESO console/group invitations use an internal callback contract that is not
+	-- compatible with the old Bandits TryGroupInviteByName replacement.
+	-- Preserve ESO's native function on every platform and UI mode.  The old
+	-- replacement could still run in gamepad mode when IsConsoleUI() was false.
+	-- (LargeGroupInvite is intentionally not hooked here.)
 
 	if BUI.Vars.LargeGroupAnnoucement then
 		EVENT_MANAGER:UnregisterForEvent("ChatRouter", EVENT_GROUP_TYPE_CHANGED)

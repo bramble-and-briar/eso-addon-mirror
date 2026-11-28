@@ -69,13 +69,13 @@ function Settings.CreateSettingsPanel()
 
 	optionsData[i] = {
 		type = "header",
-		name = "Containers",
+		name = "Containers to Open",
 	}
 
 	i = i + 1
 	optionsData[i] = {
 		type = "checkbox",
-		name = "Open Surveys",
+		name = "Surveys",
 		getFunc = function() return SLO.SV.surveys end,
 		setFunc = function(value) SLO.SV.surveys = value end,
 		width = "full",
@@ -85,7 +85,7 @@ function Settings.CreateSettingsPanel()
 	i = i + 1
 	optionsData[i] = {
 		type = "checkbox",
-		name = "Open Master Writs",
+		name = "Master Writs",
 		getFunc = function() return SLO.SV.masterWrits end,
 		setFunc = function(value) SLO.SV.masterWrits = value end,
 		width = "full",
@@ -95,7 +95,7 @@ function Settings.CreateSettingsPanel()
 	i = i + 1
 	optionsData[i] = {
 		type = "checkbox",
-		name = "Open Maps",
+		name = "Maps",
 		getFunc = function() return SLO.SV.maps end,
 		setFunc = function(value) SLO.SV.maps = value end,
 		width = "full",
@@ -105,10 +105,20 @@ function Settings.CreateSettingsPanel()
 	i = i + 1
 	optionsData[i] = {
 		type = "checkbox",
-		name = "Open All",
+		name = "IC Materials",
+		getFunc = function() return SLO.SV.ic end,
+		setFunc = function(value) SLO.SV.ic = value end,
+		width = "full",
+		default = SLO.Defaults.ic,
+	}
+
+	i = i + 1
+	optionsData[i] = {
+		type = "checkbox",
+		name = "Open Whole Stack",
 		getFunc = function() return SLO.SV.openAll end,
 		setFunc = function(value) SLO.SV.openAll = value end,
-		tooltip = "If enabled, when one envelope of a particular type is opened, the add-on will attempt to open the whole stack.",
+		tooltip = "If enabled, when one container of a particular type is opened, the add-on will attempt to open the whole stack.",
 		width = "full",
 		default = SLO.Defaults.openAll,
 	}

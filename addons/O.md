@@ -45,6 +45,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [OneFrame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneFrame__4890) | oneDOK | PC / Mac | 26.11.2 |
 | [OneKey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ancillae_Secretorum/OneKey__4188) | Ancillae_Secretorum | PC / Mac | 0.1 |
 | [OneMap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneMap__5029) | oneDOK | PC / Mac | 26.11.2 |
+| [OnePack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m1lkst3ak/OnePack__b23b1b15-1b8f-4f2a-882b-95bbe7eaf985) | m1lkst3ak | Console | — |
 | [OneSettings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneSettings__5065) | oneDOK | PC / Mac | 26.11.2 |
 | [Onix - MenuHUD - Easy Navigation Bar (Full Costum)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/natosz/Onix---MenuHUD---Easy-Navigation-Bar-Full-Costum__4790) | natosz | PC / Mac | 1.1.1 |
 | [Onix - Worldmap - Easy Navigation ( More Zoom & Radar)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/natosz/Onix---Worldmap---Easy-Navigation-More-Zoom-Radar__4789) | natosz | PC / Mac | 1.1 |

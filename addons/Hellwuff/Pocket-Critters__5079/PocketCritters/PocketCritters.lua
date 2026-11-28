@@ -2,7 +2,6 @@ PocketCritters = PocketCritters or {}
 local PP = PocketCritters
 
 PP.name = "PocketCritters"
-PP.version = "3.0.5"
 
 local TEXTURE_PATH = "PocketCritters/textures/critter_%s%s.dds"
 local HD_ABOVE = 128
@@ -55,13 +54,18 @@ local state = {
     animStart = 0,
     nextSlowCheck = 0,
     forceUntil = 0,
+    fetchMode = false,
 }
 
 local sv
 local window, pupTex, heartTex, sparkleTex, ballTex, fragment
 
+local function Print(msg)
+    CHAT_ROUTER:AddSystemMessage(msg)
+end
+
 local function Say(msg)
-    d("|cFF8FC8[Pocket Critters]|r " .. msg)
+    Print("|cFF8FC8[Pocket Critters]|r " .. msg)
 end
 
 local function Now()
@@ -85,10 +89,6 @@ local function IsValidSkin(name)
         if skin == name then return true end
     end
     return false
-end
-
-local function GetPlayerPos()
-    return GetUnitRawWorldPosition("player")
 end
 
 local function MarkActive()
@@ -134,7 +134,7 @@ local function CheckBosses()
 end
 
 local function CheckMovement()
-    local zoneId, x, y, z = GetPlayerPos()
+    local zoneId, x, y, z = GetUnitRawWorldPosition("player")
     local last = state.lastPos
     if last then
         local moved = zoneId ~= last[1]
@@ -207,15 +207,11 @@ local function CanThrow()
     return true
 end
 
-local function ScreenSize()
-    return GuiRoot:GetWidth(), GuiRoot:GetHeight()
-end
-
 function PP.ThrowBall()
     if not CanThrow() then return false end
     local size = PP.GetPixelSize()
     local centre = window:GetLeft() + size / 2
-    local screenW = ScreenSize()
+    local screenW = GuiRoot:GetWidth()
     local dir = (centre < screenW / 2) and 1 or -1
     local target = centre + dir * size * (2 + math.random() * 1.6)
     local margin = size * 0.6
@@ -230,7 +226,7 @@ function PP.ThrowBallAt(x, y)
     local size = PP.GetPixelSize()
     local homeX = window:GetLeft() + size / 2
     local homeY = window:GetTop() + size
-    local screenW, screenH = ScreenSize()
+    local screenW, screenH = GuiRoot:GetDimensions()
     local side = (x >= homeX) and 1 or -1
     local mouth = MOUTH[sv.skin]
 
@@ -305,7 +301,7 @@ local function UpdateFetch(t)
     return anim, cx, cy, flip, heart
 end
 
-local banner, bannerFragment
+local banner
 
 local function ClickedEmptySpace()
     local over = WINDOW_MANAGER:GetMouseOverControl()
@@ -314,7 +310,7 @@ end
 
 local function OnGlobalMouseUp(_, button)
     if not state.fetchMode then return end
-    if not SCENE_MANAGER:IsInUIMode() then return end
+    if SCENE_MANAGER:GetCurrentScene() ~= HUD_UI_SCENE then return end
     if not ClickedEmptySpace() then return end
     if button == MOUSE_BUTTON_INDEX_RIGHT then
         PP.StopFetchMode()
@@ -370,10 +366,16 @@ local function CreateFetchMode()
     stop:SetText("Stop fetch")
     stop:SetAnchor(RIGHT, banner, RIGHT, -16, 0)
     stop:SetHandler("OnClicked", function() PP.StopFetchMode() end)
-    bannerFragment = ZO_HUDFadeSceneFragment:New(banner)
+
+    SCENE_MANAGER:RegisterTopLevel(banner, false)
+    banner:SetHandler("OnHide", function() PP.StopFetchMode() end)
+
+    HUD_UI_SCENE:RegisterCallback("StateChange", function(_, newState)
+        if newState == SCENE_HIDDEN then PP.StopFetchMode() end
+    end)
 end
 
-function PP.IsFetchMode() return state.fetchMode == true end
+function PP.IsFetchMode() return state.fetchMode end
 
 function PP.StartFetchMode()
     if state.fetchMode then return true end
@@ -385,16 +387,15 @@ function PP.StartFetchMode()
         Say("Not now, it's not safe!")
         return false
     end
+    local scene = SCENE_MANAGER:GetCurrentScene()
+    if scene ~= HUD_SCENE and scene ~= HUD_UI_SCENE then
+        Say("Fetch works on the normal screen. Close this menu first!")
+        return false
+    end
     if not banner then CreateFetchMode() end
     state.fetchMode = true
     EVENT_MANAGER:RegisterForEvent(PP.name .. "Fetch", EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
-    HUD_SCENE:AddFragment(bannerFragment)
-    HUD_UI_SCENE:AddFragment(bannerFragment)
-    SCENE_MANAGER:SetInUIMode(true)
-    local scene = SCENE_MANAGER:GetCurrentScene()
-    if scene == HUD_SCENE or scene == HUD_UI_SCENE then
-        banner:SetHidden(false)
-    end
+    SCENE_MANAGER:ShowTopLevel(banner)
     Say("Fetch mode on! Click anywhere to throw. Right-click to stop.")
     PP.RefreshSettings()
     return true
@@ -404,9 +405,7 @@ function PP.StopFetchMode(reason)
     if not state.fetchMode then return end
     state.fetchMode = false
     EVENT_MANAGER:UnregisterForEvent(PP.name .. "Fetch", EVENT_GLOBAL_MOUSE_UP)
-    HUD_SCENE:RemoveFragment(bannerFragment)
-    HUD_UI_SCENE:RemoveFragment(bannerFragment)
-    banner:SetHidden(true)
+    SCENE_MANAGER:HideTopLevel(banner)
     Say(reason or "Fetch mode off. Good game!")
     PP.RefreshSettings()
 end
@@ -476,7 +475,7 @@ local function OnUpdate()
         flip = math.cos(rt * 3.2) < 0
     end
 
-    DrawCritter(offsetX, offsetY, anim.row, col, flip, PP.peekHidesHome == true)
+    DrawCritter(offsetX, offsetY, anim.row, col, flip, PP.peekHidesHome)
 
     local heartP = fetchHeart
     if not heartP and reaction and reaction.heart then
@@ -672,18 +671,18 @@ local TEST_MOODS = { idle = true, wag = true, zoomies = true, pat = true, sleep 
 
 local function ShowHelp()
     Say("Type /critter to open my settings. Chat shortcuts:")
-    d("  /critter skin <name>  - hellwuff, tsardarashi, hisani, azsu, tsaji or cocoa")
-    d("  /critter scale <50-300> - size in percent (now " .. sv.scale .. "%)")
-    d("  /critter lock  or  /critter unlock  - stop or allow dragging")
-    d("  /critter hide  or  /critter show")
-    d("  /critter reset          - move me back to the default spot")
-    d("  /critter quiet          - toggle wagging at loot (now " .. (sv.quiet and "quiet" or "wagging") .. ")")
-    d("  /critter nap <seconds>  - idle time before I nap, 10 to 600 (now " .. sv.sleepAfter .. ")")
-    d("  Fetch mode: press Start fetch in the /critter settings, then click anywhere to throw")
-    d("  Right-click your critter for a quick throw")
-    d("  /critter pats           - how many pats I've had")
-    d("  /critter test <mood>    - idle, wag, zoomies, pat, sleep, hide, sad, alert")
-    d("  /critter peek           - peeking over the inventory on or off. Also: /critter peek higher, lower, left, right, reset")
+    Print("  /critter skin <name>  - hellwuff, tsardarashi, hisani, azsu, tsaji or cocoa")
+    Print("  /critter scale <50-300> - size in percent (now " .. sv.scale .. "%)")
+    Print("  /critter lock  or  /critter unlock  - stop or allow dragging")
+    Print("  /critter hide  or  /critter show")
+    Print("  /critter reset          - move me back to the default spot")
+    Print("  /critter quiet          - toggle wagging at loot (now " .. (sv.quiet and "quiet" or "wagging") .. ")")
+    Print("  /critter nap <seconds>  - idle time before I nap, 10 to 600 (now " .. sv.sleepAfter .. ")")
+    Print("  Fetch mode: press Start fetch in the /critter settings, then click anywhere to throw")
+    Print("  Right-click your critter for a quick throw")
+    Print("  /critter pats           - how many pats I've had")
+    Print("  /critter test <mood>    - idle, wag, zoomies, pat, sleep, hide, sad, alert")
+    Print("  /critter peek           - peeking over the inventory on or off. Also: /critter peek higher, lower, left, right, reset")
 end
 
 function PP.TestMood(mood)
@@ -734,9 +733,7 @@ local function OnSlash(text)
         window:SetMovable(not sv.locked)
         Say(sv.locked and "I'll stay right here." or "You can drag me around now.")
     elseif cmd == "hide" or cmd == "show" then
-        sv.hidden = (cmd == "hide")
-        ApplyVisibility()
-        PP.PeekRefresh()
+        PP.SetShown(cmd == "show")
         if not sv.hidden then Say("I'm back! *wag wag*") end
     elseif cmd == "reset" then
         sv.x, sv.y = nil, nil
@@ -770,6 +767,7 @@ local function OnSlash(text)
 end
 
 PP.SKINS = SKINS
+PP.peekHidesHome = false
 PP.SKIN_LABELS = SKIN_LABELS
 PP.TEXTURE_PATH = TEXTURE_PATH
 PP.HD_ABOVE = HD_ABOVE
@@ -807,6 +805,7 @@ end
 
 function PP.SetShown(shown)
     sv.hidden = not shown
+    if not shown then PP.StopFetchMode() end
     ApplyVisibility()
     PP.PeekRefresh()
 end

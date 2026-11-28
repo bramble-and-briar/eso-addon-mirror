@@ -135,6 +135,23 @@ JHSetTrackers.Data.PerfectString = {
 }
 
 JHSetTrackers.Data.Sets = {
+  -- Turning Tide: copied from the original Cooldowns 2.3 definition.
+  -- Release event 167062 is already handled by ReleaseTriggers below.
+  ["Turning Tide"] = {
+    procType = "set",
+    event = EVENT_COMBAT_EVENT,
+    description = "Turning Tide: shows the 10-second proc effect and its 15-second cooldown after the 5-piece set bonus is active.",
+    id = 167350,
+    enabled = false,
+    result = ACTION_RESULT_EFFECT_GAINED,
+    cooldownDurationMs = 15000,
+    onCooldown = false,
+    timeOfProc = 0,
+    texture = "/esoui/art/icons/ability_mage_037.dds",
+    showFrame = true,
+    durationms = 10000,
+    stacks = nil,
+  },
   -- Integrated from uploaded Cooldowns 2.3. IDs, event types, durations and power scaling preserved.
   -- LibEquipmentBonus performs separate front/back bar detection; arena weapon sets require 2 items.
   ["Powerful Assault"] = {
@@ -156,11 +173,12 @@ JHSetTrackers.Data.Sets = {
     procType = "set",
     event = EVENT_POWER_UPDATE,
     powerType = POWERTYPE_ULTIMATE,
-    description = "Displays how many seconds of Major Slayer this set will provide when activated.",
+    description = "Shows predicted Major Slayer duration (current Ultimate points / 10); not an active buff timer.",
     id = 93120,
     enabled = false,
     currentValue = 0,
-    scaling = 2.8,
+    scaling = 10,
+    ultimateDurationPreview = true, -- Show possible Major Slayer duration from current Ultimate points
     texture = "/esoui/art/icons/ability_buff_major_slayer.dds",
     showFrame = true,
   },
@@ -168,11 +186,12 @@ JHSetTrackers.Data.Sets = {
     procType = "set",
     event = EVENT_POWER_UPDATE,
     powerType = POWERTYPE_ULTIMATE,
-    description = "Displays how many seconds of Major Slayer this set will provide when activated.",
+    description = "Shows predicted Major Slayer duration (current Ultimate points / 10); not an active buff timer.",
     id = 93442,
     enabled = false,
     currentValue = 0,
-    scaling = 2.8,
+    scaling = 10,
+    ultimateDurationPreview = true, -- Show possible Major Slayer duration from current Ultimate points
     texture = "/esoui/art/icons/ability_buff_major_slayer.dds",
     showFrame = true,
   },

@@ -49,7 +49,10 @@ local function RegisterEvents()
     registered = true
 
     EM:RegisterForEvent(NAME .. "Effect", EVENT_EFFECT_CHANGED, CB.OnEffectChanged)
-    EM:AddFilterForEvent(NAME .. "Effect", EVENT_EFFECT_CHANGED, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+    -- 自分が発動し、かつ自分自身に付いた効果だけを受け取る(敵・味方への効果は受け取らない)
+    EM:AddFilterForEvent(NAME .. "Effect", EVENT_EFFECT_CHANGED,
+        REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER,
+        REGISTER_FILTER_UNIT_TAG, "player")
 
     EM:RegisterForEvent(NAME .. "Used", EVENT_ACTION_SLOT_ABILITY_USED, OnAbilityUsed)
 
@@ -83,6 +86,8 @@ end
 local fabNoticeDone = false
 local function OnPlayerActivated()
     CB.CreateControls()
+    CB.CreateResourceBars()
+    CB.PreviewHide()
     -- Fancy Action Bar+ が有効なら、標準バー管理ともう一方のバー表示を最初に1度だけOFFにする
     if FancyActionBar and not SV.fabHandled then
         SV.fabHandled = true
@@ -106,6 +111,7 @@ local function OnAddOnLoaded(_, addonName)
     EM:UnregisterForEvent(NAME .. "Loaded", EVENT_ADD_ON_LOADED)
 
     SV = ZO_SavedVars:NewAccountWide(CB.svName, CB.svVersion, nil, CB.defaults)
+    CB.FillDefaults(SV, CB.defaults)
     CB.sv = SV
     CB.SelectLanguage(SV)
     CB.SetSV(SV)

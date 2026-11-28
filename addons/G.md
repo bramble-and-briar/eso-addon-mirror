@@ -39,6 +39,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [GearTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/GearTracker__fa5da270-ccfe-454b-ba19-4599992e272a) | thewizadt | Console | — |
 | [GeldisBarsRestyle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/GeldisBarsRestyle__3968) | Geldis | PC / Mac | 1.04 |
 | [GeodeOpener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Deividgp/GeodeOpener__2922) | Deividgp | PC / Mac | 0.9.3 |
+| [GF Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/juancar02/GF-Tracker__5128) | juancar02 | PC / Mac | 0.1.0 |
 | [ggChatEmojis](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/ggChatEmojis__496) | Harven | PC / Mac | v1.18 |
 | [ggFrames iSeeDeadPeople Fix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Agade/ggFrames-iSeeDeadPeople-Fix__1016) | Agade | PC / Mac | 0.27 |
 | [ggFrames Moveable raid unit frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Krysstof/ggFrames-Moveable-raid-unit-frame__741) | Krysstof | PC / Mac | 0.9.2.3 |
@@ -59,7 +60,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Go Fast Don't Die](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drezzek/Go-Fast-Don-t-Die__3332) | Drezzek | PC / Mac | 1.4 |
 | [Go Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Go-Home__1604) | static_recharge | PC / Mac | 8.0.0 |
 | [GoA_DolgubonsLazyWritCreatorUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_DolgubonsLazyWritCreatorUAPatch__4703) | Iriya_Altmer | PC / Mac | 1.7 |
-| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 47.78.17 |
+| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 47.97 |
 | [GoA_FCOLockpickerUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_FCOLockpickerUAPatch__4733) | Iriya_Altmer | PC / Mac | 1.0 |
 | [GoA_HarvestMapUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_HarvestMapUAPatch__4707) | Iriya_Altmer | PC / Mac | 1.1 |
 | [GoA_TamrielTradeCentreUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_TamrielTradeCentreUAPatch__4705) | Iriya_Altmer | PC / Mac | 1.2 |

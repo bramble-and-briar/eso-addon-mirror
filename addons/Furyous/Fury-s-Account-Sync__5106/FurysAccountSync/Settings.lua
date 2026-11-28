@@ -132,8 +132,8 @@ function AS.InitSettings()
         setFunc = function(v) sv.what.addons = v; AS.RefreshWindow() end,
     }
     controls[#controls + 1] = {
-        type = "checkbox", name = "Chat window, meters and quest tracker",
-        tooltip = "Where the base game's chat window, frame rate and ping meters and quest tracker sit, taken from the character the snapshot was made on. Ends with a UI reload. Starts turned off.",
+        type = "checkbox", name = "Chat window, meters, quest tracker and HUD",
+        tooltip = "Where the base game's chat window, frame rate and ping meters and quest tracker sit, taken from the character the snapshot was made on, and where the HUD windows sit that you moved in the game's own HUD editor (those are kept once per account). Ends with a UI reload. Starts turned off.",
         getFunc = function() return sv.what.layout end,
         setFunc = function(v) sv.what.layout = v; AS.RefreshWindow() end,
     }

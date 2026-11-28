@@ -61,8 +61,8 @@ Events.defaults = {
     -- 1.12.0: before the group forms, ads ask people to sign up for the slots nobody has taken.
     signupAdText = "Sign up for {event}, {time}{cp}! Still open: {need}. Sign up in our Discord",
     formUpMinutes = 15,       -- the group forms this many minutes before the start time
-    -- 1.12.1: once the group forms, someone who types the invite code in a ticked guild's chat
-    -- (or whispers it) gets a group invite. Off on a new install.
+    -- 1.12.1: someone who types the invite code in a ticked guild's chat (or whispers it) gets
+    -- a group invite (1.34.6: before the group forms too). Off on a new install.
     autoInvite = false,
     inviteCode = "X",        -- 1.13.2: was "+trial"
     -- 1.25.6 (Albert): while Invite by code is on and you lead the group, group members who
@@ -2016,7 +2016,7 @@ function Events:CodeWindowControl()
 
     -- On / off.
     local onOff = Button("OnOff", 200, function()
-        return string.format("Turns Invite by code on or off. While it's on, anyone who types %s (upper or lower case) in the chat of a guild ticked for ads (Events settings), or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: once its group forms (until 2 hours after the start), up to its group size, and not when their CP is under the sheet's requirement. Only while you lead the group or are solo. With no event pasted (Dynamic group) it pauses when the group is full and picks up again by itself when someone leaves; for a pasted event it fills the group and turns off. (The IA / Group / Trial buttons fill to that size and stop.) Starts turned off at every login, and turns itself off when you leave the group or it breaks up.", self:CodeText())
+        return string.format("Turns Invite by code on or off. While it's on, anyone who types %s (upper or lower case) in the chat of a guild ticked for ads (Events settings), or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: right away, before the group forms too (until 2 hours after the start), up to its group size, and not when their CP is under the sheet's requirement. Only while you lead the group or are solo. With no event pasted (Dynamic group) it pauses when the group is full and picks up again by itself when someone leaves; for a pasted event it fills the group and turns off. (The IA / Group / Trial buttons fill to that size and stop.) Starts turned off at every login, and turns itself off when you leave the group or it breaks up.", self:CodeText())
     end, function() self:SetCodeOn(not self.sv.autoInvite) end)
     onOff:SetAnchor(TOPLEFT, status, BOTTOMLEFT, 0, 12)
 
@@ -2075,7 +2075,7 @@ function Events:CodeWindowControl()
     local how = Label("How", "|cECEAF8How it works|r\n"
         .. "|cECEAF8Dynamic group|r: invites anyone who types the code until the group is full (a pasted event's size, or 12). Then it pauses (FULL) and starts inviting again by itself when a spot opens, until you turn it off. Turning it on with nothing picked does this too.\n"
         .. "|cECEAF8IA / Group / Trial|r: fills the group to that size and then stops: Invite by code turns off.\n"
-        .. "|cECEAF8A pasted event|r: Turn on fills the event's group (its size and CP, once it forms) and then turns off. Pick Dynamic group to keep it going.\n"
+        .. "|cECEAF8A pasted event|r: Turn on fills the event's group (its size and CP, starting right away, before it forms too) and then turns off. Pick Dynamic group to keep it going.\n"
         .. "Either way it turns off when you leave the group or it breaks up, and at every login. Kick offline only works while it's on or paused.",
         "ZoFontGameSmall", T.MUTED)
     how:SetWidth(W - 2 * LEFT_X)
@@ -2362,18 +2362,15 @@ end
 -- nothing):
 --   No event pasted, or the pasted one started more than CODE_HOURS_AFTER_START ago: anyone who
 --   types the code, up to a full group. Returns "open".
---   An event pasted and its group has formed (start time minus the forming minutes): the
---   event's group size and CP. Returns "event", state.
---   An event pasted that hasn't formed yet: nobody. Returns nil, why.
+--   An event pasted: the event's group size and CP. Returns "event", state.
+-- 1.34.6 (Albert): this used to wait until the group formed (start time minus the forming
+-- minutes) and invite nobody before that. Now turning it on invites right away, before the
+-- form time too. "Forms" only switches the ads from sign-ups to replacements; nothing in the
+-- game happens at that time, so nothing else changes.
 function Events:CodeWindow()
     local state = self:State()
     if not state then return "open" end
     if state.startTs and GetTimeStamp() > state.startTs + CODE_HOURS_AFTER_START * 3600 then return "open" end
-    if state.mode ~= "now" then
-        local why = string.format("%s hasn't formed yet", state.ev.title)
-        if state.formUpTs then why = why .. string.format(" (it forms at %s)", Clock(state.formUpTs)) end
-        return nil, why
-    end
     return "event", state
 end
 
@@ -2385,8 +2382,7 @@ function Events:CodeStatus()
     end
     if kind == "open" then return "Dynamic group: it invites anyone who types it up to a full group, pauses while the group is full and invites again when a spot opens (no current event pasted)." end
     if kind == "event" and self.sv.codeDynamic then return string.format("Dynamic group for %s: it invites up to the event's group size and CP, pauses while the group is full and invites again when a spot opens.", info.ev.title) end
-    if kind == "event" then return string.format("It invites for %s now: up to the event's group size and CP, then turns off.", info.ev.title) end
-    return string.format("Nobody is invited yet: %s.", info)
+    return string.format("It invites for %s now: up to the event's group size and CP, then turns off.", info.ev.title)
 end
 
 -- The group size the event needs: its role limits (Standby left out), or a full group.
@@ -2434,10 +2430,6 @@ function Events:OnCodeMessage(channelType, text, fromDisplayName)
         return
     end
     local kind, info = self:CodeWindow()
-    if not kind then
-        U.Print("%s typed the invite code, but %s. Not invited.", link, info)
-        return
-    end
     if not IsUnitSoloOrGroupLeader("player") then
         U.Print("%s typed the invite code, but only the group leader can invite.", link)
         return
@@ -3216,7 +3208,7 @@ function Events:SettingsControls()
         { type = "editbox", name = "Guild ad for sign-ups", tooltip = "Before the group forms: Advertise in guilds puts this in each ticked guild's chat box. {need} is the sign-up slots nobody has taken. Up to 350 characters.",
           getFunc = function() return sv.signupAdText or Events.defaults.signupAdText end, setFunc = function(v) sv.signupAdText = v end, default = Events.defaults.signupAdText },
         { type = "checkbox", name = "Invite by code",
-          tooltip = "Anyone who types the invite code (upper or lower case) in the chat of a guild ticked below, or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: once its group forms (until 2 hours after the start time), up to its group size, and not when their CP is under the post's requirement. Only while you lead the group or are solo. Put {code} in the replacement ad so people know it. Also on the Events tab: the Invite by code button opens a window with all of this. Starts turned off at every login and /reloadui. Turned on with no event pasted, or with the Dynamic group button in the Invite by code window, it is a Dynamic group: it pauses while your group is full and picks up again when someone leaves. Turned on with an event pasted, it fills the event's group and turns off; the IA / Group / Trial buttons fill to that size and turn it off. It also turns itself off when you leave the group or it breaks up.",
+          tooltip = "Anyone who types the invite code (upper or lower case) in the chat of a guild ticked below, or whispers it to you, gets a group invite. With no event pasted: anyone, up to a full group. With an event pasted: right away, before the group forms too (until 2 hours after the start time), up to its group size, and not when their CP is under the post's requirement. Only while you lead the group or are solo. Put {code} in the replacement ad so people know it. Also on the Events tab: the Invite by code button opens a window with all of this. Starts turned off at every login and /reloadui. Turned on with no event pasted, or with the Dynamic group button in the Invite by code window, it is a Dynamic group: it pauses while your group is full and picks up again when someone leaves. Turned on with an event pasted, it fills the event's group and turns off; the IA / Group / Trial buttons fill to that size and turn it off. It also turns itself off when you leave the group or it breaks up.",
           getFunc = function() return sv.autoInvite end, setFunc = function(v) if v ~= sv.autoInvite then self:SetCodeOn(v) end end, default = false },
         { type = "checkbox", name = "Kick offline members",
           tooltip = "While Invite by code is on (or paused because the group is full) and you lead the group: anyone in the group who has been offline for the minutes below is removed from the group, so their spot opens for someone who types the code. A chat line says who and why. Starts turned off.",

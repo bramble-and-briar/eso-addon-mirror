@@ -894,6 +894,10 @@ function P.NPCoreRule(self, i)
 		local ja = ({ this = "これ", that = "それ", these = "これら", those = "それら" })[w]
 		Add(res, i + 2, { cat = "NP", ja = ja, pron = w, person = 3, thing = true, def = true, plural = (w == "these" or w == "those") or nil }, 0.6)
 	end
+	-- standalone "another": "wanna run another?"
+	if w == "another" and not self:StartsNoun(i + 1) then
+		Add(res, i + 1, { cat = "NP", ja = "もう1つ", pron = "another", person = 3, thing = true, indef = true, w = "another" }, 0.3)
+	end
 	-- how many people, how much money
 	if wh and (w == "how many" or w == "how much") and self:StartsNoun(i + 1) then
 		local k2, info2 = self:PreModifiers(i + 1)
@@ -2153,13 +2157,84 @@ function P:ClauseThere(i, res)
 	end
 end
 
--- No subject: "looking for a group" (we are), "need two healers" (we need).
+-- No subject: "looking for a group" (we are), "need two healers" (we need),
+-- and telegraphic chat clauses ("cant rez in combat", "didnt see aoe", "been waiting 20 mins",
+-- "never done this vet before", "gonna grab food", "missed mech", "got any pots?").
 function P:ClauseFragment(i, res)
+	local w = self:W(i)
+	-- "going to + V" (from "gonna")
+	if w == "going" and self:Has(i + 1, "TO") and self:VerbAt(i + 2, "base") then
+		local group = NewResults()
+		self:VGStep(i + 2, { advs = {}, goingto = true }, group)
+		for _, vg in ipairs(group) do
+			for _, c in ipairs(self:Comps(vg.node.stop, vg.node)) do
+				Add(res, c.stop, { cat = "CL", kind = "decl", vg = vg.node, comps = c.node.comps, implied = "i" }, 0.8 + vg.score + c.score)
+			end
+		end
+	end
+	-- "been waiting 20 mins" / "been trying to join" (omitted "I have")
+	if w == "been" and self:Has(i, "BE") then
+		local group = NewResults()
+		local st = { advs = {}, perfect = true, be = true, beWord = "been", beenForm = true }
+		self:AfterBe(i + 1, st, group, L.BE.been)
+		for _, vg in ipairs(group) do
+			if vg.node.verb or HasComplement({}) then
+				for _, c in ipairs(self:Comps(vg.node.stop, vg.node)) do
+					if not (vg.node.be and not vg.node.verb and not HasComplement(c.node.comps)) then
+						Add(res, c.stop, { cat = "CL", kind = "decl", vg = vg.node, comps = c.node.comps, implied = "i" }, 0.85 + vg.score + c.score)
+					end
+				end
+			end
+		end
+	end
+	-- "never done this vet before" / "never seen this" (omitted "I have" + past participle)
+	if w == "never" then
+		local pp = self:VerbAt(i + 1, "past")
+		if not pp and self:W(i + 1) == "done" and not (T.userLexicon and T.userLexicon.done) then
+			pp = { cat = "V", w = "done", base = "do", infl = "past", entry = { pos = "v", ja = "する", class = "s", particle = "を" }, pref = 2 }
+		end
+		if pp then
+			local vg = { cat = "VG", verb = pp, perfect = true, neg = true, never = true, advs = {}, stop = i + 2 }
+			for _, c in ipairs(self:Comps(i + 2, vg)) do
+				Add(res, c.stop, { cat = "CL", kind = "decl", vg = vg, comps = c.node.comps, implied = "i" }, 0.9 + c.score)
+			end
+		end
+	end
+	-- Subjectless modal / past-did clauses: "cant rez in combat", "couldnt heal u", "didnt see aoe", "can tank or heal"
+	if self:Has(i, "MODAL") or (w == "did" and self:Has(i, "DO")) then
+		local group = self:VG(i)
+		for _, vg in ipairs(group) do
+			local v = vg.node
+			if v.verb or v.be then
+				for _, c in ipairs(self:Comps(v.stop, v)) do
+					if not (v.be and not v.verb and not HasComplement(c.node.comps)) then
+						Add(res, c.stop, { cat = "CL", kind = "decl", vg = v, comps = c.node.comps, implied = "i" }, 0.65 + vg.score + c.score)
+					end
+				end
+			end
+		end
+	end
 	local ing = self:VerbAt(i, "ing")
-	if ing then
+	if ing and not (w == "going" and self:Has(i + 1, "TO")) then
 		local vg = { cat = "VG", verb = ing, prog = true, advs = {}, stop = i + 1 }
 		for _, c in ipairs(self:Comps(i + 1, vg)) do
 			Add(res, c.stop, { cat = "CL", kind = "decl", vg = vg, comps = c.node.comps, implied = "i" }, 0.6 + c.score)
+		end
+	end
+	-- Subjectless past-tense statement: "missed mech", "forgot food", "crashed", "got any pots?"
+	local past = self:VerbAt(i, "past")
+	if past and w and not (T.userLexicon and T.userLexicon[w]) and not L.BE[w] and not L.DO[w] and not L.HAVE[w] then
+		-- Avoid consuming a single-word noun/adjective with an irregular past homograph ("left")
+		if not (i == self.n and self:Has(i, "N") and self:Has(i, "N").pref >= 2) then
+			local group = NewResults()
+			self:VGStep(i, { advs = {} }, group)
+			for _, vg in ipairs(group) do
+				if vg.node.verb and vg.node.past then
+					for _, c in ipairs(self:Comps(vg.node.stop, vg.node)) do
+						Add(res, c.stop, { cat = "CL", kind = "decl", vg = vg.node, comps = c.node.comps, implied = "i" }, 0.55 + vg.score + c.score)
+					end
+				end
+			end
 		end
 	end
 	local v = self:Has(i, "V")
@@ -2189,16 +2264,16 @@ function P:ClauseFront(i, res)
 			Add(res, a.stop, node, a.score + 0.1)
 		end
 	end
-	-- "just let me know": an adverb in front of a command
+	-- "just let me know", "still need tank?": an adverb in front of a command or subjectless fragment
 	if adv and adv.entry and w and L.ASPECT_ADV[w] and not L.TIME_ADV[w] and not L.SENTENCE_ADV[w] then
 		for _, a in ipairs(self:Clause(i + 1)) do
-			if a.node.kind == "imp" then
+			if a.node.kind == "imp" or (a.node.kind == "decl" and a.node.implied) then
 				local node = {}
 				for k, v in pairs(a.node) do node[k] = v end
 				local front = { { ja = adv.entry.ja, w = w, aspect = true } }
 				for _, f in ipairs(a.node.frontAdv or {}) do front[#front + 1] = f end
 				node.frontAdv = front
-				Add(res, a.stop, node, a.score + 0.1)
+				Add(res, a.stop, node, a.score + (a.node.implied and 0.25 or 0.1))
 			end
 		end
 	end
@@ -2255,11 +2330,12 @@ function P:Utterance(i)
 					end
 				end
 			end
-			-- a plain verb phrase sharing the subject: "went home and slept"
+			-- a plain verb phrase sharing the subject (or modal): "went home and slept", "can tank or heal"
 			if #n.parts > 0 and n.conj then
 				local last
 				for k = #n.parts, 1, -1 do if n.parts[k].kind == "main" then last = n.parts[k] break end end
-				if last and last.clause.subj then
+				if last and (last.clause.subj or last.clause.implied) then
+					local inheritModal = last.clause.vg and last.clause.vg.modal
 					local group = NewResults()
 					self:VGStep(idx, { advs = {} }, group)
 					for _, vg in ipairs(group) do
@@ -2270,9 +2346,15 @@ function P:Utterance(i)
 								if not (v.be and not v.verb and not HasComplement(comps)) then
 									local parts = {}
 									for k2, v2 in ipairs(n.parts) do parts[k2] = v2 end
-									local clause = { cat = "CL", kind = "decl", vg = v, comps = comps, sharedSubject = last.clause.subj }
+									local vCopy = v
+									if inheritModal and not v.modal and not v.past and not v.doSupport and not v.perfect and v.verb and v.verb.infl == nil then
+										vCopy = CopyState(v)
+										vCopy.modal = inheritModal
+									end
+									local clause = { cat = "CL", kind = "decl", vg = vCopy, comps = comps, sharedSubject = last.clause.subj, implied = last.clause.implied }
 									parts[#parts + 1] = { conj = n.conj, kind = "main", clause = clause, elliptical = true }
-									local cand = { score = n.score + vg.score + c.score - 0.2, parts = parts }
+									local bonus = (inheritModal and vCopy.modal == inheritModal) and 0.35 or -0.2
+									local cand = { score = n.score + vg.score + c.score + bonus, parts = parts }
 									if not done[c.stop] or cand.score > done[c.stop].score then done[c.stop] = cand end
 								end
 							end

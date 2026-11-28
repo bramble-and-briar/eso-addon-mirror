@@ -46,6 +46,17 @@ local function CopyEventInfo(event)
     return copy
 end
 
+History.CopyEventInfo = CopyEventInfo   -- 1.34.7: also used by Core/HoleFill.lua
+
+-- 1.34.7: hands an event the hole filler fetched (info.backfilled = true) to the modules of the
+-- main reader, the same way LibHistoire's events reach them. Saved reading positions don't
+-- change, and modules see isLive = false.
+function History:DeliverBackfilled(guildId, category, info)
+    for _, module in ipairs((self.subscribers or {})[StreamKey(MAIN_READER, category)] or {}) do
+        module:OnHistoryEvent(guildId, category, info, false)
+    end
+end
+
 -- Returns a list of { reader =, category =, stream = } and the modules per stream.
 local function CollectStreams()
     local wanted, subscribers = {}, {}
@@ -231,6 +242,9 @@ function History:Start()
         -- All server requests are LibHistoire's job: it requests missing history itself and
         -- delivers new events to our processors as they arrive. A category counts as caught
         -- up only when its readers really are live; there is no timeout.
+        -- 1.34.7: the one exception is the hole filler (Core/HoleFill.lua), a fallback that
+        -- only fetches windows LibHistoire skipped, and only while LibHistoire is idle.
+        GT.HoleFill:Start()
     end)
 end
 

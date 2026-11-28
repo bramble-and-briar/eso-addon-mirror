@@ -170,8 +170,8 @@ local function RareFish(bag, slot)
     QOL.Msg("Rare fish caught: " .. GetItemLink(bag, slot) .. ".")
 end
 
+-- Only the backpack and the craft bag, and only real item changes (the event filters below).
 local function OnSlotUpdate(_, bag, slot, isNew, _, reason, stackCountChange)
-    if bag ~= BAG_BACKPACK and bag ~= BAG_VIRTUAL then return end
     local itemType, specialType = GetItemType(bag, slot)
     local inWorld = InWorld()
     if isNew and bag == BAG_BACKPACK and inWorld and QOL.SV().fishRare
@@ -230,17 +230,25 @@ end
 -- Switches
 ------------------------------------------------------------------------------
 local BITE_EVENT = QOL.name .. "FishBite"
+local BITE_BAGS = { [BITE_EVENT .. "Bag"] = BAG_BACKPACK, [BITE_EVENT .. "Craft"] = BAG_VIRTUAL }
 local BAIT_UPDATE = QOL.name .. "FishBait"
 local LURE_UPDATE = QOL.name .. "FishLure"
 
 -- Listens only for what is turned on.
 function QOL.RefreshFishing()
     local sv = QOL.SV()
-    EVENT_MANAGER:UnregisterForEvent(BITE_EVENT, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    for name in pairs(BITE_BAGS) do
+        EVENT_MANAGER:UnregisterForEvent(name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    end
     EVENT_MANAGER:UnregisterForUpdate(BAIT_UPDATE)
     EVENT_MANAGER:UnregisterForUpdate(LURE_UPDATE)
     if sv.fishAlert or sv.fishBagWarn or sv.fishRare or debugOn then
-        EVENT_MANAGER:RegisterForEvent(BITE_EVENT, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnSlotUpdate)
+        for name, bag in pairs(BITE_BAGS) do
+            EVENT_MANAGER:RegisterForEvent(name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnSlotUpdate)
+            EVENT_MANAGER:AddFilterForEvent(name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+                REGISTER_FILTER_BAG_ID, bag,
+                REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+        end
     end
     if sv.fishAlert or sv.fishBagWarn or debugOn then
         watchedLure = nil

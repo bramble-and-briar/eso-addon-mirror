@@ -2,11 +2,13 @@
 
 **AI disclosure:** This addon's code was written with the assistance of an AI coding assistant (Claude by Anthropic), working from my designs and instructions. I test every release in game on my own characters before it goes up, and I maintain it. Please report any problem in the comments.
 
+> **New:** this addon now requires [Fury's Addons Menu](https://www.esoui.com/downloads/info5126-FurysAddonsMenu.html), a free library like LibAddonMenu-2.0. Minion 3 does not install libraries for you, so if the addon stops loading after this update, install it from the link or in Minion.
+
 Every character on your account, on one board: skill and class lines, crafting, research, daily writs,
 weekly leaderboards, skill points still to earn, wallet, worn gear, companions and progress over time, read straight from
 the game. A brag card, copy for Discord, export to Excel.
 
-**Requires:** LibAddonMenu-2.0 (version 43 or newer). Install it separately; without it the addon will not load.
+**Requires:** LibAddonMenu-2.0 (version 43 or newer) and [Fury's Addons Menu](https://www.esoui.com/downloads/info5126-FurysAddonsMenu.html) (version 1.3.0 or newer), which gives all of Fury's addons the Fury sidebar and `/fury`. Both are separate downloads: search for them in Minion (Minion 3 does not install libraries for you) or get them from ESOUI. Without them, this addon will not load.
 
 ## Start here
 

@@ -82,7 +82,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Setup Assist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/medusa_xupx/Setup-Assist__cedd2393-1ace-4f2e-bed9-c0ca4a07adff) | medusa_xupx | Console | — |
 | [Shadow Image Range](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Shadow-Image-Range__2458) | andy.s | PC / Mac | 1.4 |
 | [Shadow Image Range - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Light100/Shadow-Image-Range---Updated__3704) | Light100 | PC / Mac | 1.4.1 |
-| [Shadowfen's Default Guild Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Shadowfen-s-Default-Guild-Bank__2929) | Shadowfen | PC / Mac | 1.23 |
+| [Shadowfen's Default Guild Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Shadowfen-s-Default-Guild-Bank__2929) | Shadowfen | PC / Mac | 1.25 |
+| [ShadowStrikerr's Crown Crate Codex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowStrikerr/ShadowStrikerr-s-Crown-Crate-Codex__5023) | ShadowStrikerr | PC / Mac | 0.12.7 |
+| [ShadowStrikerr's MountSwap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowStrikerr/ShadowStrikerr-s-MountSwap__5025) | ShadowStrikerr | PC / Mac | 0.8.13 |
+| [ShadowStrikerr's SkyShard Pathfinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowStrikerr/ShadowStrikerr-s-SkyShard-Pathfinder__5127) | ShadowStrikerr | PC / Mac | 0.4.24 |
+| [ShadowStrikerr's WayShrine Pathfinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowStrikerr/ShadowStrikerr-s-WayShrine-Pathfinder__5129) | ShadowStrikerr | PC / Mac | 0.1.0 |
 | [Shai-hulud Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manukikon/Shai-hulud-Guild-Hall__2550) | manukikon | PC / Mac | 1.0.0 |
 | [Shalk Tracker (Warden Subterranean Assault Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Shalk-Tracker-Warden-Subterranean-Assault-Tracker__2897) | ownedbynico | PC / Mac | 1.0 |
 | [ShardVolley Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Matt_Eweroun/ShardVolley-Alert__4866) | Matt_Eweroun | PC / Mac | 1.0 |
@@ -309,7 +313,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stash 'n Dash](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Downehr/Stash-n-Dash__4133) | Downehr | PC / Mac | 1.0.3 |
 | [Static's Already Taunted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Already-Taunted__3913) | static_recharge | PC / Mac | 2.0.1 |
 | [Static's Furnishing Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Furnishing-Improvements__4447) | static_recharge | PC / Mac | 1.1.2 |
-| [Static's Letter Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Letter-Opener__4368) | static_recharge | PC / Mac | 1.1.1 |
+| [Static's Letter Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Letter-Opener__4368) | static_recharge | PC / Mac | 1.2.0 |
 | [Static's Quickslot Profiles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Quickslot-Profiles__1775) | static_recharge | PC / Mac | 2.3.0 |
 | [Static's Recruiter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Recruiter__3836) | static_recharge | PC / Mac | 3.0.3 |
 | [Static's Social Features](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Social-Features__4239) | static_recharge | PC / Mac | 2.0.2 |
@@ -335,8 +339,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [StopIt!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bazgrim/StopIt__1580) | Bazgrim | PC / Mac | 0.56 |
 | [Stopwatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gordias/Stopwatch__2398) | Gordias | PC / Mac | 1.1 |
 | [Storage stacker (updated CDG Bank Stacker with supporting house storage)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ivang/Storage-stacker-updated-CDG-Bank-Stacker-with-supporting-house-storage__4085) | ivang | PC / Mac | 0.1.1 |
-| [StoreHelper - maintain stocks of basic craft style mats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelper---maintain-stocks-of-basic-craft-style-mats__3195) | Rexorn | PC / Mac | 0.26 |
-| [StoreHelperRune - manage potency runes for glyph writs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelperRune---manage-potency-runes-for-glyph-writs__3220) | Rexorn | PC / Mac | 0.23 |
+| [StoreHelper - maintain stocks of basic craft style mats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelper---maintain-stocks-of-basic-craft-style-mats__3195) | Rexorn | PC / Mac | 0.27 |
+| [StoreHelperRune - manage potency runes for glyph writs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelperRune---manage-potency-runes-for-glyph-writs__3220) | Rexorn | PC / Mac | 0.24 |
 | [Storm Atronach Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Storm-Atronach-Tracker__a70e4425-99f9-4fdb-85da-dc21b578e10f) | codeWarrior82 | Console | — |
 | [Story Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Story-Saver__2976) | f1rex | PC / Mac | 19 |
 | [Stow It Auto-Sheather](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RunningDuck/Stow-It-Auto-Sheather__862) | RunningDuck | PC / Mac | 3.2.7 |

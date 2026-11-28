@@ -1,0 +1,12 @@
+## Title: OnePack
+## Author: Trash Man Enterprises
+## Version: 1.0.4
+## AddOnVersion: 5
+## APIVersion: 101051 101052 2.5.3.0
+## OptionalDependsOn: LibRadialMenu TSCPriceDataAPI TSCPriceDataLite
+## SavedVariables: OnePackSaved
+Core.lua
+GearSets.lua
+Inventory.lua
+Bank.lua
+Bindings.xml

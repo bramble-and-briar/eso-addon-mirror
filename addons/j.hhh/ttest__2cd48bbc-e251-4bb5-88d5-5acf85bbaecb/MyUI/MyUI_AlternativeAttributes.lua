@@ -107,40 +107,51 @@ function StandardBar:ApplyStyle()
 
     ApplyTemplateToControl(self.attrBar, ZO_GetPlatformTemplate("ZO_PlayerAttributeStatusBar"))
     ApplyTemplateToControl(self.control, ZO_GetPlatformTemplate("MyUIAlt_Bar"))
+    self._myuiEndcapBase = nil
 end
 
 function StandardBar:SetWidth(value)
     self.control:SetWidth(value)
 end
 
+-- Rebuild endcap dimensions from the freshly applied platform template.
+-- Scaling the *already scaled* values on every UI refresh caused gradual
+-- drift and visibly mismatched Magicka/Stamina endcaps on gamepad.
 function StandardBar:SetHeight(value)
-    local prevHeight = self.attrBar:GetHeight()
-    if prevHeight ~= value then
-        local mod = value / prevHeight
-        local frameLeft = GetControl(self.control, "FrameLeft")
-        local frameRight = GetControl(self.control, "FrameRight")
-        local bgLeft = GetControl(self.control, "BgContainerBgLeft")
-        local bgRight = GetControl(self.control, "BgContainerBgRight")
-        frameLeft:SetWidth(zo_round(frameLeft:GetWidth() * mod) - 3)
-        frameRight:SetWidth(zo_round(frameRight:GetWidth() * mod) - 3)
-        bgLeft:SetWidth(zo_round(bgLeft:GetWidth() * mod) - 3)
-        bgRight:SetWidth(zo_round(bgRight:GetWidth() * mod) - 3)
+    local previousHeight = self.attrBar:GetHeight()
+    if not previousHeight or previousHeight <= 0 then return end
 
-        self.control:SetHeight(value)
-        self.attrBar:SetHeight(value)
-
-        frameLeft:SetHeight(value)
-        frameRight:SetHeight(value)
-        bgLeft:SetHeight(value)
-        bgRight:SetHeight(value)
-        GetControl(self.control, "FrameCenter"):SetHeight(value)
-        GetControl(self.control, "BgContainerBgCenter"):SetHeight(value)
-
-        local fontMod = IsInGamepadPreferredMode() and 1 / 3 or 2 / 3
-        local font = '$(GAMEPAD_LIGHT_FONT)|' .. zo_round(value * fontMod) .. '|soft-shadow-thick'
-        self.attrText:SetFont(font)
-        self.attrTextPercent:SetFont(font)
+    local endcaps = {
+        GetControl(self.control, "FrameLeft"),
+        GetControl(self.control, "FrameRight"),
+        GetControl(self.control, "BgContainerBgLeft"),
+        GetControl(self.control, "BgContainerBgRight"),
+    }
+    -- ApplyStyle() refreshes the templates before SetHeight(). Capture their
+    -- real default dimensions exactly once per style application; don't use
+    -- whatever width was produced during a previous height change.
+    if not self._myuiEndcapBase then
+        self._myuiEndcapBase = {height = previousHeight, widths = {}}
+        for i, control in ipairs(endcaps) do
+            self._myuiEndcapBase.widths[i] = control:GetWidth()
+        end
     end
+    local base = self._myuiEndcapBase
+    local scale = value / math.max(base.height, 1)
+    for i, control in ipairs(endcaps) do
+        control:SetWidth(math.max(1, zo_round(base.widths[i] * scale) - 3))
+    end
+
+    self.control:SetHeight(value)
+    self.attrBar:SetHeight(value)
+    for _, control in ipairs(endcaps) do control:SetHeight(value) end
+    GetControl(self.control, "FrameCenter"):SetHeight(value)
+    GetControl(self.control, "BgContainerBgCenter"):SetHeight(value)
+
+    local fontMod = IsInGamepadPreferredMode() and 1 / 3 or 2 / 3
+    local font = '$(GAMEPAD_LIGHT_FONT)|' .. zo_round(value * fontMod) .. '|soft-shadow-thick'
+    self.attrText:SetFont(font)
+    self.attrTextPercent:SetFont(font)
 end
 
 function StandardBar:Show()
@@ -169,6 +180,7 @@ function ReversedBar:ApplyStyle()
 
     ApplyTemplateToControl(self.attrBar, ZO_GetPlatformTemplate("ZO_PlayerAttributeStatusBar"))
     ApplyTemplateToControl(self.control, ZO_GetPlatformTemplate("MyUIAlt_BarReversed"))
+    self._myuiEndcapBase = nil
 end
 -------------------------------------
 --HP shielded bar --

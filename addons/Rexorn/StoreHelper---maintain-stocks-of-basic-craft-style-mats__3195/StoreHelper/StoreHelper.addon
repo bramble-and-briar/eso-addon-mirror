@@ -1,9 +1,9 @@
 ## Title: Store Helper
 ## Author: Rexorn
 ## Description: At store buy Style Mats if below stock level in settings.
-## APIVersion: 101050 101051
-## Version: 0.26
-## AddOnVersion: 26
+## APIVersion: 101051 101052
+## Version: 0.27
+## AddOnVersion: 27
 ## SavedVariables: StoreHelperAcct StoreHelperToon
 ## DependsOn: LibAddonMenu-2.0>=43
 ## OptionalDependsOn: PersonalAssistantJunk PersonalAssistantRepair

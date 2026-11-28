@@ -10,7 +10,7 @@
 FurysAccountSync = {
     name        = "FurysAccountSync",
     title       = "Fury's Account Sync",
-    version     = "0.6.4",
+    version     = "0.6.9",
     toolUrl     = "https://github.com/AlbertHoffpauir/FurysAccountSync",
     SCENE       = "FurysAccountSync_Scene",
 }
@@ -47,7 +47,6 @@ local SV
 
 local function Defaults()
     return {
-        version      = 1,
         main         = nil,     -- "@Account" that snapshots come from
         snapshot     = nil,     -- the main's setup, see AS.TakeSnapshot
         accounts     = {},      -- ["@Account"] = { mode = "off" | "ask" | "auto", applied = time, seen = time,
@@ -61,7 +60,7 @@ local function Defaults()
             keybinds = true,
             chat     = true,
             addons   = false,   -- settings of the addons listed in Rules.lua (ends with a UI reload)
-            layout   = false,   -- base game chat window, meters and quest tracker (ends with a UI reload)
+            layout   = false,   -- base game chat window, meters, quest tracker and HUD positions (ends with a UI reload)
             panels   = { gameplay = true, camera = true, interface = true, nameplates = true,
                          social = true, combat = true, accessibility = true },
         },
@@ -751,6 +750,9 @@ function AS.Apply(auto)
     for _, e in ipairs(plan.settings) do
         SetSetting(e.s, e.i, e.v)
     end
+    -- The game holds many settings (Auto Loot among them) until its Settings menu closes, and only
+    -- then sends them to the server. Without this they looked set but were gone at the next login.
+    if #plan.settings > 0 then SendAllCachedSettingMessages() end
     if plan.chat then
         local c = plan.chatData
         for category, rgb in pairs(c.colors or {}) do
@@ -1289,8 +1291,7 @@ local function OnLoaded(_, addonName)
     if addonName ~= AS.name then return end
     EVENT_MANAGER:UnregisterForEvent(AS.name, EVENT_ADD_ON_LOADED)
 
-    FurysAccountSync_SV = FurysAccountSync_SV or {}
-    SV = FurysAccountSync_SV
+    SV = AS.Theme.SavedVars("FurysAccountSync_SV")
     Merge(SV, Defaults())
     -- 0.1.4 to 0.2.0 had the front and back bar as two choices; they are one again
     if SV.buildParts.front ~= nil or SV.buildParts.back ~= nil then

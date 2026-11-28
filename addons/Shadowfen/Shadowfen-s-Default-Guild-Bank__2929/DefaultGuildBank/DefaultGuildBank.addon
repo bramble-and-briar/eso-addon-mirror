@@ -1,8 +1,8 @@
 ## APIVersion: 101052 101051
 ## Title: DefaultGuildBank
 ## Author: Shadowfen
-## Version: 1.24
-## AddOnVersion: 24
+## Version: 1.25
+## AddOnVersion: 25
 ## IsLibrary: false
 ## Description: Start Guild Bank with your preferred default instead of the first one.
 ## DependsOn: LibSFUtils>=78 LibAddonMenu-2.0>=43 LibLanguage>=47

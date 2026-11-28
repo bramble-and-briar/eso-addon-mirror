@@ -3,7 +3,7 @@
 -- (TTCSP.DisplayPrice) con SUS ajustes: mismo precio, mismo verde/rojo, y
 -- cualquier actualización de ese addon o de los precios de TTC se refleja sola.
 -- Si no lo tienes, se calcula igual que él a partir de TamrielTradeCentrePrice.
-local NWUI = NWUI
+local NWUI = NWInterfaz
 local P = {}
 NWUI.Price = P
 
@@ -16,9 +16,9 @@ P.Integers = Integers
 
 local function Fmt(n)
     n = math.floor((n or 0) + 0.5)
-    if TamrielTradeCentre and TamrielTradeCentre.FormatNumber then
-        local ok, s = pcall(TamrielTradeCentre.FormatNumber, TamrielTradeCentre, n, 0)
-        if ok and s then return Integers(s) end
+    -- Tamriel Trade Centre es opcional: solo se usa si está cargado
+    if TamrielTradeCentre then
+        return Integers(TamrielTradeCentre:FormatNumber(n, 0))
     end
     return ZO_CommaDelimitNumber(n)
 end
@@ -28,7 +28,7 @@ function P.HasTTC()
 end
 
 function P.HasTTCSP()
-    return TTCSP ~= nil and type(TTCSP.DisplayPrice) == "function" and TTCSP.vars ~= nil and TTCSP.name ~= nil
+    return TTCSP ~= nil
 end
 
 function P.Enabled()
@@ -69,22 +69,17 @@ end
 
 local function FromTTCSP(link, stack)
     local p = Probe()
-    local ok = pcall(TTCSP.DisplayPrice, p, link, stack, 0, 0)
-    local m = ok and p:GetNamedChild(TTCSP.name) or nil
+    TTCSP.DisplayPrice(p, link, stack, 0, 0)
+    local m = p:GetNamedChild(TTCSP.name)
     if not m then return nil end
-    local text = Integers(m:GetText() or "")
-    local r, g, b = 1, 1, 1
-    if m.GetColor then
-        local okc, cr, cg, cb = pcall(m.GetColor, m)
-        if okc and cr then r, g, b = cr, cg, cb end
-    end
-    return { text = text, r = r, g = g, b = b }
+    local r, g, b = m:GetColor()
+    return { text = Integers(m:GetText()), r = r, g = g, b = b }
 end
 
 local function FromOwn(link, stack)
     local s = NWUI.sv.inv
-    local ok, info = pcall(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, link)
-    if not ok or type(info) ~= "table" or info.Avg == nil then return { text = "" } end
+    local info = TamrielTradeCentrePrice:GetPriceInfo(link)
+    if not info or info.Avg == nil then return { text = "" } end
     local mult = s.priceStack and (stack or 1) or 1
     local price, text
     if s.priceType == "TTC" then

@@ -472,18 +472,108 @@ function ABB_BossBar:FlashWarning()
     end
 end
 
+-- Preserve enough room below the compass for waypoint/destination distances
+-- in the gamepad HUD, even when a boss health bar is present.
+-- ESO's native target control contains vertical padding before its visible health bar.
+-- Use a -3 control-anchor offset to obtain approximately 15 UI units of *visible* clearance
+-- below the compass/boss bar in the observed gamepad HUD (prior +15 looked ~33).
+local GAMEPAD_TARGET_GAP = -3
+local KEYBOARD_TARGET_GAP = 20
+local GAMEPAD_TARGET_WIDTH = 320
+local TARGET_WIDTH_CHECK_NAME = "MyUI_AltBossBar_GamepadTargetWidth"
+local savedTargetWidth = nil
+local savedTargetInnerWidths = {}
+
+local function NativeTargetChild(frame, suffix)
+    if not frame then return nil end
+    local child = frame.GetNamedChild and frame:GetNamedChild(suffix)
+    if child then return child end
+    local name = frame.GetName and frame:GetName()
+    return name and _G[name .. suffix] or nil
+end
+
+local function SaveAndSetInnerWidth(control, width)
+    if not control or not control.GetWidth or not control.SetWidth then return end
+    if savedTargetInnerWidths[control] == nil then
+        savedTargetInnerWidths[control] = control:GetWidth()
+    end
+    if math.abs(control:GetWidth() - width) > 0.1 then
+        control:SetWidth(width)
+    end
+end
+
+-- A center texture only spans the gap between the left and right end caps.
+-- Setting it to the full 320 made the dark interior overshoot the outer frame.
+local function ResizeTargetSegment(parent, width, leftSuffix, centerSuffix, rightSuffix)
+    if not parent then return end
+    local left = NativeTargetChild(parent, leftSuffix)
+    local right = NativeTargetChild(parent, rightSuffix)
+    local center = NativeTargetChild(parent, centerSuffix)
+    if center then
+        local leftWidth = (left and left.GetWidth and left:GetWidth()) or 0
+        local rightWidth = (right and right.GetWidth and right:GetWidth()) or 0
+        SaveAndSetInnerWidth(center, math.max(1, width - leftWidth - rightWidth))
+    end
+end
+
+local function IsGamepadTargetLayout()
+    return (IsConsoleUI and IsConsoleUI()) or
+        (IsInGamepadPreferredMode and IsInGamepadPreferredMode())
+end
+
+local function EnforceGamepadTargetWidth()
+    local frame = ZO_TargetUnitFramereticleover
+    if not frame then return end
+    if IsGamepadTargetLayout() then
+        if not savedTargetWidth then savedTargetWidth = frame:GetWidth() end
+        if math.abs(frame:GetWidth() - GAMEPAD_TARGET_WIDTH) > 0.1 then
+            frame:SetWidth(GAMEPAD_TARGET_WIDTH)
+        end
+        -- Native ESO target backgrounds are segmented. Their center width must
+        -- exclude both fixed end caps; the dark background lives in BgContainer
+        -- on templates that use it, rather than in a direct BgCenter child.
+        local bg = NativeTargetChild(frame, "BgContainer")
+        if bg then
+            SaveAndSetInnerWidth(bg, GAMEPAD_TARGET_WIDTH)
+            ResizeTargetSegment(bg, GAMEPAD_TARGET_WIDTH, "BgLeft", "BgCenter", "BgRight")
+        else
+            ResizeTargetSegment(frame, GAMEPAD_TARGET_WIDTH, "BgLeft", "BgCenter", "BgRight")
+        end
+        ResizeTargetSegment(frame, GAMEPAD_TARGET_WIDTH, "FrameLeft", "FrameCenter", "FrameRight")
+        -- Bandits' optional numeric overlay is a separate, fixed-width label.
+        local values = _G["BUI_Targethealth"]
+        if values and math.abs(values:GetWidth() - GAMEPAD_TARGET_WIDTH) > 0.1 then
+            values:SetWidth(GAMEPAD_TARGET_WIDTH)
+        end
+    elseif savedTargetWidth then
+        -- Only alter the gamepad layout; leave normal keyboard sizing intact.
+        if math.abs(frame:GetWidth() - GAMEPAD_TARGET_WIDTH) < 0.1 then
+            frame:SetWidth(savedTargetWidth)
+        end
+        savedTargetWidth = nil
+        for control, originalWidth in pairs(savedTargetInnerWidths) do
+            if control and control.GetWidth and control.SetWidth then
+                control:SetWidth(originalWidth)
+            end
+        end
+        savedTargetInnerWidths = {}
+    end
+end
+
 local function AttachTargetTo(anchorControl)
     -- Keep ESO's target frame/debuff stack directly below the lowest visible
     -- boss bar. When no boss bar is visible, restore it below the compass.
     if not ZO_TargetUnitFramereticleover then return end
 
     local targetFrame = ZO_TargetUnitFramereticleover
+    local gap = IsGamepadTargetLayout() and GAMEPAD_TARGET_GAP or KEYBOARD_TARGET_GAP
+    EnforceGamepadTargetWidth()
     targetFrame:ClearAnchors()
 
     if anchorControl and anchorControl ~= ZO_CompassFrame then
-        targetFrame:SetAnchor(TOP, anchorControl, BOTTOM, 0, 20)
+        targetFrame:SetAnchor(TOP, anchorControl, BOTTOM, 0, gap)
     else
-        targetFrame:SetAnchor(TOP, ZO_CompassFrame, BOTTOM, 0, 20)
+        targetFrame:SetAnchor(TOP, ZO_CompassFrame, BOTTOM, 0, gap)
     end
 end
 
@@ -761,8 +851,15 @@ local function SetVisualSettings()
     local container = GetControl("ABB_Container")
     container:ClearAnchors()
     container:SetAnchor(TOP, ZO_CompassFrame, TOP, 0, offset)
-    ABB_TEMPLATE_NAME = THEMES[SETTINGS.THEME_NAME or "Plain"].template
-    FN_ABB_GET_WIDTH = THEMES[SETTINGS.THEME_NAME or "Plain"].calcWidth
+    -- Saved variables may contain a theme from an older addon version.
+    -- Never index a nil theme during console startup.
+    local selectedTheme = THEMES[SETTINGS.THEME_NAME]
+    if not selectedTheme then
+        SETTINGS.THEME_NAME = "Plain"
+        selectedTheme = THEMES.Plain
+    end
+    ABB_TEMPLATE_NAME = selectedTheme.template
+    FN_ABB_GET_WIDTH = selectedTheme.calcWidth
 end
 
 -------------------------------------
@@ -976,6 +1073,10 @@ function ABB_Initialize(topLevelCtrl)
             SetVisualSettings()
 
             InitBars(topLevelCtrl)
+            -- ESO can resize the native target frame when switching targets.
+            -- Check only its width; do not touch height or re-anchor every tick.
+            EVENT_MANAGER:RegisterForUpdate(TARGET_WIDTH_CHECK_NAME, 250, EnforceGamepadTargetWidth)
+            EnforceGamepadTargetWidth()
             local BHB = GetCrutchBossHealthBar()
             if BHB and BHB.RegisterThresholdsChangeListener then
                 BHB.RegisterThresholdsChangeListener(NAME, function()

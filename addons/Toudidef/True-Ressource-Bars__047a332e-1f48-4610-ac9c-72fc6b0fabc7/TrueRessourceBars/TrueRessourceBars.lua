@@ -1,26 +1,45 @@
 -- Initialisation de l'addon
 local TrueRessourceBars = {
     name = "TrueRessourceBars",
-    version = "3.4",
+    version = "3.5",
     updateInterval = 50,
     previewMode = false,
+    auraStyleVersion = 1,
+    targetName = "",
     controls = {
         targetBuffs = {},
         targetDebuffs = {}
     },
-    shieldCache = {
+    shieldSlots = {
+        player = {},
+        reticleover = {}
+    },
+    shieldTotals = {
         player = 0,
         reticleover = 0
     }
 }
 
+-- Raccourcis locaux pour limiter les recherches globales dans la boucle
+local math_floor = math.floor
+local math_min = math.min
+local math_max = math.max
+local math_abs = math.abs
+local string_format = string.format
+
 -- Constantes des attributs de combat ESO
 local MECHANIC_HEALTH  = COMBAT_MECHANIC_FLAGS_HEALTH or 1
 local MECHANIC_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA or 2
 local MECHANIC_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA or 4
-
--- Épaisseur de la bordure noire : 3 pixels
 local BORDER_SIZE = 3
+
+-- Tables réutilisables (zéro allocation en régime permanent)
+local suppressedControls = {}
+local reusableBuffList = {}
+local reusableDebuffList = {}
+local auraEntryPool = {}
+local timeStrCache = { [0] = "" }
+local stackStrCache = {}
 
 -- Mapping des polices Gamepad & Natives
 local fontMapping = {
@@ -34,45 +53,18 @@ local fontMapping = {
 }
 
 local fontChoices = {
-    "Gamepad Medium",
-    "Gamepad Bold",
-    "Medium (Default)",
-    "Bold",
-    "Antique",
-    "Stone Tablet",
-    "Chat Font"
+    "Gamepad Medium", "Gamepad Bold", "Medium (Default)", "Bold", "Antique", "Stone Tablet", "Chat Font"
 }
 
--- Styles d'ombrage et de contour pour la lisibilité
-local AVAILABLE_STYLES = {
-    { name = "Outline",           value = FONT_STYLE_OUTLINE or 1 },
-    { name = "Thick Soft Shadow", value = FONT_STYLE_SOFT_SHADOW_THICK or 4 },
-    { name = "Thin Soft Shadow",  value = FONT_STYLE_SOFT_SHADOW_THIN or 3 },
-    { name = "Drop Shadow",       value = FONT_STYLE_SHADOW or 2 },
-    { name = "None",              value = FONT_STYLE_NONE or 0 },
+-- Styles d'ombrage et de contour
+local styleMapping = {
+    ["Outline"]           = "outline",
+    ["Thick Soft Shadow"] = "soft-shadow-thick",
+    ["Thin Soft Shadow"]  = "soft-shadow-thin",
+    ["Drop Shadow"]       = "shadow",
+    ["None"]              = ""
 }
-
-local styleToStringMapping = {
-    [FONT_STYLE_OUTLINE or 1]           = "outline",
-    [FONT_STYLE_SOFT_SHADOW_THICK or 4] = "soft-shadow-thick",
-    [FONT_STYLE_SOFT_SHADOW_THIN or 3]  = "soft-shadow-thin",
-    [FONT_STYLE_SHADOW or 2]            = "shadow",
-    [FONT_STYLE_NONE or 0]              = ""
-}
-
-local availableStyleChoices = {}
-for _, entry in ipairs(AVAILABLE_STYLES) do
-    table.insert(availableStyleChoices, entry.name)
-end
-
-local function GetStyleDescriptor(selectedStyleName)
-    for _, styleEntry in ipairs(AVAILABLE_STYLES) do
-        if styleEntry.name == selectedStyleName then
-            return styleToStringMapping[styleEntry.value] or "outline"
-        end
-    end
-    return "outline"
-end
+local availableStyleChoices = { "Outline", "Thick Soft Shadow", "Thin Soft Shadow", "Drop Shadow", "None" }
 
 -- Emplacements dans les coins
 local cornerPositionMapping = {
@@ -83,41 +75,24 @@ local cornerPositionMapping = {
     ["Left"]         = { point = LEFT, relPoint = LEFT, x = 6, y = 0 },
     ["Right"]        = { point = RIGHT, relPoint = RIGHT, x = -6, y = 0 },
 }
-
-local cornerPositionChoices = {
-    "Top Left",
-    "Top Right",
-    "Bottom Left",
-    "Bottom Right",
-    "Left",
-    "Right"
-}
+local cornerPositionChoices = { "Top Left", "Top Right", "Bottom Left", "Bottom Right", "Left", "Right" }
 
 -- Positions pour le TEMPS des auras
 local timerPositionMapping = {
-    ["Top Left"]      = { point = TOPLEFT, relPoint = TOPLEFT, x = 0, y = 0 },
-    ["Top Right"]     = { point = TOPRIGHT, relPoint = TOPRIGHT, x = 0, y = 0 },
-    ["Bottom Left"]   = { point = BOTTOMLEFT, relPoint = BOTTOMLEFT, x = 0, y = 0 },
-    ["Bottom Right"]  = { point = BOTTOMRIGHT, relPoint = BOTTOMRIGHT, x = 0, y = 0 },
-    ["Center"]        = { point = CENTER, relPoint = CENTER, x = 0, y = 0 },
-    ["Low Center"]    = { point = BOTTOM, relPoint = BOTTOM, x = 0, y = -3 },
-    ["Below Center"]  = { point = TOP, relPoint = BOTTOM, x = 0, y = 2 },
-    ["Above Center"]  = { point = BOTTOM, relPoint = TOP, x = 0, y = -2 },
-    ["Left Center"]   = { point = RIGHT, relPoint = LEFT, x = -4, y = 0 },
-    ["Right Center"]  = { point = LEFT, relPoint = RIGHT, x = 4, y = 0 }
+    ["Top Left"]     = { point = TOPLEFT, relPoint = TOPLEFT, x = 0, y = 0 },
+    ["Top Right"]    = { point = TOPRIGHT, relPoint = TOPRIGHT, x = 0, y = 0 },
+    ["Bottom Left"]  = { point = BOTTOMLEFT, relPoint = BOTTOMLEFT, x = 0, y = 0 },
+    ["Bottom Right"] = { point = BOTTOMRIGHT, relPoint = BOTTOMRIGHT, x = 0, y = 0 },
+    ["Center"]       = { point = CENTER, relPoint = CENTER, x = 0, y = 0 },
+    ["Low Center"]   = { point = BOTTOM, relPoint = BOTTOM, x = 0, y = -3 },
+    ["Below Center"] = { point = TOP, relPoint = BOTTOM, x = 0, y = 2 },
+    ["Above Center"] = { point = BOTTOM, relPoint = TOP, x = 0, y = -2 },
+    ["Left Center"]  = { point = RIGHT, relPoint = LEFT, x = -4, y = 0 },
+    ["Right Center"] = { point = LEFT, relPoint = RIGHT, x = 4, y = 0 }
 }
-
 local timerPositionChoices = {
-    "Top Left",
-    "Top Right",
-    "Bottom Left",
-    "Bottom Right",
-    "Center",
-    "Low Center",
-    "Below Center",
-    "Above Center",
-    "Left Center",
-    "Right Center"
+    "Top Left", "Top Right", "Bottom Left", "Bottom Right", "Center",
+    "Low Center", "Below Center", "Above Center", "Left Center", "Right Center"
 }
 
 -- Positions pour les STACKS des auras
@@ -128,30 +103,18 @@ local stackPositionMapping = {
     ["Bottom Right"] = { point = BOTTOMRIGHT, relPoint = BOTTOMRIGHT, x = -2, y = -2 },
     ["Center"]       = { point = CENTER, relPoint = CENTER, x = 0, y = 0 }
 }
-
-local stackPositionChoices = {
-    "Top Left",
-    "Top Right",
-    "Bottom Left",
-    "Bottom Right",
-    "Center"
-}
+local stackPositionChoices = { "Top Left", "Top Right", "Bottom Left", "Bottom Right", "Center" }
 
 local auraOrientationChoices = {
-    "Horizontal (Left to Right)",
-    "Horizontal (Right to Left)",
-    "Horizontal (Centered)",
-    "Vertical (Top to Bottom)",
-    "Vertical (Bottom to Top)",
-    "Vertical (Centered)"
+    "Horizontal (Left to Right)", "Horizontal (Right to Left)", "Horizontal (Centered)",
+    "Vertical (Top to Bottom)", "Vertical (Bottom to Top)", "Vertical (Centered)"
 }
 
 -- Valeurs par défaut sauvegardées
 local defaults = {
     bars = {
         health = {
-            enabled = "Yes",
-            x = 0, y = 340, width = 360, height = 28,
+            enabled = "Yes", x = 0, y = 340, width = 360, height = 28,
             color = { r = 0.85, g = 0.15, b = 0.15, a = 1 },
             shieldColor = { r = 0.75, g = 0.25, b = 0.95, a = 0.75 },
             shieldValuePos = "Top Right",
@@ -159,110 +122,56 @@ local defaults = {
             textColor = { r = 1, g = 1, b = 1, a = 1 },
             textFormat = "Current / Max (Percent)",
             drainDirection = "Right to Left",
-            warningEnabled = true,
-            warningThreshold = 35,
-            warningPulseSpeed = 120,
+            warningEnabled = true, warningThreshold = 35, warningPulseSpeed = 120,
         },
         magicka = {
-            enabled = "Yes",
-            x = -220, y = 380, width = 260, height = 24,
+            enabled = "Yes", x = -220, y = 380, width = 260, height = 24,
             color = { r = 0.15, g = 0.45, b = 0.95, a = 1 },
             font = "Gamepad Bold", fontSize = 16, fontStyle = "Outline",
             textColor = { r = 1, g = 1, b = 1, a = 1 },
             textFormat = "Current / Max (Percent)",
             drainDirection = "Right to Left",
-            warningEnabled = false,
-            warningThreshold = 25,
-            warningPulseSpeed = 120,
+            warningEnabled = false, warningThreshold = 25, warningPulseSpeed = 120,
         },
         stamina = {
-            enabled = "Yes",
-            x = 220, y = 380, width = 260, height = 24,
+            enabled = "Yes", x = 220, y = 380, width = 260, height = 24,
             color = { r = 0.15, g = 0.85, b = 0.25, a = 1 },
             font = "Gamepad Bold", fontSize = 16, fontStyle = "Outline",
             textColor = { r = 1, g = 1, b = 1, a = 1 },
             textFormat = "Current / Max (Percent)",
             drainDirection = "Left to Right",
-            warningEnabled = false,
-            warningThreshold = 25,
-            warningPulseSpeed = 120,
+            warningEnabled = false, warningThreshold = 25, warningPulseSpeed = 120,
         },
         target = {
-            enabled = "Yes",
-            x = 0, y = -340, width = 460, height = 32,
+            enabled = "Yes", x = 0, y = -340, width = 460, height = 32,
             color = { r = 0.85, g = 0.15, b = 0.15, a = 1 },
             shieldColor = { r = 0.75, g = 0.25, b = 0.95, a = 0.75 },
             shieldValuePos = "Top Right",
-            targetNamePosition = "Above",
-            targetNameFontSize = 18,
+            targetNamePosition = "Above", targetNameFontSize = 18,
             font = "Gamepad Bold", fontSize = 20, fontStyle = "Outline",
             textColor = { r = 1, g = 1, b = 1, a = 1 },
             textFormat = "Current / Max (Percent)",
             drainDirection = "To Center",
-            warningEnabled = false,
-            warningThreshold = 25,
-            warningPulseSpeed = 120,
+            warningEnabled = false, warningThreshold = 25, warningPulseSpeed = 120,
         }
     },
     targetAuras = {
-        buffsEnabled = "Yes",
-        debuffsEnabled = "Yes",
-        buffX = 5, buffY = -295,
-        debuffX = 5, debuffY = -385,
-
-        buffDir = "Horizontal (Centered)",
-        debuffDir = "Horizontal (Centered)",
-
-        buffEnableGrid = false,
-        buffMaxPerRow = 8,
-        buffRowDirection = "Below",
-
-        debuffEnableGrid = false,
-        debuffMaxPerRow = 8,
-        debuffRowDirection = "Above",
-
-        iconSize = 38,
-        spacing = 4,
-        fontStyle = "Gamepad Medium",
-        fontOutlineStyle = "Outline",
-
-        timerBuffPos = "Low Center",
-        timerDebuffPos = "Low Center",
-        timerSize = 16,
-        timerColor = { r = 1, g = 1, b = 1, a = 1 },
-
-        stackBuffPos = "Top Right",
-        stackDebuffPos = "Top Right",
-        stackSize = 16,
-        stackColor = { r = 1, g = 0.8, b = 0, a = 1 },
-
-        hidePermanent = false,
-        hideLongBuffs = false,
-        longBuffThreshold = 60
-    },
-    enemyBuffAlert = {
-        enabled = "Yes",
-        -- Alertes Résolution
-        resolveDisplayMode = "Both", -- "Bar Color Change", "Text Display", "Both"
-        minorMissingColor  = { r = 1, g = 0.5, b = 0, a = 1 },
-        majorMissingColor  = { r = 0.9, g = 0.1, b = 0.8, a = 1 },
-        bothMissingColor   = { r = 1, g = 0.9, b = 0.1, a = 1 },
-        resolveTextX       = 0,
-        resolveTextY       = -260,
-        resolveTextFontSize= 16,
-
-        -- Alertes CC Immune
-        ccImmuneMode       = "Both", -- "Bar Corner Label", "Movable Timer", "Both"
-        ccImmuneCorner     = "Bottom Left", -- Calé en Bottom Left par défaut
-        ccImmuneColor      = { r = 0.2, g = 0.9, b = 1, a = 1 },
-        ccImmuneFontSize   = 20, -- Taille 20 par défaut
-        ccTimerX           = 0,
-        ccTimerY           = -225,
-        ccTimerFontSize    = 22
+        buffsEnabled = "Yes", debuffsEnabled = "Yes",
+        buffX = 5, buffY = -295, debuffX = 5, debuffY = -385,
+        buffDir = "Horizontal (Centered)", debuffDir = "Horizontal (Centered)",
+        buffEnableGrid = false, buffMaxPerRow = 8, buffRowDirection = "Below",
+        debuffEnableGrid = false, debuffMaxPerRow = 8, debuffRowDirection = "Above",
+        iconSize = 38, spacing = 4,
+        fontStyle = "Gamepad Medium", fontOutlineStyle = "Outline",
+        timerBuffPos = "Low Center", timerDebuffPos = "Low Center",
+        timerSize = 16, timerColor = { r = 1, g = 1, b = 1, a = 1 },
+        stackBuffPos = "Top Right", stackDebuffPos = "Top Right",
+        stackSize = 16, stackColor = { r = 1, g = 0.8, b = 0, a = 1 },
+        hidePermanent = false, hideLongBuffs = false, longBuffThreshold = 60
     }
 }
 
--- Échantillons factices complets pour l'aperçu
+-- Échantillons factices pour le mode aperçu
 local dummyBuffData = {
     { icon = "/esoui/art/icons/ability_warrior_010.dds", time = 25 },
     { icon = "/esoui/art/icons/ability_rogue_038.dds", time = 120 },
@@ -284,152 +193,163 @@ local dummyDebuffData = {
     { icon = "/esoui/art/icons/ability_debuff_major_breach.dds", time = 4 }
 }
 
--- Extraction sécurisée des composantes RVBA
+local function SetHiddenIfChanged(ctrl, hidden)
+    if ctrl and ctrl:IsControlHidden() ~= hidden then
+        ctrl:SetHidden(hidden)
+    end
+end
+
+local function InvalidateAuraStyles()
+    TrueRessourceBars.auraStyleVersion = TrueRessourceBars.auraStyleVersion + 1
+end
+
 local function GetRGBA(c, defR, defG, defB, defA)
     if type(c) ~= "table" then
         return defR or 1, defG or 1, defB or 1, defA or 1
     end
-    local r = c.r or c[1] or defR or 1
-    local g = c.g or c[2] or defG or 1
-    local b = c.b or c[3] or defB or 1
-    local a = c.a or c[4] or defA or 1
-    return r, g, b, a
+    return c.r or c[1] or defR or 1, c.g or c[2] or defG or 1, c.b or c[3] or defB or 1, c.a or c[4] or defA or 1
 end
 
--- Application uniforme de la couleur unie
-local function SetBarColor(bar, colorTable, alphaOverride)
+local function SetBarSolidColor(bar, r, g, b, a)
     if not bar then return end
-    local r, g, b, a = GetRGBA(colorTable, 1, 1, 1, 1)
-    if alphaOverride then a = alphaOverride end
     bar:SetColor(r, g, b, a)
     bar:SetGradientColors(r, g, b, a, r, g, b, a)
 end
 
--- Récupération sécurisée des ressources
-local function GetPower(unitTag, mechanicType)
-    local cur, max, eff = GetUnitPower(unitTag, mechanicType)
-    if (not eff or eff == 0) and (not cur or cur == 0) then
-        if mechanicType == MECHANIC_HEALTH then
-            cur, max, eff = GetUnitPower(unitTag, 1)
-        elseif mechanicType == MECHANIC_MAGICKA then
-            cur, max, eff = GetUnitPower(unitTag, 2)
-        elseif mechanicType == MECHANIC_STAMINA then
-            cur, max, eff = GetUnitPower(unitTag, 4)
-        end
-    end
-    return cur or 0, max or 0, (eff and eff > 0) and eff or (max or 1)
-end
-
 local function FormatNumber(value)
     if value >= 1000000 then
-        return string.format("%.1fm", value / 1000000)
+        return string_format("%.1fm", value * 0.000001)
     elseif value >= 1000 then
-        return string.format("%.1fk", value / 1000)
+        return string_format("%.1fk", value * 0.001)
+    end
+    return tostring(math_floor(value))
+end
+
+-- Formatage du temps en entiers (secondes, minutes ou heures) avec cache borné
+local function GetFormattedTimeAndKey(seconds)
+    if seconds <= 0 then return 0, "" end
+    local key
+    if seconds >= 3600 then
+        local h = math_floor(seconds / 3600)
+        key = 200000 + h
+        if key > 200100 then
+            return key, string_format("%dh", h)
+        end
+        if not timeStrCache[key] then
+            timeStrCache[key] = string_format("%dh", h)
+        end
+    elseif seconds >= 60 then
+        local m = math_floor(seconds / 60)
+        key = 100000 + m
+        if not timeStrCache[key] then
+            timeStrCache[key] = string_format("%dm", m)
+        end
     else
-        return tostring(math.floor(value))
+        -- Arrondi à la seconde supérieure pour éviter d'afficher "0s" avant expiration
+        key = math_ceil(seconds)
+        if not timeStrCache[key] then
+            timeStrCache[key] = string_format("%ds", key)
+        end
     end
+    return key, timeStrCache[key]
 end
 
--- Formatage du temps en texte lisible
-local function FormatTime(seconds)
-    if seconds <= 0 then return "" end
-    if seconds > 3600 then
-        return string.format("%dh", math.floor(seconds / 3600))
-    elseif seconds > 60 then
-        return string.format("%dm", math.floor(seconds / 60))
-    else
-        return string.format("%.1fs", seconds)
+local function GetFormattedStack(stackVal)
+    if stackVal <= 1 then return "" end
+    if stackVal <= 100 then
+        local str = stackStrCache[stackVal]
+        if not str then
+            str = tostring(stackVal)
+            stackStrCache[stackVal] = str
+        end
+        return str
     end
+    return tostring(stackVal)
 end
 
--- Couleur dynamique du minuteur CC Immune selon le temps restant
-local function GetCCTimerColor(duration)
-    if duration > 4 then
-        return 0.2, 0.9, 1.0, 1.0 -- Cyan (> 4s)
-    elseif duration > 2 then
-        return 1.0, 0.85, 0.1, 1.0 -- Jaune / Or (2s à 4s)
-    else
-        return 1.0, 0.25, 0.25, 1.0 -- Rouge vif (<= 2s)
-    end
-end
+-- Gestion des slots de bouclier par unité (sans allocation récurrente)
+local function SetUnitShieldSlot(unitTag, statType, attributeType, powerType, value)
+    local slots = TrueRessourceBars.shieldSlots[unitTag]
+    if not slots then return end
 
--- Récupération du bouclier (Damage Shield)
-local function GetShieldValue(unitTag)
-    if TrueRessourceBars.shieldCache[unitTag] and TrueRessourceBars.shieldCache[unitTag] > 0 then
-        return TrueRessourceBars.shieldCache[unitTag]
-    end
-
-    local value = GetUnitAttributeVisualizerEffectInfo(
-        unitTag,
-        ATTRIBUTE_VISUAL_POWER_SHIELDING,
-        STAT_MITIGATION or 2,
-        ATTRIBUTE_HEALTH,
-        MECHANIC_HEALTH
-    )
-    if value and value > 0 then return value end
-
-    local valueDef = GetUnitAttributeVisualizerEffectInfo(
-        unitTag,
-        ATTRIBUTE_VISUAL_POWER_SHIELDING,
-        STAT_DEFENSE or 1,
-        ATTRIBUTE_HEALTH,
-        MECHANIC_HEALTH
-    )
-    if valueDef and valueDef > 0 then return valueDef end
-
-    return 0
-end
-
--- Analyse des alertes sur la cible (Résolution majeure/mineure et CC Immune)
-local function CheckTargetBuffAlerts(unitTag)
-    local hasMajorResolve = false
-    local hasMinorResolve = false
-    local isCCImmune = false
-    local ccDuration = 0
-
-    if not DoesUnitExist(unitTag) then
-        return hasMajorResolve, hasMinorResolve, isCCImmune, ccDuration
-    end
-
-    local currentTime = GetFrameTimeSeconds()
-
-    for i = 1, GetNumBuffs(unitTag) do
-        local buffName, timeStarted, timeEnding, _, _, iconFilename = GetUnitBuffInfo(unitTag, i)
-        if buffName and buffName ~= "" then
-            local lowerName = string.lower(buffName)
-            local lowerIcon = string.lower(iconFilename or "")
-
-            if string.find(lowerIcon, "major_resolve") or string.find(lowerName, "major resolve") or string.find(lowerName, "résolution majeure") then
-                hasMajorResolve = true
-            end
-
-            if string.find(lowerIcon, "minor_resolve") or string.find(lowerName, "minor resolve") or string.find(lowerName, "résolution mineure") then
-                hasMinorResolve = true
-            end
-
-            if string.find(lowerIcon, "cc_immune") or string.find(lowerIcon, "unstoppable") or string.find(lowerIcon, "immovable")
-                or string.find(lowerName, "cc immun") or string.find(lowerName, "crowd control")
-                or string.find(lowerName, "inarrêtable") or string.find(lowerName, "immunité") then
-                isCCImmune = true
-                if timeEnding and timeEnding > currentTime then
-                    ccDuration = timeEnding - currentTime
-                end
-            end
+    local foundSlot, freeSlot
+    for i = 1, #slots do
+        local s = slots[i]
+        if s.stat == statType and s.attr == attributeType and s.power == powerType then
+            foundSlot = s
+            break
+        elseif s.val == 0 and not freeSlot then
+            freeSlot = s
         end
     end
 
-    return hasMajorResolve, hasMinorResolve, isCCImmune, ccDuration
+    local cleanVal = (value and value > 0) and value or 0
+    if foundSlot then
+        foundSlot.val = cleanVal
+    elseif cleanVal > 0 then
+        if freeSlot then
+            freeSlot.stat, freeSlot.attr, freeSlot.power, freeSlot.val = statType, attributeType, powerType, cleanVal
+        else
+            slots[#slots + 1] = { stat = statType, attr = attributeType, power = powerType, val = cleanVal }
+        end
+    end
+
+    local total = 0
+    for i = 1, #slots do
+        total = total + slots[i].val
+    end
+    TrueRessourceBars.shieldTotals[unitTag] = total
 end
 
--- Calcul mathématique du double-pulsation
-local function GetDoublePulseAlpha(pulseSpeed)
-    local p = math.max(40, pulseSpeed or 120)
-    local gap = math.floor(p * 0.7)
-    local pause = math.floor(p * 2.4)
-    local totalCycle = (4 * p) + gap + pause
+-- Resynchronisation directe via l'API lors d'un changement de cible / zone
+local function RefreshUnitShieldCache(unitTag)
+    local slots = TrueRessourceBars.shieldSlots[unitTag]
+    if not slots then return end
 
-    local now = GetFrameTimeMilliseconds()
-    local t = now % totalCycle
+    for i = 1, #slots do slots[i].val = 0 end
+    TrueRessourceBars.shieldTotals[unitTag] = 0
+
+    if not DoesUnitExist(unitTag) then return end
+
+    local statMit = STAT_MITIGATION or 2
+    local statDef = STAT_DEFENSE or 1
+    local healthPower = POWERTYPE_HEALTH or MECHANIC_HEALTH
+
+    local val = GetUnitAttributeVisualizerEffectInfo(unitTag, ATTRIBUTE_VISUAL_POWER_SHIELDING, statMit, ATTRIBUTE_HEALTH, healthPower)
+    if val and val > 0 then
+        SetUnitShieldSlot(unitTag, statMit, ATTRIBUTE_HEALTH, healthPower, val)
+        return
+    end
+    if healthPower ~= MECHANIC_HEALTH then
+        val = GetUnitAttributeVisualizerEffectInfo(unitTag, ATTRIBUTE_VISUAL_POWER_SHIELDING, statMit, ATTRIBUTE_HEALTH, MECHANIC_HEALTH)
+        if val and val > 0 then
+            SetUnitShieldSlot(unitTag, statMit, ATTRIBUTE_HEALTH, MECHANIC_HEALTH, val)
+            return
+        end
+    end
+    val = GetUnitAttributeVisualizerEffectInfo(unitTag, ATTRIBUTE_VISUAL_POWER_SHIELDING, statDef, ATTRIBUTE_HEALTH, healthPower)
+    if val and val > 0 then
+        SetUnitShieldSlot(unitTag, statDef, ATTRIBUTE_HEALTH, healthPower, val)
+    end
+end
+
+-- Tri décroissant par durée restante
+local function CompareEffectsDescending(a, b)
+    local timeA = a.isPermanent and -1 or a.timeLeft
+    local timeB = b.isPermanent and -1 or b.timeLeft
+    if timeA ~= timeB then
+        return timeA > timeB
+    end
+    return a.name < b.name
+end
+
+-- Calcul du double-pulsation
+local function GetDoublePulseAlpha(pulseSpeed)
+    local p = math_max(40, pulseSpeed or 120)
+    local gap = math_floor(p * 0.7)
+    local pause = math_floor(p * 2.4)
+    local totalCycle = (4 * p) + gap + pause
+    local t = GetFrameTimeMilliseconds() % totalCycle
 
     if t < p then
         return 1.0 - (0.85 * (t / p))
@@ -438,20 +358,18 @@ local function GetDoublePulseAlpha(pulseSpeed)
     elseif t < (2 * p + gap) then
         return 1.0
     elseif t < (3 * p + gap) then
-        local elapsed = t - (2 * p + gap)
-        return 1.0 - (0.85 * (elapsed / p))
+        return 1.0 - (0.85 * ((t - (2 * p + gap)) / p))
     elseif t < (4 * p + gap) then
-        local elapsed = t - (3 * p + gap)
-        return 0.15 + (0.85 * (elapsed / p))
-    else
-        return 1.0
+        return 0.15 + (0.85 * ((t - (3 * p + gap)) / p))
     end
+    return 1.0
 end
 
--- Création d'une barre unie
+-- Création d'une barre de ressource
 local function CreateBarControl(barKey, config)
     local wm = WINDOW_MANAGER
     local name = TrueRessourceBars.name .. "_" .. barKey
+    local halfWidth = config.width * 0.5
 
     local container = wm:CreateControl(name .. "Container", TrueRessourceBars.root, CT_CONTROL)
     container:SetDimensions(config.width, config.height)
@@ -475,8 +393,6 @@ local function CreateBarControl(barKey, config)
     local barNormal = wm:CreateControl(name .. "BarNormal", container, CT_STATUSBAR)
     barNormal:SetAnchorFill()
     barNormal:SetDrawTier(DT_HIGH)
-
-    local halfWidth = config.width / 2
 
     local lossCenterL = wm:CreateControl(name .. "LossCenterL", container, CT_STATUSBAR)
     lossCenterL:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 0)
@@ -516,22 +432,14 @@ local function CreateBarControl(barKey, config)
     shieldLabel:SetDrawTier(DT_HIGH)
 
     local targetNameLabel = nil
-    local ccImmuneLabel = nil
     if barKey == "target" then
         targetNameLabel = wm:CreateControl(name .. "TargetNameLabel", container, CT_LABEL)
         targetNameLabel:SetDrawLayer(DL_OVERLAY)
         targetNameLabel:SetDrawTier(DT_HIGH)
-
-        ccImmuneLabel = wm:CreateControl(name .. "CCImmuneLabel", container, CT_LABEL)
-        ccImmuneLabel:SetDrawLayer(DL_OVERLAY)
-        ccImmuneLabel:SetDrawTier(DT_HIGH)
-        ccImmuneLabel:SetHidden(true)
     end
 
     return {
         container = container,
-        border = border,
-        bg = bg,
         barNormal = barNormal,
         lossBarNormal = lossBarNormal,
         barCenterL = barCenterL,
@@ -542,124 +450,24 @@ local function CreateBarControl(barKey, config)
         label = label,
         shieldLabel = shieldLabel,
         targetNameLabel = targetNameLabel,
-        ccImmuneLabel = ccImmuneLabel,
         animValue = nil
     }
 end
 
--- Création des contrôles avancés pour les alertes (Texte Resolve raturé et Minuteur CC Immune déplaçable)
-local function CreateAlertOverlayControls()
-    local wm = WINDOW_MANAGER
-
-    -- 1. Minuteur CC Immune déplaçable
-    local ccFrame = wm:CreateTopLevelWindow(TrueRessourceBars.name .. "CCImmuneTimerFrame")
-    ccFrame:SetDimensions(180, 40)
-    ccFrame:SetDrawTier(DT_HIGH)
-
-    local ccTimerLabel = wm:CreateControl(TrueRessourceBars.name .. "CCTimerLabel", ccFrame, CT_LABEL)
-    ccTimerLabel:SetAnchor(CENTER, ccFrame, CENTER, 0, 0)
-    ccTimerLabel:SetDrawLayer(DL_OVERLAY)
-    ccTimerLabel:SetDrawTier(DT_HIGH)
-    ccFrame.label = ccTimerLabel
-    TrueRessourceBars.ccTimerFrame = ccFrame
-
-    -- 2. Cadre de texte "Resolve Maj Min" avec barres de rature physiques
-    local resFrame = wm:CreateTopLevelWindow(TrueRessourceBars.name .. "ResolveTextFrame")
-    resFrame:SetDimensions(250, 30)
-    resFrame:SetDrawTier(DT_HIGH)
-
-    local container = wm:CreateControl(TrueRessourceBars.name .. "ResolveContainer", resFrame, CT_CONTROL)
-    container:SetAnchor(CENTER, resFrame, CENTER, 0, 0)
-    container:SetDimensions(220, 26)
-
-    -- Morceau 1 : "Resolve "
-    local labelRes = wm:CreateControl(TrueRessourceBars.name .. "LblResolve", container, CT_LABEL)
-    labelRes:SetAnchor(LEFT, container, LEFT, 0, 0)
-    labelRes:SetText("Resolve ")
-
-    local strikeRes = wm:CreateControl(TrueRessourceBars.name .. "StrikeResolve", labelRes, CT_TEXTURE)
-    strikeRes:SetAnchor(LEFT, labelRes, LEFT, -2, 0)
-    strikeRes:SetAnchor(RIGHT, labelRes, RIGHT, 2, 0)
-    strikeRes:SetHeight(2)
-    strikeRes:SetDrawLayer(DL_OVERLAY)
-    strikeRes:SetDrawTier(DT_HIGH)
-    strikeRes:SetHidden(true)
-
-    -- Morceau 2 : "Maj "
-    local labelMaj = wm:CreateControl(TrueRessourceBars.name .. "LblMaj", container, CT_LABEL)
-    labelMaj:SetAnchor(LEFT, labelRes, RIGHT, 2, 0)
-    labelMaj:SetText("Maj ")
-
-    local strikeMaj = wm:CreateControl(TrueRessourceBars.name .. "StrikeMaj", labelMaj, CT_TEXTURE)
-    strikeMaj:SetAnchor(LEFT, labelMaj, LEFT, -2, 0)
-    strikeMaj:SetAnchor(RIGHT, labelMaj, RIGHT, 0, 0)
-    strikeMaj:SetHeight(2)
-    strikeMaj:SetDrawLayer(DL_OVERLAY)
-    strikeMaj:SetDrawTier(DT_HIGH)
-    strikeMaj:SetHidden(true)
-
-    -- Morceau 3 : "Min"
-    local labelMin = wm:CreateControl(TrueRessourceBars.name .. "LblMin", container, CT_LABEL)
-    labelMin:SetAnchor(LEFT, labelMaj, RIGHT, 2, 0)
-    labelMin:SetText("Min")
-
-    local strikeMin = wm:CreateControl(TrueRessourceBars.name .. "StrikeMin", labelMin, CT_TEXTURE)
-    strikeMin:SetAnchor(LEFT, labelMin, LEFT, -2, 0)
-    strikeMin:SetAnchor(RIGHT, labelMin, RIGHT, 2, 0)
-    strikeMin:SetHeight(2)
-    strikeMin:SetDrawLayer(DL_OVERLAY)
-    strikeMin:SetDrawTier(DT_HIGH)
-    strikeMin:SetHidden(true)
-
-    resFrame.container = container
-    resFrame.labelRes = labelRes
-    resFrame.strikeRes = strikeRes
-    resFrame.labelMaj = labelMaj
-    resFrame.strikeMaj = strikeMaj
-    resFrame.labelMin = labelMin
-    resFrame.strikeMin = strikeMin
-    TrueRessourceBars.resolveFrame = resFrame
-end
-
--- Mise à jour visuelle des alertes avancées
-local function ApplyAlertVisuals()
-    local alertCfg = TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert
-    local targetCfg = TrueRessourceBars.savedVars.bars.target
-    local fontPath = fontMapping[targetCfg.font] or "$(GAMEPAD_BOLD_FONT)"
-    local outline = GetStyleDescriptor(targetCfg.fontStyle)
-
-    -- Minuteur CC Immune déplaçable
-    if TrueRessourceBars.ccTimerFrame then
-        local frame = TrueRessourceBars.ccTimerFrame
-        frame:ClearAnchors()
-        frame:SetAnchor(CENTER, GuiRoot, CENTER, alertCfg.ccTimerX or 0, alertCfg.ccTimerY or -225)
-
-        local tFontSize = alertCfg.ccTimerFontSize or 22
-        frame.label:SetFont(string.format("%s|%d|%s", fontPath, tFontSize, outline))
-    end
-
-    -- Texte "Resolve Maj Min" raturé
-    if TrueRessourceBars.resolveFrame then
-        local rf = TrueRessourceBars.resolveFrame
-        rf:ClearAnchors()
-        rf:SetAnchor(CENTER, GuiRoot, CENTER, alertCfg.resolveTextX or 0, alertCfg.resolveTextY or -260)
-
-        local rFontSize = alertCfg.resolveTextFontSize or 16
-        local fStr = string.format("%s|%d|%s", fontPath, rFontSize, outline)
-        rf.labelRes:SetFont(fStr)
-        rf.labelMaj:SetFont(fStr)
-        rf.labelMin:SetFont(fStr)
-    end
-end
-
--- Application dynamique des styles visuels
+-- Application des styles visuels d'une barre (appelée uniquement sur modification)
 local function ApplyBarVisuals(barKey)
     local ui = TrueRessourceBars.bars[barKey]
     local cfg = TrueRessourceBars.savedVars.bars[barKey]
     if not ui or not cfg then return end
 
+    -- Invalidation des caches de la barre pour forcer le rafraîchissement
+    ui.lastMainVal, ui.lastGhostVal, ui.lastEffectiveMax = nil, nil, nil
+    ui.lastCurrent, ui.lastTextMax, ui.lastTargetName = nil, nil, nil
+    ui.lastShieldVal, ui.lastShieldMax, ui.lastShieldW, ui.lastShieldDir = nil, nil, nil, nil
+    ui.lastAlpha = 1.0
+
     if cfg.enabled == "No" then
-        ui.container:SetHidden(true)
+        SetHiddenIfChanged(ui.container, true)
         return
     end
 
@@ -668,73 +476,54 @@ local function ApplyBarVisuals(barKey)
     ui.container:SetDimensions(cfg.width, cfg.height)
     ui.container:SetAlpha(1.0)
 
-    SetBarColor(ui.barNormal, cfg.color)
-    SetBarColor(ui.barCenterL, cfg.color)
-    SetBarColor(ui.barCenterR, cfg.color)
+    local r, g, b, a = GetRGBA(cfg.color, 1, 1, 1, 1)
+    SetBarSolidColor(ui.barNormal, r, g, b, a)
+    SetBarSolidColor(ui.barCenterL, r, g, b, a)
+    SetBarSolidColor(ui.barCenterR, r, g, b, a)
 
-    local r, g, b = GetRGBA(cfg.color, 1, 1, 1, 1)
-    local animColor = {
-        r = math.min(1, r + 0.35),
-        g = math.min(1, g + 0.35),
-        b = math.min(1, b + 0.35),
-        a = 0.65
-    }
-    SetBarColor(ui.lossBarNormal, animColor)
-    SetBarColor(ui.lossCenterL, animColor)
-    SetBarColor(ui.lossCenterR, animColor)
+    local lr, lg, lb = math_min(1, r + 0.35), math_min(1, g + 0.35), math_min(1, b + 0.35)
+    SetBarSolidColor(ui.lossBarNormal, lr, lg, lb, 0.65)
+    SetBarSolidColor(ui.lossCenterL, lr, lg, lb, 0.65)
+    SetBarSolidColor(ui.lossCenterR, lr, lg, lb, 0.65)
 
     if cfg.shieldColor then
-        SetBarColor(ui.shieldBar, cfg.shieldColor)
+        local sr, sg, sb, sa = GetRGBA(cfg.shieldColor, 0.75, 0.25, 0.95, 0.75)
+        SetBarSolidColor(ui.shieldBar, sr, sg, sb, sa)
     end
 
-    if cfg.drainDirection == "To Center" then
-        ui.barNormal:SetHidden(true)
-        ui.lossBarNormal:SetHidden(true)
-        ui.barCenterL:SetHidden(false)
-        ui.barCenterR:SetHidden(false)
-        ui.lossCenterL:SetHidden(false)
-        ui.lossCenterR:SetHidden(false)
+    local isCenter = (cfg.drainDirection == "To Center")
+    ui.barNormal:SetHidden(isCenter)
+    ui.lossBarNormal:SetHidden(isCenter)
+    ui.barCenterL:SetHidden(not isCenter)
+    ui.barCenterR:SetHidden(not isCenter)
+    ui.lossCenterL:SetHidden(not isCenter)
+    ui.lossCenterR:SetHidden(not isCenter)
 
-        local halfW = cfg.width / 2
+    if isCenter then
+        local halfW = cfg.width * 0.5
         ui.barCenterL:SetDimensions(halfW, cfg.height)
         ui.barCenterR:SetDimensions(halfW, cfg.height)
         ui.lossCenterL:SetDimensions(halfW, cfg.height)
         ui.lossCenterR:SetDimensions(halfW, cfg.height)
-    elseif cfg.drainDirection == "Left to Right" then
-        ui.barNormal:SetHidden(false)
-        ui.lossBarNormal:SetHidden(false)
-        ui.barCenterL:SetHidden(true)
-        ui.barCenterR:SetHidden(true)
-        ui.lossCenterL:SetHidden(true)
-        ui.lossCenterR:SetHidden(true)
-
-        ui.barNormal:SetBarAlignment(BAR_ALIGNMENT_REVERSE)
-        ui.lossBarNormal:SetBarAlignment(BAR_ALIGNMENT_REVERSE)
     else
-        ui.barNormal:SetHidden(false)
-        ui.lossBarNormal:SetHidden(false)
-        ui.barCenterL:SetHidden(true)
-        ui.barCenterR:SetHidden(true)
-        ui.lossCenterL:SetHidden(true)
-        ui.lossCenterR:SetHidden(true)
-
-        ui.barNormal:SetBarAlignment(BAR_ALIGNMENT_NORMAL)
-        ui.lossBarNormal:SetBarAlignment(BAR_ALIGNMENT_NORMAL)
+        local align = (cfg.drainDirection == "Left to Right") and BAR_ALIGNMENT_REVERSE or BAR_ALIGNMENT_NORMAL
+        ui.barNormal:SetBarAlignment(align)
+        ui.lossBarNormal:SetBarAlignment(align)
     end
 
     local fontPath = fontMapping[cfg.font] or "$(GAMEPAD_BOLD_FONT)"
-    local outline = GetStyleDescriptor(cfg.fontStyle)
-    local fontString = string.format("%s|%d|%s", fontPath, cfg.fontSize or 18, outline)
+    local outline = styleMapping[cfg.fontStyle] or "outline"
+    local fontFmt = (outline ~= "") and string_format("%s|%d|%s", fontPath, cfg.fontSize or 18, outline)
+                                    or string_format("%s|%d", fontPath, cfg.fontSize or 18)
+    ui.label:SetFont(fontFmt)
 
-    ui.label:SetFont(fontString)
     local tr, tg, tb, ta = GetRGBA(cfg.textColor, 1, 1, 1, 1)
     ui.label:SetColor(tr, tg, tb, ta)
 
-    local shieldPos = cfg.shieldValuePos or "Top Right"
-    local posData = cornerPositionMapping[shieldPos] or cornerPositionMapping["Top Right"]
+    local posData = cornerPositionMapping[cfg.shieldValuePos or "Top Right"] or cornerPositionMapping["Top Right"]
     ui.shieldLabel:ClearAnchors()
     ui.shieldLabel:SetAnchor(posData.point, ui.container, posData.relPoint, posData.x, posData.y)
-    ui.shieldLabel:SetFont(string.format("%s|%d|%s", fontPath, math.max(10, (cfg.fontSize or 18) - 3), outline))
+    ui.shieldLabel:SetFont(string_format("%s|%d|%s", fontPath, math_max(10, (cfg.fontSize or 18) - 3), outline))
     if cfg.shieldColor then
         local sr, sg, sb = GetRGBA(cfg.shieldColor, 1, 1, 1, 1)
         ui.shieldLabel:SetColor(sr, sg, sb, 1)
@@ -752,36 +541,19 @@ local function ApplyBarVisuals(barKey)
         else
             ui.targetNameLabel:SetHidden(true)
         end
-
-        local nameFontSize = cfg.targetNameFontSize or 18
-        ui.targetNameLabel:SetFont(string.format("%s|%d|%s", fontPath, nameFontSize, outline))
+        ui.targetNameLabel:SetFont(string_format("%s|%d|%s", fontPath, cfg.targetNameFontSize or 18, outline))
         ui.targetNameLabel:SetColor(tr, tg, tb, ta)
     end
-
-    -- Mention CC Immune sur le coin de la barre (Taille 20 et Bottom Left par défaut)
-    if ui.ccImmuneLabel then
-        local alertCfg = TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert
-        local cornerPos = alertCfg.ccImmuneCorner or "Bottom Left"
-        local ccPosData = cornerPositionMapping[cornerPos] or cornerPositionMapping["Bottom Left"]
-        ui.ccImmuneLabel:ClearAnchors()
-        ui.ccImmuneLabel:SetAnchor(ccPosData.point, ui.container, ccPosData.relPoint, ccPosData.x, ccPosData.y)
-
-        local ccFSize = alertCfg.ccImmuneFontSize or 20
-        ui.ccImmuneLabel:SetFont(string.format("%s|%d|%s", fontPath, ccFSize, outline))
-        local ccr, ccg, ccb, cca = GetRGBA(alertCfg.ccImmuneColor, 0.2, 0.9, 1, 1)
-        ui.ccImmuneLabel:SetColor(ccr, ccg, ccb, cca)
-    end
-
-    ApplyAlertVisuals()
 end
 
--- Création ou réutilisation d'un contrôle d'icône d'aura
+-- Création ou réutilisation d'une icône d'aura (style appliqué uniquement si version modifiée)
 local function GetOrCreateTargetAuraIcon(poolType, index)
     local pool = TrueRessourceBars.controls[poolType]
-    local parentFrame = (poolType == "targetBuffs") and TrueRessourceBars.targetBuffFrame or TrueRessourceBars.targetDebuffFrame
+    local ctrl = pool[index]
 
-    if not pool[index] then
-        local ctrl = WINDOW_MANAGER:CreateControl(TrueRessourceBars.name .. poolType .. index, parentFrame, CT_TEXTURE)
+    if not ctrl then
+        local parentFrame = (poolType == "targetBuffs") and TrueRessourceBars.targetBuffFrame or TrueRessourceBars.targetDebuffFrame
+        ctrl = WINDOW_MANAGER:CreateControl(TrueRessourceBars.name .. poolType .. index, parentFrame, CT_TEXTURE)
 
         local timerLabel = WINDOW_MANAGER:CreateControl(TrueRessourceBars.name .. poolType .. "Timer" .. index, ctrl, CT_LABEL)
         timerLabel:SetDrawLayer(DL_OVERLAY)
@@ -793,524 +565,428 @@ local function GetOrCreateTargetAuraIcon(poolType, index)
         stackLabel:SetDrawTier(DT_HIGH)
         ctrl.stackLabel = stackLabel
 
+        ctrl.appliedStyleVersion = 0
         pool[index] = ctrl
     end
 
-    local ctrl = pool[index]
-    local settings = TrueRessourceBars.savedVars.targetAuras
-    local selectedFont = fontMapping[settings.fontStyle] or "$(GAMEPAD_MEDIUM_FONT)"
-    local styleDesc = GetStyleDescriptor(settings.fontOutlineStyle)
+    if ctrl.appliedStyleVersion ~= TrueRessourceBars.auraStyleVersion then
+        local settings = TrueRessourceBars.savedVars.targetAuras
+        local selectedFont = fontMapping[settings.fontStyle] or "$(GAMEPAD_MEDIUM_FONT)"
+        local styleDesc = styleMapping[settings.fontOutlineStyle] or "outline"
 
-    ctrl:SetDimensions(settings.iconSize, settings.iconSize)
+        ctrl:SetDimensions(settings.iconSize, settings.iconSize)
 
-    local tFont
-    if styleDesc and styleDesc ~= "" then
-        tFont = string.format("%s|%d|%s", selectedFont, settings.timerSize, styleDesc)
-    else
-        tFont = string.format("%s|%d", selectedFont, settings.timerSize)
-    end
-    ctrl.timerLabel:SetFont(tFont)
-    local tr, tg, tb, ta = GetRGBA(settings.timerColor, 1, 1, 1, 1)
-    ctrl.timerLabel:SetColor(tr, tg, tb, ta)
-    ctrl.timerLabel:ClearAnchors()
+        local tFont = (styleDesc ~= "") and string_format("%s|%d|%s", selectedFont, settings.timerSize, styleDesc)
+                                         or string_format("%s|%d", selectedFont, settings.timerSize)
+        ctrl.timerLabel:SetFont(tFont)
+        local tr, tg, tb, ta = GetRGBA(settings.timerColor, 1, 1, 1, 1)
+        ctrl.timerLabel:SetColor(tr, tg, tb, ta)
+        ctrl.timerLabel:ClearAnchors()
+        local tPos = timerPositionMapping[(poolType == "targetBuffs") and settings.timerBuffPos or settings.timerDebuffPos]
+        if tPos then
+            ctrl.timerLabel:SetAnchor(tPos.point, ctrl, tPos.relPoint, tPos.x, tPos.y)
+        end
 
-    local tPosSetting = (poolType == "targetBuffs") and settings.timerBuffPos or settings.timerDebuffPos
-    local tPos = timerPositionMapping[tPosSetting]
-    if tPos then
-        ctrl.timerLabel:SetAnchor(tPos.point, ctrl, tPos.relPoint, tPos.x, tPos.y)
-    end
+        local sFont = (styleDesc ~= "") and string_format("%s|%d|%s", selectedFont, settings.stackSize, styleDesc)
+                                         or string_format("%s|%d", selectedFont, settings.stackSize)
+        ctrl.stackLabel:SetFont(sFont)
+        local sr, sg, sb, sa = GetRGBA(settings.stackColor, 1, 0.8, 0, 1)
+        ctrl.stackLabel:SetColor(sr, sg, sb, sa)
+        ctrl.stackLabel:ClearAnchors()
+        local sPos = stackPositionMapping[(poolType == "targetBuffs") and settings.stackBuffPos or settings.stackDebuffPos]
+        if sPos then
+            ctrl.stackLabel:SetAnchor(sPos.point, ctrl, sPos.relPoint, sPos.x, sPos.y)
+        end
 
-    local sFont
-    if styleDesc and styleDesc ~= "" then
-        sFont = string.format("%s|%d|%s", selectedFont, settings.stackSize, styleDesc)
-    else
-        sFont = string.format("%s|%d", selectedFont, settings.stackSize)
-    end
-    ctrl.stackLabel:SetFont(sFont)
-    local sr, sg, sb, sa = GetRGBA(settings.stackColor, 1, 0.8, 0, 1)
-    ctrl.stackLabel:SetColor(sr, sg, sb, sa)
-    ctrl.stackLabel:ClearAnchors()
-
-    local sPosSetting = (poolType == "targetBuffs") and settings.stackBuffPos or settings.stackDebuffPos
-    local sPos = stackPositionMapping[sPosSetting]
-    if sPos then
-        ctrl.stackLabel:SetAnchor(sPos.point, ctrl, sPos.relPoint, sPos.x, sPos.y)
+        ctrl.appliedStyleVersion = TrueRessourceBars.auraStyleVersion
     end
 
-    ctrl:SetHidden(false)
+    SetHiddenIfChanged(ctrl, false)
     return ctrl
 end
 
--- Calcul des ancrages
+-- Calcul des ancrages d'auras avec diffing
 local function ApplyAuraAnchors(poolType, count, spacing, iconSize, direction, enableGrid, maxPerRow, vDir)
     if count == 0 then return end
     local pool = TrueRessourceBars.controls[poolType]
     local parent = (poolType == "targetBuffs") and TrueRessourceBars.targetBuffFrame or TrueRessourceBars.targetDebuffFrame
-
     if direction == "Horizontal" then direction = "Horizontal (Left to Right)" end
 
-    local limit = enableGrid and math.max(1, maxPerRow or 1) or count
+    local limit = enableGrid and math_max(1, maxPerRow or 1) or count
+    local step = iconSize + spacing
 
     for i = 1, count do
         local ctrl = pool[i]
-        ctrl:ClearAnchors()
+        local point, relPoint, xOffset, yOffset
 
         if direction == "Horizontal (Left to Right)" then
             local col = (i - 1) % limit
-            local row = math.floor((i - 1) / limit)
-            local xOffset = col * (iconSize + spacing)
-            local yOffset = (vDir == "Above") and -(row * (iconSize + spacing)) or (row * (iconSize + spacing))
-            ctrl:SetAnchor(TOPLEFT, parent, TOPLEFT, xOffset, yOffset)
-
+            local row = math_floor((i - 1) / limit)
+            xOffset = col * step
+            yOffset = (vDir == "Above") and -(row * step) or (row * step)
+            point, relPoint = TOPLEFT, TOPLEFT
         elseif direction == "Horizontal (Right to Left)" then
             local col = (i - 1) % limit
-            local row = math.floor((i - 1) / limit)
-            local xOffset = -(col * (iconSize + spacing))
-            local yOffset = (vDir == "Above") and -(row * (iconSize + spacing)) or (row * (iconSize + spacing))
-            ctrl:SetAnchor(TOPRIGHT, parent, TOPLEFT, xOffset, yOffset)
-
+            local row = math_floor((i - 1) / limit)
+            xOffset = -(col * step)
+            yOffset = (vDir == "Above") and -(row * step) or (row * step)
+            point, relPoint = TOPRIGHT, TOPLEFT
         elseif direction == "Horizontal (Centered)" then
-            local row = math.floor((i - 1) / limit)
-            local rowStart = row * limit + 1
-            local rowEnd = math.min(count, (row + 1) * limit)
-            local countInRow = rowEnd - rowStart + 1
+            local row = math_floor((i - 1) / limit)
+            local countInRow = math_min(count, (row + 1) * limit) - (row * limit)
             local rowSpan = (countInRow * iconSize) + ((countInRow - 1) * spacing)
             local col = (i - 1) % limit
-
-            local xOffset = -(rowSpan / 2) + (col * (iconSize + spacing)) + (iconSize / 2)
-            local yOffset = (vDir == "Above") and -(row * (iconSize + spacing)) or (row * (iconSize + spacing))
-            ctrl:SetAnchor(CENTER, parent, CENTER, xOffset, yOffset)
-
+            xOffset = -(rowSpan * 0.5) + (col * step) + (iconSize * 0.5)
+            yOffset = (vDir == "Above") and -(row * step) or (row * step)
+            point, relPoint = CENTER, CENTER
         elseif direction == "Vertical (Top to Bottom)" then
             local row = (i - 1) % limit
-            local col = math.floor((i - 1) / limit)
-            local yOffset = row * (iconSize + spacing)
-            local xOffset = col * (iconSize + spacing)
-            ctrl:SetAnchor(TOPLEFT, parent, TOPLEFT, xOffset, yOffset)
-
+            local col = math_floor((i - 1) / limit)
+            xOffset, yOffset = col * step, row * step
+            point, relPoint = TOPLEFT, TOPLEFT
         elseif direction == "Vertical (Bottom to Top)" then
             local row = (i - 1) % limit
-            local col = math.floor((i - 1) / limit)
-            local yOffset = -(row * (iconSize + spacing))
-            local xOffset = col * (iconSize + spacing)
-            ctrl:SetAnchor(BOTTOMLEFT, parent, TOPLEFT, xOffset, yOffset)
-
+            local col = math_floor((i - 1) / limit)
+            xOffset, yOffset = col * step, -(row * step)
+            point, relPoint = BOTTOMLEFT, TOPLEFT
         elseif direction == "Vertical (Centered)" then
-            local col = math.floor((i - 1) / limit)
-            local colStart = col * limit + 1
-            local colEnd = math.min(count, (col + 1) * limit)
-            local countInCol = colEnd - colStart + 1
+            local col = math_floor((i - 1) / limit)
+            local countInCol = math_min(count, (col + 1) * limit) - (col * limit)
             local colSpan = (countInCol * iconSize) + ((countInCol - 1) * spacing)
             local row = (i - 1) % limit
-            local yOffset = -(colSpan / 2) + row * (iconSize + spacing)
-            local xOffset = col * (iconSize + spacing)
-            ctrl:SetAnchor(TOPLEFT, parent, TOPLEFT, xOffset, yOffset)
+            xOffset = col * step
+            yOffset = -(colSpan * 0.5) + row * step
+            point, relPoint = TOPLEFT, TOPLEFT
+        end
+
+        if ctrl.lastAnchorPoint ~= point or ctrl.lastAnchorRelPoint ~= relPoint
+            or ctrl.lastAnchorX ~= xOffset or ctrl.lastAnchorY ~= yOffset then
+            ctrl:ClearAnchors()
+            ctrl:SetAnchor(point, parent, relPoint, xOffset, yOffset)
+            ctrl.lastAnchorPoint, ctrl.lastAnchorRelPoint = point, relPoint
+            ctrl.lastAnchorX, ctrl.lastAnchorY = xOffset, yOffset
         end
     end
 end
 
--- Tri décroissant par durée restante
-local function CompareEffectsDescending(a, b)
-    local timeA = a.isPermanent and -1 or a.timeLeft
-    local timeB = b.isPermanent and -1 or b.timeLeft
-
-    if timeA ~= timeB then
-        return timeA > timeB
-    end
-    return a.name < b.name
-end
-
--- Calcul des chaînes de texte
+-- Formatage du texte des barres
 local function BuildDisplayText(formatType, current, max, percent, extraPrefix)
-    local curStr = FormatNumber(current)
-    local maxStr = FormatNumber(max)
-    local result = ""
-
+    local result
     if formatType == "Current / Max (Percent)" then
-        result = string.format("%s / %s (%d%%)", curStr, maxStr, percent)
+        result = string_format("%s / %s (%d%%)", FormatNumber(current), FormatNumber(max), percent)
     elseif formatType == "Current / Max" then
-        result = string.format("%s / %s", curStr, maxStr)
+        result = string_format("%s / %s", FormatNumber(current), FormatNumber(max))
     elseif formatType == "Current (Percent)" then
-        result = string.format("%s (%d%%)", curStr, percent)
+        result = string_format("%s (%d%%)", FormatNumber(current), percent)
     elseif formatType == "Current" then
-        result = curStr
+        result = FormatNumber(current)
     elseif formatType == "Percent" then
-        result = string.format("%d%%", percent)
+        result = string_format("%d%%", percent)
+    else
+        result = ""
     end
 
     if extraPrefix and extraPrefix ~= "" then
-        result = extraPrefix .. " : " .. result
+        return extraPrefix .. " : " .. result
     end
     return result
 end
 
--- Interpolation fluide
-local function LerpValue(currentVal, targetVal, speed)
-    return currentVal + (targetVal - currentVal) * speed
-end
-
--- Mise à jour unitaire d'une barre avec alertes
+-- Mise à jour unitaire d'une barre
 local function UpdateSingleBar(barKey, unitTag, mechanicType)
     local ui = TrueRessourceBars.bars[barKey]
     local cfg = TrueRessourceBars.savedVars.bars[barKey]
     if not ui or not cfg then return end
 
     if cfg.enabled == "No" then
-        ui.container:SetHidden(true)
+        SetHiddenIfChanged(ui.container, true)
         return
     end
 
-    local current, max, effectiveMax
+    local current, effectiveMax
     local targetName = ""
     local isDummyTarget = (barKey == "target" and TrueRessourceBars.previewMode and not DoesUnitExist(unitTag))
 
     if isDummyTarget then
-        ui.container:SetHidden(false)
+        SetHiddenIfChanged(ui.container, false)
         current = 75000
         effectiveMax = 100000
         targetName = "Target Dummy"
     else
         if not DoesUnitExist(unitTag) then
-            ui.container:SetHidden(true)
+            SetHiddenIfChanged(ui.container, true)
             return
         end
-        ui.container:SetHidden(false)
-        current, max, effectiveMax = GetPower(unitTag, mechanicType)
-        targetName = (unitTag == "reticleover") and GetUnitName(unitTag) or ""
+        SetHiddenIfChanged(ui.container, false)
+        local cur, max, eff = GetUnitPower(unitTag, mechanicType)
+        current = cur or 0
+        effectiveMax = (eff and eff > 0) and eff or (max and max > 0 and max or 1)
+        if barKey == "target" then
+            targetName = TrueRessourceBars.targetName
+        end
     end
 
-    local percent = effectiveMax > 0 and math.floor((current / effectiveMax) * 100) or 0
+    local percent = effectiveMax > 0 and math_floor((current / effectiveMax) * 100) or 0
 
     if not ui.animValue then
         ui.animValue = current
-    end
-
-    ui.animValue = LerpValue(ui.animValue, current, 0.45)
-    if math.abs(ui.animValue - current) < 1.5 then
-        ui.animValue = current
+    elseif ui.animValue ~= current then
+        ui.animValue = ui.animValue + (current - ui.animValue) * 0.45
+        if math_abs(ui.animValue - current) < 1.5 then
+            ui.animValue = current
+        end
     end
 
     local mainVal, ghostVal
     if ui.animValue > current then
-        mainVal = current
-        ghostVal = ui.animValue
+        mainVal, ghostVal = current, ui.animValue
     else
-        mainVal = ui.animValue
-        ghostVal = current
+        mainVal, ghostVal = ui.animValue, current
     end
 
-    -- Gestion des alertes sur la cible ennemie
-    local barColor = cfg.color
+    -- Mise à jour des jauges uniquement si les valeurs ont bougé
+    if ui.lastMainVal ~= mainVal or ui.lastGhostVal ~= ghostVal or ui.lastEffectiveMax ~= effectiveMax then
+        ui.lastMainVal, ui.lastGhostVal, ui.lastEffectiveMax = mainVal, ghostVal, effectiveMax
 
-    if barKey == "target" then
-        local alertCfg = TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert
-        local hasMajorResolve, hasMinorResolve, isCCImmune, ccDuration
-
-        if isDummyTarget then
-            hasMajorResolve = false
-            hasMinorResolve = false
-            isCCImmune = true
-            ccDuration = 4.2
+        if cfg.drainDirection == "To Center" then
+            local halfMax, halfMain, halfGhost = effectiveMax * 0.5, mainVal * 0.5, ghostVal * 0.5
+            ui.barCenterL:SetMinMax(0, halfMax)
+            ui.barCenterL:SetValue(halfMain)
+            ui.barCenterR:SetMinMax(0, halfMax)
+            ui.barCenterR:SetValue(halfMain)
+            ui.lossCenterL:SetMinMax(0, halfMax)
+            ui.lossCenterL:SetValue(halfGhost)
+            ui.lossCenterR:SetMinMax(0, halfMax)
+            ui.lossCenterR:SetValue(halfGhost)
         else
-            hasMajorResolve, hasMinorResolve, isCCImmune, ccDuration = CheckTargetBuffAlerts(unitTag)
-        end
-
-        local alertsActive = (alertCfg.enabled ~= "No")
-
-        -- 1. Alerte Résolution (Couleur de la barre)
-        local resMode = alertCfg.resolveDisplayMode or "Both"
-        if alertsActive and (resMode == "Bar Color Change" or resMode == "Both") then
-            if not hasMajorResolve and not hasMinorResolve then
-                barColor = alertCfg.bothMissingColor
-            elseif not hasMajorResolve then
-                barColor = alertCfg.majorMissingColor
-            elseif not hasMinorResolve then
-                barColor = alertCfg.minorMissingColor
-            end
-        end
-
-        -- 2. Alerte Résolution (Texte raturé "Resolve Maj Min")
-        if TrueRessourceBars.resolveFrame then
-            local rf = TrueRessourceBars.resolveFrame
-            if alertsActive and (resMode == "Text Display" or resMode == "Both") and (isDummyTarget or DoesUnitExist(unitTag)) then
-                rf:SetHidden(false)
-                if not hasMajorResolve and not hasMinorResolve then
-                    -- Les deux manquent : tout est barré et tout devient rouge
-                    rf.labelRes:SetColor(1, 0.2, 0.2, 1)
-                    rf.labelMaj:SetColor(1, 0.2, 0.2, 1)
-                    rf.labelMin:SetColor(1, 0.2, 0.2, 1)
-
-                    rf.strikeRes:SetColor(1, 0.2, 0.2, 1)
-                    rf.strikeRes:SetHidden(false)
-                    rf.strikeMaj:SetColor(1, 0.2, 0.2, 1)
-                    rf.strikeMaj:SetHidden(false)
-                    rf.strikeMin:SetColor(1, 0.2, 0.2, 1)
-                    rf.strikeMin:SetHidden(false)
-                else
-                    -- "Resolve" normal
-                    rf.labelRes:SetColor(1, 1, 1, 1)
-                    rf.strikeRes:SetHidden(true)
-
-                    -- Majeure
-                    if not hasMajorResolve then
-                        rf.labelMaj:SetColor(0.7, 0.7, 0.7, 1)
-                        rf.strikeMaj:SetColor(1, 0.2, 0.2, 1)
-                        rf.strikeMaj:SetHidden(false)
-                    else
-                        rf.labelMaj:SetColor(0.2, 1, 0.4, 1)
-                        rf.strikeMaj:SetHidden(true)
-                    end
-
-                    -- Mineure
-                    if not hasMinorResolve then
-                        rf.labelMin:SetColor(0.7, 0.7, 0.7, 1)
-                        rf.strikeMin:SetColor(1, 0.2, 0.2, 1)
-                        rf.strikeMin:SetHidden(false)
-                    else
-                        rf.labelMin:SetColor(0.2, 1, 0.4, 1)
-                        rf.strikeMin:SetHidden(true)
-                    end
-                end
-            else
-                rf:SetHidden(true)
-            end
-        end
-
-        -- 3. Alerte CC Immune (Mention dans le coin de la barre)
-        local ccMode = alertCfg.ccImmuneMode or "Both"
-        if ui.ccImmuneLabel then
-            if alertsActive and isCCImmune and (ccMode == "Bar Corner Label" or ccMode == "Both") then
-                ui.ccImmuneLabel:SetText("Cc Immune")
-                ui.ccImmuneLabel:SetHidden(false)
-            else
-                ui.ccImmuneLabel:SetHidden(true)
-            end
-        end
-
-        -- 4. Alerte CC Immune (Minuteur déplaçable avec couleurs dynamiques)
-        if TrueRessourceBars.ccTimerFrame then
-            local cf = TrueRessourceBars.ccTimerFrame
-            if alertsActive and isCCImmune and (ccMode == "Movable Timer" or ccMode == "Both") then
-                cf:SetHidden(false)
-                cf.label:SetText(string.format("CC: %s", FormatTime(ccDuration)))
-                local r, g, b, a = GetCCTimerColor(ccDuration)
-                cf.label:SetColor(r, g, b, a)
-            else
-                cf:SetHidden(true)
-            end
+            ui.barNormal:SetMinMax(0, effectiveMax)
+            ui.barNormal:SetValue(mainVal)
+            ui.lossBarNormal:SetMinMax(0, effectiveMax)
+            ui.lossBarNormal:SetValue(ghostVal)
         end
     end
 
-    SetBarColor(ui.barNormal, barColor)
-    SetBarColor(ui.barCenterL, barColor)
-    SetBarColor(ui.barCenterR, barColor)
+    -- Mise à jour des textes uniquement si nécessaire
+    if ui.lastCurrent ~= current or ui.lastTextMax ~= effectiveMax or ui.lastTargetName ~= targetName then
+        ui.lastCurrent, ui.lastTextMax, ui.lastTargetName = current, effectiveMax, targetName
 
-    if cfg.drainDirection == "To Center" then
-        local halfMax = effectiveMax / 2
-        local halfMain = mainVal / 2
-        local halfGhost = ghostVal / 2
-
-        ui.barCenterL:SetMinMax(0, halfMax)
-        ui.barCenterL:SetValue(halfMain)
-        ui.barCenterR:SetMinMax(0, halfMax)
-        ui.barCenterR:SetValue(halfMain)
-
-        ui.lossCenterL:SetMinMax(0, halfMax)
-        ui.lossCenterL:SetValue(halfGhost)
-        ui.lossCenterR:SetMinMax(0, halfMax)
-        ui.lossCenterR:SetValue(halfGhost)
-    else
-        ui.barNormal:SetMinMax(0, effectiveMax)
-        ui.barNormal:SetValue(mainVal)
-
-        ui.lossBarNormal:SetMinMax(0, effectiveMax)
-        ui.lossBarNormal:SetValue(ghostVal)
-    end
-
-    if barKey == "target" then
-        local namePos = cfg.targetNamePosition or "Above"
-        if ui.targetNameLabel and (namePos == "Above" or namePos == "Below") then
-            ui.targetNameLabel:SetText(targetName)
-            ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
-        elseif namePos == "Inside Bar" then
-            if ui.targetNameLabel then ui.targetNameLabel:SetText("") end
-            ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, targetName))
+        if barKey == "target" then
+            local namePos = cfg.targetNamePosition or "Above"
+            if ui.targetNameLabel and (namePos == "Above" or namePos == "Below") then
+                ui.targetNameLabel:SetText(targetName)
+                ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
+            elseif namePos == "Inside Bar" then
+                if ui.targetNameLabel then ui.targetNameLabel:SetText("") end
+                ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, targetName))
+            else
+                if ui.targetNameLabel then ui.targetNameLabel:SetText("") end
+                ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
+            end
         else
-            if ui.targetNameLabel then ui.targetNameLabel:SetText("") end
             ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
         end
-    else
-        ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
     end
 
+    -- Mise à jour du bouclier uniquement sur changement
     if mechanicType == MECHANIC_HEALTH then
-        local shieldVal = isDummyTarget and 20000 or GetShieldValue(unitTag)
+        local shieldVal = isDummyTarget and 20000 or (TrueRessourceBars.shieldTotals[unitTag] or 0)
         if shieldVal > 0 then
-            local shieldPct = math.min(1, shieldVal / effectiveMax)
-            local shieldW = math.max(1, math.floor(shieldPct * cfg.width))
+            if ui.lastShieldVal ~= shieldVal or ui.lastShieldMax ~= effectiveMax or ui.lastShieldDir ~= cfg.drainDirection then
+                local shieldW = math_max(1, math_floor(math_min(1, shieldVal / effectiveMax) * cfg.width))
 
-            ui.shieldBar:ClearAnchors()
-            if cfg.drainDirection == "To Center" then
-                ui.shieldBar:SetAnchor(CENTER, ui.container, CENTER, 0, 0)
-            elseif cfg.drainDirection == "Left to Right" then
-                ui.shieldBar:SetAnchor(RIGHT, ui.container, RIGHT, 0, 0)
-            else
-                ui.shieldBar:SetAnchor(LEFT, ui.container, LEFT, 0, 0)
+                if ui.lastShieldDir ~= cfg.drainDirection then
+                    ui.shieldBar:ClearAnchors()
+                    if cfg.drainDirection == "To Center" then
+                        ui.shieldBar:SetAnchor(CENTER, ui.container, CENTER, 0, 0)
+                    elseif cfg.drainDirection == "Left to Right" then
+                        ui.shieldBar:SetAnchor(RIGHT, ui.container, RIGHT, 0, 0)
+                    else
+                        ui.shieldBar:SetAnchor(LEFT, ui.container, LEFT, 0, 0)
+                    end
+                    ui.lastShieldDir = cfg.drainDirection
+                end
+
+                if ui.lastShieldW ~= shieldW then
+                    ui.shieldBar:SetDimensions(shieldW, cfg.height)
+                    ui.shieldBar:SetMinMax(0, 1)
+                    ui.shieldBar:SetValue(1)
+                    ui.lastShieldW = shieldW
+                end
+
+                SetHiddenIfChanged(ui.shieldBar, false)
+                if ui.lastShieldVal ~= shieldVal then
+                    ui.shieldLabel:SetText(string_format("[%s]", FormatNumber(shieldVal)))
+                end
+
+                ui.lastShieldVal, ui.lastShieldMax = shieldVal, effectiveMax
             end
-
-            ui.shieldBar:SetDimensions(shieldW, cfg.height)
-            ui.shieldBar:SetMinMax(0, 1)
-            ui.shieldBar:SetValue(1)
-            ui.shieldBar:SetHidden(false)
-            ui.shieldLabel:SetText(string.format("[%s]", FormatNumber(shieldVal)))
-        else
-            ui.shieldBar:SetHidden(true)
+        elseif ui.lastShieldVal ~= 0 then
+            SetHiddenIfChanged(ui.shieldBar, true)
             ui.shieldLabel:SetText("")
+            ui.lastShieldVal, ui.lastShieldW = 0, 0
         end
-    else
-        ui.shieldBar:SetHidden(true)
-        ui.shieldLabel:SetText("")
     end
 
     if cfg.warningEnabled and percent <= cfg.warningThreshold and percent > 0 then
         local alpha = GetDoublePulseAlpha(cfg.warningPulseSpeed or 120)
         ui.container:SetAlpha(alpha)
-    else
+        ui.lastAlpha = alpha
+    elseif ui.lastAlpha ~= 1.0 then
         ui.container:SetAlpha(1.0)
+        ui.lastAlpha = 1.0
     end
 end
 
--- Rafraîchissement des auras
+-- Rendu factorisé d'un pool d'auras (Buffs ou Debuffs)
+local function RenderAuraPool(poolType, list, count, settings, dir, enableGrid, maxPerRow, rowDir)
+    for i = 1, count do
+        local data = list[i]
+        local ctrl = GetOrCreateTargetAuraIcon(poolType, i)
+
+        if ctrl.lastIcon ~= data.icon then
+            ctrl:SetTexture(data.icon)
+            ctrl.lastIcon = data.icon
+        end
+
+        if data.isPermanent then
+            if ctrl.lastTimerKey ~= -1 then
+                ctrl.lastTimerKey = -1
+                ctrl.timerLabel:SetText("")
+            end
+        else
+            local timeKey, timeStr = GetFormattedTimeAndKey(data.timeLeft)
+            if ctrl.lastTimerKey ~= timeKey then
+                ctrl.lastTimerKey = timeKey
+                ctrl.timerLabel:SetText(timeStr)
+            end
+        end
+
+        local stackVal = (data.stackCount > 1) and data.stackCount or 0
+        if ctrl.lastStackVal ~= stackVal then
+            ctrl.lastStackVal = stackVal
+            ctrl.stackLabel:SetText(GetFormattedStack(stackVal))
+        end
+    end
+
+    ApplyAuraAnchors(poolType, count, settings.spacing, settings.iconSize, dir, enableGrid, maxPerRow, rowDir)
+
+    local pool = TrueRessourceBars.controls[poolType]
+    for i = count + 1, #pool do
+        SetHiddenIfChanged(pool[i], true)
+    end
+end
+
+-- Rafraîchissement des auras de la cible (scan unique + pool d'entrées réutilisable)
 local function UpdateTargetAuras()
     local unitTag = "reticleover"
     local hasTarget = DoesUnitExist(unitTag) and not IsReticleHidden()
     local settings = TrueRessourceBars.savedVars.targetAuras
-
-    if not hasTarget and not TrueRessourceBars.previewMode then
-        TrueRessourceBars.targetBuffFrame:SetHidden(true)
-        TrueRessourceBars.targetDebuffFrame:SetHidden(true)
-        return
-    end
-
     local showBuffs = (settings.buffsEnabled ~= "No")
     local showDebuffs = (settings.debuffsEnabled ~= "No")
 
-    TrueRessourceBars.targetBuffFrame:SetHidden(not showBuffs)
-    TrueRessourceBars.targetDebuffFrame:SetHidden(not showDebuffs)
+    if (not hasTarget and not TrueRessourceBars.previewMode) or (not showBuffs and not showDebuffs) then
+        SetHiddenIfChanged(TrueRessourceBars.targetBuffFrame, true)
+        SetHiddenIfChanged(TrueRessourceBars.targetDebuffFrame, true)
+        return
+    end
 
-    if not showBuffs and not showDebuffs then return end
+    SetHiddenIfChanged(TrueRessourceBars.targetBuffFrame, not showBuffs)
+    SetHiddenIfChanged(TrueRessourceBars.targetDebuffFrame, not showDebuffs)
 
-    local currentTime = GetFrameTimeSeconds()
-    local buffsList = {}
-    local debuffsList = {}
+    local buffCount, debuffCount, poolIdx = 0, 0, 0
 
-    if TrueRessourceBars.previewMode then
+    if TrueRessourceBars.previewMode and not hasTarget then
         if showBuffs then
             for i, item in ipairs(dummyBuffData) do
-                table.insert(buffsList, {
-                    icon = item.icon,
-                    timeLeft = item.time,
-                    isPermanent = false,
-                    stackCount = (i % 2 == 0) and 3 or 0,
-                    name = "PreviewBuff" .. i
-                })
+                poolIdx = poolIdx + 1
+                local entry = auraEntryPool[poolIdx]
+                if not entry then entry = {}; auraEntryPool[poolIdx] = entry end
+                entry.icon, entry.timeLeft, entry.isPermanent = item.icon, item.time, false
+                entry.stackCount, entry.name = (i % 2 == 0) and 3 or 0, "PreviewBuff" .. i
+                buffCount = buffCount + 1
+                reusableBuffList[buffCount] = entry
             end
         end
         if showDebuffs then
             for i, item in ipairs(dummyDebuffData) do
-                table.insert(debuffsList, {
-                    icon = item.icon,
-                    timeLeft = item.time,
-                    isPermanent = false,
-                    stackCount = 0,
-                    name = "PreviewDebuff" .. i
-                })
+                poolIdx = poolIdx + 1
+                local entry = auraEntryPool[poolIdx]
+                if not entry then entry = {}; auraEntryPool[poolIdx] = entry end
+                entry.icon, entry.timeLeft, entry.isPermanent = item.icon, item.time, false
+                entry.stackCount, entry.name = 0, "PreviewDebuff" .. i
+                debuffCount = debuffCount + 1
+                reusableDebuffList[debuffCount] = entry
             end
         end
     else
-        for i = 1, GetNumBuffs(unitTag) do
-            local buffName, timeStarted, timeEnding, buffSlot, stackCount, iconFilename, buffType, effectType = GetUnitBuffInfo(unitTag, i)
+        local currentTime = GetFrameTimeSeconds()
+        local longLimit = (settings.longBuffThreshold or 60) * 60
+        local numBuffs = GetNumBuffs(unitTag)
 
+        for i = 1, numBuffs do
+            local buffName, timeStarted, timeEnding, _, stackCount, iconFilename, _, effectType = GetUnitBuffInfo(unitTag, i)
             if buffName and buffName ~= "" then
                 local isPermanent = (timeStarted == timeEnding) or (timeEnding == 0)
                 local timeLeft = isPermanent and 0 or (timeEnding - currentTime)
 
-                local skipEffect = false
-                if settings.hidePermanent and isPermanent then skipEffect = true end
-                if settings.hideLongBuffs and not isPermanent and (timeLeft > (settings.longBuffThreshold * 60)) then skipEffect = true end
+                local skip = (settings.hidePermanent and isPermanent)
+                          or (settings.hideLongBuffs and not isPermanent and timeLeft > longLimit)
 
-                if not skipEffect then
-                    local effectEntry = {
-                        name = buffName,
-                        icon = iconFilename,
-                        stackCount = stackCount,
-                        isPermanent = isPermanent,
-                        timeLeft = timeLeft
-                    }
+                if not skip then
+                    local isDebuff = (effectType == BUFF_EFFECT_TYPE_DEBUFF)
+                    if (isDebuff and showDebuffs) or (not isDebuff and showBuffs) then
+                        poolIdx = poolIdx + 1
+                        local entry = auraEntryPool[poolIdx]
+                        if not entry then entry = {}; auraEntryPool[poolIdx] = entry end
+                        entry.name, entry.icon = buffName, iconFilename
+                        entry.stackCount, entry.isPermanent, entry.timeLeft = stackCount or 0, isPermanent, timeLeft
 
-                    if effectType == BUFF_EFFECT_TYPE_DEBUFF and showDebuffs then
-                        table.insert(debuffsList, effectEntry)
-                    elseif effectType ~= BUFF_EFFECT_TYPE_DEBUFF and showBuffs then
-                        table.insert(buffsList, effectEntry)
+                        if isDebuff then
+                            debuffCount = debuffCount + 1
+                            reusableDebuffList[debuffCount] = entry
+                        else
+                            buffCount = buffCount + 1
+                            reusableBuffList[buffCount] = entry
+                        end
                     end
                 end
             end
         end
     end
 
-    table.sort(buffsList, CompareEffectsDescending)
-    table.sort(debuffsList, CompareEffectsDescending)
+    for i = buffCount + 1, #reusableBuffList do reusableBuffList[i] = nil end
+    for i = debuffCount + 1, #reusableDebuffList do reusableDebuffList[i] = nil end
 
-    local buffCount = #buffsList
-    for i, data in ipairs(buffsList) do
-        local ctrl = GetOrCreateTargetAuraIcon("targetBuffs", i)
-        ctrl:SetTexture(data.icon)
-        ctrl.timerLabel:SetText(not data.isPermanent and FormatTime(data.timeLeft) or "")
-        ctrl.stackLabel:SetText(data.stackCount > 1 and tostring(data.stackCount) or "")
+    if buffCount > 1 then table.sort(reusableBuffList, CompareEffectsDescending) end
+    if debuffCount > 1 then table.sort(reusableDebuffList, CompareEffectsDescending) end
+
+    if showBuffs then
+        RenderAuraPool("targetBuffs", reusableBuffList, buffCount, settings, settings.buffDir, settings.buffEnableGrid, settings.buffMaxPerRow, settings.buffRowDirection)
     end
-
-    local debuffCount = #debuffsList
-    for i, data in ipairs(debuffsList) do
-        local ctrl = GetOrCreateTargetAuraIcon("targetDebuffs", i)
-        ctrl:SetTexture(data.icon)
-        ctrl.timerLabel:SetText(not data.isPermanent and FormatTime(data.timeLeft) or "")
-        ctrl.stackLabel:SetText(data.stackCount > 1 and tostring(data.stackCount) or "")
-    end
-
-    ApplyAuraAnchors("targetBuffs", buffCount, settings.spacing, settings.iconSize, settings.buffDir, settings.buffEnableGrid, settings.buffMaxPerRow, settings.buffRowDirection)
-    ApplyAuraAnchors("targetDebuffs", debuffCount, settings.spacing, settings.iconSize, settings.debuffDir, settings.debuffEnableGrid, settings.debuffMaxPerRow, settings.debuffRowDirection)
-
-    for i = buffCount + 1, #TrueRessourceBars.controls.targetBuffs do
-        TrueRessourceBars.controls.targetBuffs[i]:SetHidden(true)
-    end
-    for i = debuffCount + 1, #TrueRessourceBars.controls.targetDebuffs do
-        TrueRessourceBars.controls.targetDebuffs[i]:SetHidden(true)
+    if showDebuffs then
+        RenderAuraPool("targetDebuffs", reusableDebuffList, debuffCount, settings, settings.debuffDir, settings.debuffEnableGrid, settings.debuffMaxPerRow, settings.debuffRowDirection)
     end
 end
 
--- Neutralisation propre, officielle et conforme à la Sandbox Console
+-- Neutralisation propre et conforme à la Sandbox Console
 local function SuppressControl(ctrl)
     if not ctrl then return end
     ctrl:SetHidden(true)
     ctrl:SetAlpha(0)
-    if not ctrl._hookedOnShow then
+    if not suppressedControls[ctrl] then
         ZO_PreHookHandler(ctrl, "OnShow", function(self)
             self:SetHidden(true)
             self:SetAlpha(0)
             return true
         end)
-        ctrl._hookedOnShow = true
+        suppressedControls[ctrl] = true
     end
 end
 
 local function CleanGamepadUI()
     local playerFrag = PLAYER_ATTRIBUTE_BARS_FRAGMENT or (PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.fragment)
     local targetFrag = (GAMEPAD_TARGET_UNIT_FRAME and GAMEPAD_TARGET_UNIT_FRAME.fragment) or TARGET_UNIT_FRAME_FRAGMENT
-
-    local fragmentsToDrop = {
-        playerFrag,
-        targetFrag,
-    }
+    local fragmentsToDrop = { playerFrag, targetFrag }
 
     local scenesToClean = {
         HUD_SCENE,
@@ -1331,109 +1007,72 @@ local function CleanGamepadUI()
         end
     end
 
-    local playerGamepadContainer = ZO_PlayerAttributeContainerGamepad or (PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.control)
-    if playerGamepadContainer then
-        SuppressControl(playerGamepadContainer)
-    end
-    if ZO_PlayerAttribute then
-        SuppressControl(ZO_PlayerAttribute)
-    end
-
+    SuppressControl(ZO_PlayerAttributeContainerGamepad or (PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.control))
+    SuppressControl(ZO_PlayerAttribute)
     if GAMEPAD_TARGET_UNIT_FRAME then
-        if GAMEPAD_TARGET_UNIT_FRAME.control then
-            SuppressControl(GAMEPAD_TARGET_UNIT_FRAME.control)
-        end
-        if GAMEPAD_TARGET_UNIT_FRAME.frame then
-            SuppressControl(GAMEPAD_TARGET_UNIT_FRAME.frame)
-        end
+        SuppressControl(GAMEPAD_TARGET_UNIT_FRAME.control)
+        SuppressControl(GAMEPAD_TARGET_UNIT_FRAME.frame)
     end
-    if ZO_GamepadTargetUnitFrame then
-        SuppressControl(ZO_GamepadTargetUnitFrame)
-    end
-
-    local targetAuraControls = {
-        ZO_GamepadTargetUnitFrameBuffs,
-        ZO_GamepadTargetUnitFrameDebuffs,
-    }
-    for _, ctrl in ipairs(targetAuraControls) do
-        if ctrl then
-            SuppressControl(ctrl)
-        end
-    end
+    SuppressControl(ZO_GamepadTargetUnitFrame)
+    SuppressControl(ZO_GamepadTargetUnitFrameBuffs)
+    SuppressControl(ZO_GamepadTargetUnitFrameDebuffs)
 end
 
--- Détection des menus, discussions et tableau des scores (BG Scoreboard)
+-- Détection des menus et du tableau des scores
 local function ShouldHideAllUI()
-    if TrueRessourceBars.previewMode then
-        return false
-    end
-
-    if IsReticleHidden() then
-        return true
-    end
+    if TrueRessourceBars.previewMode then return false end
+    if IsReticleHidden() then return true end
 
     if SCENE_MANAGER then
-        if SCENE_MANAGER:IsShowing("battleground_scoreboard") then
-            return true
-        end
-        if not SCENE_MANAGER:IsShowing("hud") and not SCENE_MANAGER:IsShowing("gamepad_hud") then
+        if SCENE_MANAGER:IsShowing("battleground_scoreboard") then return true end
+        if not SCENE_MANAGER:IsShowing("hud")
+            and not SCENE_MANAGER:IsShowing("gamepad_hud")
+            and not SCENE_MANAGER:IsShowing("gamepad_hud_scene") then
             return true
         end
     end
-
     return false
 end
 
--- Événements des effets visuels (Détection instantanée des boucliers)
-local function OnVisualAddedOrUpdated(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, value)
-    if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-        if unitTag == "player" or unitTag == "reticleover" then
-            TrueRessourceBars.shieldCache[unitTag] = value or 0
-        end
+-- Événements boucliers (7e arg sur ADDED = value ; 8e arg sur UPDATED = newValue)
+local function OnVisualAdded(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, value)
+    if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and (unitTag == "player" or unitTag == "reticleover") then
+        SetUnitShieldSlot(unitTag, statType, attributeType, powerType, value or 0)
     end
 end
 
-local function OnVisualRemoved(eventCode, unitTag, unitAttributeVisual)
-    if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-        if unitTag == "player" or unitTag == "reticleover" then
-            TrueRessourceBars.shieldCache[unitTag] = 0
-        end
+local function OnVisualUpdated(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType, oldValue, newValue)
+    if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and (unitTag == "player" or unitTag == "reticleover") then
+        SetUnitShieldSlot(unitTag, statType, attributeType, powerType, newValue or 0)
+    end
+end
+
+local function OnVisualRemoved(eventCode, unitTag, unitAttributeVisual, statType, attributeType, powerType)
+    if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and (unitTag == "player" or unitTag == "reticleover") then
+        SetUnitShieldSlot(unitTag, statType, attributeType, powerType, 0)
     end
 end
 
 local function OnReticleTargetChanged()
-    TrueRessourceBars.shieldCache["reticleover"] = 0
+    RefreshUnitShieldCache("reticleover")
+    TrueRessourceBars.targetName = DoesUnitExist("reticleover") and GetUnitName("reticleover") or ""
 end
 
 -- Boucle générale de mise à jour
 local function MasterUpdateLoop()
     local hideUI = ShouldHideAllUI()
+    SetHiddenIfChanged(TrueRessourceBars.root, hideUI)
 
-    TrueRessourceBars.root:SetHidden(hideUI)
-    TrueRessourceBars.targetBuffFrame:SetHidden(hideUI)
-    TrueRessourceBars.targetDebuffFrame:SetHidden(hideUI)
-
-    if TrueRessourceBars.ccTimerFrame and hideUI then
-        TrueRessourceBars.ccTimerFrame:SetHidden(true)
+    if hideUI then
+        SetHiddenIfChanged(TrueRessourceBars.targetBuffFrame, true)
+        SetHiddenIfChanged(TrueRessourceBars.targetDebuffFrame, true)
+        return
     end
-    if TrueRessourceBars.resolveFrame and hideUI then
-        TrueRessourceBars.resolveFrame:SetHidden(true)
-    end
-
-    if hideUI then return end
 
     UpdateSingleBar("health", "player", MECHANIC_HEALTH)
     UpdateSingleBar("magicka", "player", MECHANIC_MAGICKA)
     UpdateSingleBar("stamina", "player", MECHANIC_STAMINA)
-
-    if DoesUnitExist("reticleover") or TrueRessourceBars.previewMode then
-        UpdateSingleBar("target", "reticleover", MECHANIC_HEALTH)
-    else
-        TrueRessourceBars.bars.target.container:SetHidden(true)
-        if TrueRessourceBars.ccTimerFrame then TrueRessourceBars.ccTimerFrame:SetHidden(true) end
-        if TrueRessourceBars.resolveFrame then TrueRessourceBars.resolveFrame:SetHidden(true) end
-    end
-
+    UpdateSingleBar("target", "reticleover", MECHANIC_HEALTH)
     UpdateTargetAuras()
 end
 
@@ -1441,7 +1080,6 @@ local function UpdateAuraPositions()
     local cfg = TrueRessourceBars.savedVars.targetAuras
     TrueRessourceBars.targetBuffFrame:ClearAnchors()
     TrueRessourceBars.targetBuffFrame:SetAnchor(CENTER, GuiRoot, CENTER, cfg.buffX, cfg.buffY)
-
     TrueRessourceBars.targetDebuffFrame:ClearAnchors()
     TrueRessourceBars.targetDebuffFrame:SetAnchor(CENTER, GuiRoot, CENTER, cfg.debuffX, cfg.debuffY)
 end
@@ -1451,7 +1089,7 @@ local function BuildSettingsMenu()
     local LAM = LibAddonMenu2
     if not LAM then return end
 
-    local panelData = {
+    LAM:RegisterAddonPanel("TrueRessourceBarsOptions", {
         type = "panel",
         name = "True Ressource Bars",
         displayName = "|cff5900True Ressource Bars|r",
@@ -1459,8 +1097,7 @@ local function BuildSettingsMenu()
         version = TrueRessourceBars.version,
         registerForRefresh = true,
         registerForDefaults = true,
-    }
-    LAM:RegisterAddonPanel("TrueRessourceBarsOptions", panelData)
+    })
 
     local drainChoices = { "Right to Left", "Left to Right", "To Center" }
     local formatChoices = { "Current / Max (Percent)", "Current / Max", "Current (Percent)", "Current", "Percent" }
@@ -1468,195 +1105,171 @@ local function BuildSettingsMenu()
     local function CreateBarSubmenu(title, barKey, isHealth)
         local controls = {
             {
-                type = "dropdown",
-                name = "Active",
-                tooltip = "Enable or disable this resource bar.",
+                type = "dropdown", name = "Active", tooltip = "Enable or disable this resource bar.",
                 choices = { "Yes", "No" },
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].enabled or "Yes" end,
-                setFunc = function(v)
-                    TrueRessourceBars.savedVars.bars[barKey].enabled = v
-                    ApplyBarVisuals(barKey)
-                end,
+                setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].enabled = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "slider",
-                name = "Position X",
-                min = -1500, max = 1500, step = 5,
+                type = "slider", name = "Position X", min = -1500, max = 1500, step = 5,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].x end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].x = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "slider",
-                name = "Position Y",
-                min = -1000, max = 1000, step = 5,
+                type = "slider", name = "Position Y", min = -1000, max = 1000, step = 5,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].y end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].y = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "slider",
-                name = "Width",
-                min = 50, max = 1000, step = 2,
+                type = "slider", name = "Width", min = 50, max = 1000, step = 2,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].width end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].width = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "slider",
-                name = "Height",
-                min = 10, max = 150, step = 2,
+                type = "slider", name = "Height", min = 10, max = 150, step = 2,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].height end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].height = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "colorpicker",
-                name = "Bar Color",
-                getFunc = function()
-                    local r, g, b, a = GetRGBA(TrueRessourceBars.savedVars.bars[barKey].color, 1, 1, 1, 1)
-                    return r, g, b, a
-                end,
-                setFunc = function(r, g, b, a)
-                    TrueRessourceBars.savedVars.bars[barKey].color = { r = r, g = g, b = b, a = a }
-                    ApplyBarVisuals(barKey)
-                end,
+                type = "colorpicker", name = "Bar Color",
+                getFunc = function() return GetRGBA(TrueRessourceBars.savedVars.bars[barKey].color, 1, 1, 1, 1) end,
+                setFunc = function(r, g, b, a) TrueRessourceBars.savedVars.bars[barKey].color = { r = r, g = g, b = b, a = a }; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "dropdown",
-                name = "Drain Direction",
-                choices = drainChoices,
+                type = "dropdown", name = "Drain Direction", choices = drainChoices,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].drainDirection end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].drainDirection = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "dropdown",
-                name = "Text Format",
-                choices = formatChoices,
+                type = "dropdown", name = "Text Format", choices = formatChoices,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].textFormat end,
-                setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].textFormat = v end,
+                setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].textFormat = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "dropdown",
-                name = "Font Family",
-                choices = fontChoices,
+                type = "dropdown", name = "Font Family", choices = fontChoices,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].font end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].font = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "slider",
-                name = "Font Size",
-                min = 10, max = 40, step = 1,
+                type = "slider", name = "Font Size", min = 10, max = 40, step = 1,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].fontSize end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].fontSize = v; ApplyBarVisuals(barKey) end,
             },
             {
-                type = "colorpicker",
-                name = "Font Color",
-                getFunc = function()
-                    local r, g, b, a = GetRGBA(TrueRessourceBars.savedVars.bars[barKey].textColor, 1, 1, 1, 1)
-                    return r, g, b, a
-                end,
-                setFunc = function(r, g, b, a)
-                    TrueRessourceBars.savedVars.bars[barKey].textColor = { r = r, g = g, b = b, a = a }
-                    ApplyBarVisuals(barKey)
-                end,
+                type = "colorpicker", name = "Font Color",
+                getFunc = function() return GetRGBA(TrueRessourceBars.savedVars.bars[barKey].textColor, 1, 1, 1, 1) end,
+                setFunc = function(r, g, b, a) TrueRessourceBars.savedVars.bars[barKey].textColor = { r = r, g = g, b = b, a = a }; ApplyBarVisuals(barKey) end,
             },
+            { type = "header", name = "Warning Settings (Double Pulse)" },
             {
-                type = "header",
-                name = "Warning Settings (Double Pulse)",
-            },
-            {
-                type = "checkbox",
-                name = "Enable Warning Mode (Double Pulse)",
+                type = "checkbox", name = "Enable Warning Mode (Double Pulse)",
                 tooltip = "Makes the bar pulse twice in a heartbeat rhythm whenever health/resource drops below the set threshold.",
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].warningEnabled end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].warningEnabled = v end,
             },
             {
-                type = "slider",
-                name = "Warning Threshold (%)",
-                min = 1, max = 85, step = 1,
+                type = "slider", name = "Warning Threshold (%)", min = 1, max = 85, step = 1,
                 disabled = function() return not TrueRessourceBars.savedVars.bars[barKey].warningEnabled end,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].warningThreshold end,
                 setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].warningThreshold = v end,
             },
             {
-                type = "slider",
-                name = "Pulse Speed (ms)",
+                type = "slider", name = "Pulse Speed (ms)", min = 50, max = 300, step = 10,
                 tooltip = "Adjusts the tempo of each pulsation in the sequence (smaller values mean faster pulses).",
-                min = 50, max = 300, step = 10,
                 disabled = function() return not TrueRessourceBars.savedVars.bars[barKey].warningEnabled end,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].warningPulseSpeed or 120 end,
-                setFunc = function(v)
-                    TrueRessourceBars.savedVars.bars[barKey].warningPulseSpeed = v
-                    ApplyBarVisuals(barKey)
-                end,
+                setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].warningPulseSpeed = v; ApplyBarVisuals(barKey) end,
             }
         }
 
         if barKey == "target" then
+            table.insert(controls, { type = "header", name = "Enemy Target Name Display" })
             table.insert(controls, {
-                type = "header",
-                name = "Enemy Target Name Display",
-            })
-            table.insert(controls, {
-                type = "dropdown",
-                name = "Target Name Position",
+                type = "dropdown", name = "Target Name Position",
                 tooltip = "Choose where to display the target enemy name relative to the center of the bar.",
                 choices = { "Above", "Below", "Inside Bar", "Hidden" },
                 getFunc = function() return TrueRessourceBars.savedVars.bars.target.targetNamePosition or "Above" end,
-                setFunc = function(v)
-                    TrueRessourceBars.savedVars.bars.target.targetNamePosition = v
-                    ApplyBarVisuals("target")
-                end,
+                setFunc = function(v) TrueRessourceBars.savedVars.bars.target.targetNamePosition = v; ApplyBarVisuals("target") end,
             })
             table.insert(controls, {
-                type = "slider",
-                name = "Target Name Font Size",
-                min = 10, max = 36, step = 1,
+                type = "slider", name = "Target Name Font Size", min = 10, max = 36, step = 1,
                 disabled = function()
                     local pos = TrueRessourceBars.savedVars.bars.target.targetNamePosition or "Above"
                     return pos == "Hidden" or pos == "Inside Bar"
                 end,
                 getFunc = function() return TrueRessourceBars.savedVars.bars.target.targetNameFontSize or 18 end,
-                setFunc = function(v)
-                    TrueRessourceBars.savedVars.bars.target.targetNameFontSize = v
-                    ApplyBarVisuals("target")
-                end,
+                setFunc = function(v) TrueRessourceBars.savedVars.bars.target.targetNameFontSize = v; ApplyBarVisuals("target") end,
             })
         end
 
         if isHealth then
+            table.insert(controls, { type = "header", name = "Shields Configuration" })
             table.insert(controls, {
-                type = "header",
-                name = "Shields Configuration",
-            })
-            table.insert(controls, {
-                type = "dropdown",
-                name = "Shield Value Position",
+                type = "dropdown", name = "Shield Value Position", choices = cornerPositionChoices,
                 tooltip = "Choose which corner of the bar will display the shield numerical value.",
-                choices = cornerPositionChoices,
                 getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].shieldValuePos or "Top Right" end,
-                setFunc = function(v)
-                    TrueRessourceBars.savedVars.bars[barKey].shieldValuePos = v
-                    ApplyBarVisuals(barKey)
-                end,
+                setFunc = function(v) TrueRessourceBars.savedVars.bars[barKey].shieldValuePos = v; ApplyBarVisuals(barKey) end,
             })
             table.insert(controls, {
-                type = "colorpicker",
-                name = "Shield Overlay Color",
-                getFunc = function()
-                    local r, g, b, a = GetRGBA(TrueRessourceBars.savedVars.bars[barKey].shieldColor, 0.75, 0.25, 0.95, 0.75)
-                    return r, g, b, a
-                end,
-                setFunc = function(r, g, b, a)
-                    TrueRessourceBars.savedVars.bars[barKey].shieldColor = { r = r, g = g, b = b, a = a }
-                    ApplyBarVisuals(barKey)
-                end,
+                type = "colorpicker", name = "Shield Overlay Color",
+                getFunc = function() return GetRGBA(TrueRessourceBars.savedVars.bars[barKey].shieldColor, 0.75, 0.25, 0.95, 0.75) end,
+                setFunc = function(r, g, b, a) TrueRessourceBars.savedVars.bars[barKey].shieldColor = { r = r, g = g, b = b, a = a }; ApplyBarVisuals(barKey) end,
             })
         end
 
+        return { type = "submenu", name = title, controls = controls }
+    end
+
+    -- Factorisation des sous-menus Buffs / Débuffs de la cible
+    local function CreateAuraSubmenu(title, labelPrefix, enabledKey, xKey, yKey, dirKey, gridKey, maxKey, rowDirKey, frameRefName)
         return {
             type = "submenu",
             name = title,
-            controls = controls
+            tooltip = string_format("Positions, orientation, and multiple row/column settings for target %s.", string.lower(labelPrefix)),
+            controls = {
+                {
+                    type = "dropdown", name = "Active", choices = { "Yes", "No" },
+                    tooltip = string_format("Enable or disable the target %s bar.", string.lower(labelPrefix)),
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras[enabledKey] or "Yes" end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.targetAuras[enabledKey] = v
+                        if v == "No" then SetHiddenIfChanged(TrueRessourceBars[frameRefName], true) end
+                    end,
+                },
+                {
+                    type = "slider", name = labelPrefix .. " Position (X)", min = -1500, max = 1500, step = 5,
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras[xKey] end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras[xKey] = v; UpdateAuraPositions() end,
+                },
+                {
+                    type = "slider", name = labelPrefix .. " Position (Y)", min = -1000, max = 1000, step = 5,
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras[yKey] end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras[yKey] = v; UpdateAuraPositions() end,
+                },
+                {
+                    type = "dropdown", name = labelPrefix .. " Orientation", choices = auraOrientationChoices,
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras[dirKey] end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras[dirKey] = v end,
+                },
+                {
+                    type = "checkbox", name = "Enable Multiple Rows / Columns",
+                    tooltip = "Enable this to allow icons to wrap onto new rows/columns once the limit per line is reached.",
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras[gridKey] end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras[gridKey] = v end,
+                },
+                {
+                    type = "slider", name = "Max " .. labelPrefix .. " Per Line", min = 1, max = 30, step = 1,
+                    disabled = function() return not TrueRessourceBars.savedVars.targetAuras[gridKey] end,
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras[maxKey] end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras[maxKey] = v end,
+                },
+                {
+                    type = "dropdown", name = "New Row Direction", choices = { "Below", "Above" },
+                    disabled = function() return not TrueRessourceBars.savedVars.targetAuras[gridKey] end,
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras[rowDirKey] end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras[rowDirKey] = v end,
+                },
+            }
         }
     end
 
@@ -1672,483 +1285,111 @@ local function BuildSettingsMenu()
         CreateBarSubmenu("Player Magicka Bar", "magicka", false),
         CreateBarSubmenu("Player Stamina Bar", "stamina", false),
         CreateBarSubmenu("Target Health Bar", "target", true),
-
-        -- SOUS-MENU : Enemy Buff Alerts
-        {
-            type = "submenu",
-            name = "Enemy Buff Alerts",
-            tooltip = "Configure visual alerts on the enemy health bar based on missing buffs or CC immunity.",
-            controls = {
-                {
-                    type = "dropdown",
-                    name = "Active",
-                    tooltip = "Enable or disable enemy buff alerts.",
-                    choices = { "Yes", "No" },
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).enabled or "Yes" end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.enabled = v
-                    end,
-                },
-                {
-                    type = "header",
-                    name = "Missing Resolve Alerts (Resolve Maj Min)",
-                },
-                {
-                    type = "dropdown",
-                    name = "Resolve Display Mode",
-                    tooltip = "Choose how missing Resolve buffs are signaled (Bar Color, Strikethrough Text, or Both).",
-                    choices = { "Bar Color Change", "Text Display", "Both" },
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).resolveDisplayMode or "Both" end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.resolveDisplayMode = v
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Text Position X (Resolve Maj Min)",
-                    min = -1500, max = 1500, step = 5,
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).resolveTextX or 0 end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.resolveTextX = v
-                        ApplyAlertVisuals()
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Text Position Y (Resolve Maj Min)",
-                    min = -1000, max = 1000, step = 5,
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).resolveTextY or -260 end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.resolveTextY = v
-                        ApplyAlertVisuals()
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Text Font Size (Resolve Maj Min)",
-                    min = 10, max = 36, step = 1,
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).resolveTextFontSize or 16 end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.resolveTextFontSize = v
-                        ApplyAlertVisuals()
-                    end,
-                },
-                {
-                    type = "colorpicker",
-                    name = "Missing Minor Resolve Bar Color",
-                    tooltip = "Color applied when target is missing Minor Resolve only.",
-                    getFunc = function()
-                        local c = (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).minorMissingColor
-                        return c.r, c.g, c.b, c.a
-                    end,
-                    setFunc = function(r, g, b, a)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.minorMissingColor = { r = r, g = g, b = b, a = a }
-                    end,
-                },
-                {
-                    type = "colorpicker",
-                    name = "Missing Major Resolve Bar Color",
-                    tooltip = "Color applied when target is missing Major Resolve only.",
-                    getFunc = function()
-                        local c = (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).majorMissingColor
-                        return c.r, c.g, c.b, c.a
-                    end,
-                    setFunc = function(r, g, b, a)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.majorMissingColor = { r = r, g = g, b = b, a = a }
-                    end,
-                },
-                {
-                    type = "colorpicker",
-                    name = "Missing Both Resolves Bar Color",
-                    tooltip = "Color applied when target is missing BOTH Major and Minor Resolve at the same time.",
-                    getFunc = function()
-                        local c = (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).bothMissingColor
-                        return c.r, c.g, c.b, c.a
-                    end,
-                    setFunc = function(r, g, b, a)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.bothMissingColor = { r = r, g = g, b = b, a = a }
-                    end,
-                },
-                {
-                    type = "header",
-                    name = "CC Immunity Alert (Countdown & Corners)",
-                },
-                {
-                    type = "dropdown",
-                    name = "CC Immune Display Mode",
-                    tooltip = "Choose between displaying CC Immune in the corner of the bar, on a movable timer, or both.",
-                    choices = { "Bar Corner Label", "Movable Timer", "Both" },
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccImmuneMode or "Both" end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.ccImmuneMode = v
-                        ApplyBarVisuals("target")
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "CC Immune Corner Position",
-                    tooltip = "Corner position on the enemy bar for the 'Cc Immune' indicator.",
-                    choices = cornerPositionChoices,
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccImmuneCorner or "Bottom Left" end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.ccImmuneCorner = v
-                        ApplyBarVisuals("target")
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Corner Text Size (Cc Immune)",
-                    min = 10, max = 36, step = 1,
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccImmuneFontSize or 20 end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.ccImmuneFontSize = v
-                        ApplyBarVisuals("target")
-                    end,
-                },
-                {
-                    type = "colorpicker",
-                    name = "Corner Text Color (Cc Immune)",
-                    getFunc = function()
-                        local c = (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccImmuneColor
-                        return c.r, c.g, c.b, c.a
-                    end,
-                    setFunc = function(r, g, b, a)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.ccImmuneColor = { r = r, g = g, b = b, a = a }
-                        ApplyBarVisuals("target")
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Movable Timer Position X",
-                    min = -1500, max = 1500, step = 5,
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccTimerX or 0 end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.ccTimerX = v
-                        ApplyAlertVisuals()
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Movable Timer Position Y",
-                    min = -1000, max = 1000, step = 5,
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccTimerY or -225 end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.ccTimerY = v
-                        ApplyAlertVisuals()
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Movable Timer Font Size",
-                    min = 12, max = 44, step = 1,
-                    getFunc = function() return (TrueRessourceBars.savedVars.enemyBuffAlert or defaults.enemyBuffAlert).ccTimerFontSize or 22 end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.enemyBuffAlert = TrueRessourceBars.savedVars.enemyBuffAlert or ZO_DeepTableCopy(defaults.enemyBuffAlert)
-                        TrueRessourceBars.savedVars.enemyBuffAlert.ccTimerFontSize = v
-                        ApplyAlertVisuals()
-                    end,
-                },
-            }
-        },
-
-        -- Sous-menu : Filtres des Auras
         {
             type = "submenu",
             name = "Target Auras Filters",
             tooltip = "Filter out permanent effects or long duration buffs on target.",
             controls = {
                 {
-                    type = "checkbox",
-                    name = "Hide Permanent Effects",
+                    type = "checkbox", name = "Hide Permanent Effects",
                     tooltip = "Hides passives, mundus stones, and infinite buffs.",
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.hidePermanent end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.hidePermanent = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.hidePermanent = v end,
                 },
                 {
-                    type = "checkbox",
-                    name = "Hide Long Duration Effects",
+                    type = "checkbox", name = "Hide Long Duration Effects",
                     tooltip = "Hides buffs that have a long timer (e.g. food).",
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.hideLongBuffs end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.hideLongBuffs = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.hideLongBuffs = v end,
                 },
                 {
-                    type = "slider",
-                    name = "Long Duration Threshold (Minutes)",
-                    tooltip = "Any effect longer than this will be hidden.",
-                    min = 1, max = 120, step = 1,
+                    type = "slider", name = "Long Duration Threshold (Minutes)", min = 1, max = 120, step = 1,
                     disabled = function() return not TrueRessourceBars.savedVars.targetAuras.hideLongBuffs end,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.longBuffThreshold end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.longBuffThreshold = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.longBuffThreshold = v end,
                 },
             }
         },
-
-        -- Sous-menu : Configuration des Buffs de la Cible
-        {
-            type = "submenu",
-            name = "Target Buffs Bar Configuration",
-            tooltip = "Positions, orientation, and multiple row/column settings for target buffs.",
-            controls = {
-                {
-                    type = "dropdown",
-                    name = "Active",
-                    tooltip = "Enable or disable the target buffs bar.",
-                    choices = { "Yes", "No" },
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.buffsEnabled or "Yes" end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.targetAuras.buffsEnabled = v
-                        if v == "No" then
-                            TrueRessourceBars.targetBuffFrame:SetHidden(true)
-                        end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Buffs Position (X)",
-                    min = -1500, max = 1500, step = 5,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.buffX end,
-                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.buffX = v; UpdateAuraPositions() end,
-                },
-                {
-                    type = "slider",
-                    name = "Buffs Position (Y)",
-                    min = -1000, max = 1000, step = 5,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.buffY end,
-                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.buffY = v; UpdateAuraPositions() end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Buffs Orientation",
-                    choices = auraOrientationChoices,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.buffDir end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.buffDir = value end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Enable Multiple Rows / Columns",
-                    tooltip = "Enable this to allow buffs to wrap onto new rows/columns once the limit per line is reached.",
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.buffEnableGrid end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.buffEnableGrid = value end,
-                },
-                {
-                    type = "slider",
-                    name = "Max Buffs Per Line",
-                    tooltip = "Maximum number of buffs displayed per line before creating a new row/column.",
-                    min = 1, max = 30, step = 1,
-                    disabled = function() return not TrueRessourceBars.savedVars.targetAuras.buffEnableGrid end,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.buffMaxPerRow end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.buffMaxPerRow = value end,
-                },
-                {
-                    type = "dropdown",
-                    name = "New Row Direction",
-                    tooltip = "Controls if new rows appear above or below the initial line.",
-                    choices = {"Below", "Above"},
-                    disabled = function() return not TrueRessourceBars.savedVars.targetAuras.buffEnableGrid end,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.buffRowDirection end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.buffRowDirection = value end,
-                },
-            }
-        },
-
-        -- Sous-menu : Configuration des Débuffs de la Cible
-        {
-            type = "submenu",
-            name = "Target Debuffs Bar Configuration",
-            tooltip = "Positions, orientation, and multiple row/column settings for target debuffs.",
-            controls = {
-                {
-                    type = "dropdown",
-                    name = "Active",
-                    tooltip = "Enable or disable the target debuffs bar.",
-                    choices = { "Yes", "No" },
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.debuffsEnabled or "Yes" end,
-                    setFunc = function(v)
-                        TrueRessourceBars.savedVars.targetAuras.debuffsEnabled = v
-                        if v == "No" then
-                            TrueRessourceBars.targetDebuffFrame:SetHidden(true)
-                        end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Debuffs Position (X)",
-                    min = -1500, max = 1500, step = 5,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.debuffX end,
-                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.debuffX = v; UpdateAuraPositions() end,
-                },
-                {
-                    type = "slider",
-                    name = "Debuffs Position (Y)",
-                    min = -1000, max = 1000, step = 5,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.debuffY end,
-                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.debuffY = v; UpdateAuraPositions() end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Debuffs Orientation",
-                    choices = auraOrientationChoices,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.debuffDir end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.debuffDir = value end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Enable Multiple Rows / Columns",
-                    tooltip = "Enable this to allow debuffs to wrap onto new rows/columns once the limit per line is reached.",
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.debuffEnableGrid end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.debuffEnableGrid = value end,
-                },
-                {
-                    type = "slider",
-                    name = "Max Debuffs Per Line",
-                    tooltip = "Maximum number of debuffs displayed per line before creating a new row/column.",
-                    min = 1, max = 30, step = 1,
-                    disabled = function() return not TrueRessourceBars.savedVars.targetAuras.debuffEnableGrid end,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.debuffMaxPerRow end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.debuffMaxPerRow = value end,
-                },
-                {
-                    type = "dropdown",
-                    name = "New Row Direction",
-                    tooltip = "Controls if new rows appear above or below the initial line.",
-                    choices = {"Below", "Above"},
-                    disabled = function() return not TrueRessourceBars.savedVars.targetAuras.debuffEnableGrid end,
-                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.debuffRowDirection end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.debuffRowDirection = value end,
-                },
-            }
-        },
-
-        -- Sous-menu : Apparence & Lisibilité
+        CreateAuraSubmenu("Target Buffs Bar Configuration", "Buffs", "buffsEnabled", "buffX", "buffY", "buffDir", "buffEnableGrid", "buffMaxPerRow", "buffRowDirection", "targetBuffFrame"),
+        CreateAuraSubmenu("Target Debuffs Bar Configuration", "Debuffs", "debuffsEnabled", "debuffX", "debuffY", "debuffDir", "debuffEnableGrid", "debuffMaxPerRow", "debuffRowDirection", "targetDebuffFrame"),
         {
             type = "submenu",
             name = "Target Auras Appearance & Sizing",
             tooltip = "Adjust sizes, spacing, and typography readability for target auras.",
             controls = {
                 {
-                    type = "slider",
-                    name = "Icons Size",
-                    min = 20, max = 100, step = 2,
+                    type = "slider", name = "Icons Size", min = 20, max = 100, step = 2,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.iconSize end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.iconSize = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.iconSize = v; InvalidateAuraStyles() end,
                 },
                 {
-                    type = "slider",
-                    name = "Spacing",
-                    min = 0, max = 50, step = 1,
+                    type = "slider", name = "Spacing", min = 0, max = 50, step = 1,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.spacing end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.spacing = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.spacing = v end,
                 },
                 {
-                    type = "dropdown",
-                    name = "Font Family",
-                    choices = fontChoices,
+                    type = "dropdown", name = "Font Family", choices = fontChoices,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.fontStyle end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.fontStyle = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.fontStyle = v; InvalidateAuraStyles() end,
                 },
                 {
-                    type = "dropdown",
-                    name = "Font Outline / Shadow Style",
-                    tooltip = "Choose an outline or shadow style to maximize text readability over any background.",
-                    choices = availableStyleChoices,
+                    type = "dropdown", name = "Font Outline / Shadow Style", choices = availableStyleChoices,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.fontOutlineStyle end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.fontOutlineStyle = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.fontOutlineStyle = v; InvalidateAuraStyles() end,
                 },
             }
         },
-
-        -- Sous-menu : Minuteurs des Auras (Timers)
         {
             type = "submenu",
             name = "Target Timers Display (Duration)",
             tooltip = "Position, size, and color of duration labels on target auras.",
             controls = {
                 {
-                    type = "dropdown",
-                    name = "Buffs Timer Position",
-                    choices = timerPositionChoices,
+                    type = "dropdown", name = "Buffs Timer Position", choices = timerPositionChoices,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.timerBuffPos end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.timerBuffPos = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.timerBuffPos = v; InvalidateAuraStyles() end,
                 },
                 {
-                    type = "dropdown",
-                    name = "Debuffs Timer Position",
-                    choices = timerPositionChoices,
+                    type = "dropdown", name = "Debuffs Timer Position", choices = timerPositionChoices,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.timerDebuffPos end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.timerDebuffPos = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.timerDebuffPos = v; InvalidateAuraStyles() end,
                 },
                 {
-                    type = "slider",
-                    name = "Timer Text Size",
-                    min = 10, max = 40, step = 1,
+                    type = "slider", name = "Timer Text Size", min = 10, max = 40, step = 1,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.timerSize end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.timerSize = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.timerSize = v; InvalidateAuraStyles() end,
                 },
                 {
-                    type = "colorpicker",
-                    name = "Timer Color",
-                    getFunc = function()
-                        local r, g, b, a = GetRGBA(TrueRessourceBars.savedVars.targetAuras.timerColor, 1, 1, 1, 1)
-                        return r, g, b, a
-                    end,
-                    setFunc = function(r, g, b, a)
-                        TrueRessourceBars.savedVars.targetAuras.timerColor = { r = r, g = g, b = b, a = a }
-                    end,
+                    type = "colorpicker", name = "Timer Color",
+                    getFunc = function() return GetRGBA(TrueRessourceBars.savedVars.targetAuras.timerColor, 1, 1, 1, 1) end,
+                    setFunc = function(r, g, b, a) TrueRessourceBars.savedVars.targetAuras.timerColor = { r = r, g = g, b = b, a = a }; InvalidateAuraStyles() end,
                 },
             }
         },
-
-        -- Sous-menu : Compteurs de charges des Auras (Stacks)
         {
             type = "submenu",
             name = "Target Stacks Display (Charges)",
             tooltip = "Position, size, and color of stack counters on target auras.",
             controls = {
                 {
-                    type = "dropdown",
-                    name = "Buffs Stack Position",
-                    choices = stackPositionChoices,
+                    type = "dropdown", name = "Buffs Stack Position", choices = stackPositionChoices,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.stackBuffPos end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.stackBuffPos = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.stackBuffPos = v; InvalidateAuraStyles() end,
                 },
                 {
-                    type = "dropdown",
-                    name = "Debuffs Stack Position",
-                    choices = stackPositionChoices,
+                    type = "dropdown", name = "Debuffs Stack Position", choices = stackPositionChoices,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.stackDebuffPos end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.stackDebuffPos = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.stackDebuffPos = v; InvalidateAuraStyles() end,
                 },
                 {
-                    type = "slider",
-                    name = "Stack Text Size",
-                    min = 10, max = 40, step = 1,
+                    type = "slider", name = "Stack Text Size", min = 10, max = 40, step = 1,
                     getFunc = function() return TrueRessourceBars.savedVars.targetAuras.stackSize end,
-                    setFunc = function(value) TrueRessourceBars.savedVars.targetAuras.stackSize = value end,
+                    setFunc = function(v) TrueRessourceBars.savedVars.targetAuras.stackSize = v; InvalidateAuraStyles() end,
                 },
                 {
-                    type = "colorpicker",
-                    name = "Stack Color",
-                    getFunc = function()
-                        local r, g, b, a = GetRGBA(TrueRessourceBars.savedVars.targetAuras.stackColor, 1, 0.8, 0, 1)
-                        return r, g, b, a
-                    end,
-                    setFunc = function(r, g, b, a)
-                        TrueRessourceBars.savedVars.targetAuras.stackColor = { r = r, g = g, b = b, a = a }
-                    end,
+                    type = "colorpicker", name = "Stack Color",
+                    getFunc = function() return GetRGBA(TrueRessourceBars.savedVars.targetAuras.stackColor, 1, 0.8, 0, 1) end,
+                    setFunc = function(r, g, b, a) TrueRessourceBars.savedVars.targetAuras.stackColor = { r = r, g = g, b = b, a = a }; InvalidateAuraStyles() end,
                 },
             }
         }
@@ -2157,12 +1398,14 @@ local function BuildSettingsMenu()
     LAM:RegisterOptionControls("TrueRessourceBarsOptions", options)
 end
 
--- Réactivation et masquage lors du changement de zone
+-- Resynchronisation lors du chargement de zone
 local function OnPlayerActivated()
+    RefreshUnitShieldCache("player")
+    OnReticleTargetChanged()
     CleanGamepadUI()
 end
 
--- Chargement de l'addon
+-- Chargement initial de l'addon
 local function OnAddOnLoaded(eventCode, addonName)
     if addonName ~= TrueRessourceBars.name then return end
     EVENT_MANAGER:UnregisterForEvent(TrueRessourceBars.name, EVENT_ADD_ON_LOADED)
@@ -2174,12 +1417,11 @@ local function OnAddOnLoaded(eventCode, addonName)
     TrueRessourceBars.root = wm:CreateTopLevelWindow("TrueRessourceBarsRoot")
     TrueRessourceBars.root:SetAnchorFill()
 
-    -- Construction des 4 barres de ressource
     TrueRessourceBars.bars = {
-        health = CreateBarControl("health", TrueRessourceBars.savedVars.bars.health),
+        health  = CreateBarControl("health", TrueRessourceBars.savedVars.bars.health),
         magicka = CreateBarControl("magicka", TrueRessourceBars.savedVars.bars.magicka),
         stamina = CreateBarControl("stamina", TrueRessourceBars.savedVars.bars.stamina),
-        target = CreateBarControl("target", TrueRessourceBars.savedVars.bars.target)
+        target  = CreateBarControl("target", TrueRessourceBars.savedVars.bars.target)
     }
 
     TrueRessourceBars.targetBuffFrame = wm:CreateTopLevelWindow(TrueRessourceBars.name .. "TargetBuffFrame")
@@ -2187,24 +1429,19 @@ local function OnAddOnLoaded(eventCode, addonName)
     TrueRessourceBars.targetBuffFrame:SetDrawTier(DT_HIGH)
     TrueRessourceBars.targetDebuffFrame:SetDrawTier(DT_HIGH)
 
-    -- Création des contrôles pour les alertes avancées (Timer CC Immune & Texte Resolve raturé)
-    CreateAlertOverlayControls()
-
     for key in pairs(TrueRessourceBars.bars) do
         ApplyBarVisuals(key)
     end
     UpdateAuraPositions()
-    ApplyAlertVisuals()
 
+    RefreshUnitShieldCache("player")
     CleanGamepadUI()
     BuildSettingsMenu()
 
-    -- Enregistrement des événements de détection des boucliers et cible
-    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, OnVisualAddedOrUpdated)
-    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, OnVisualAddedOrUpdated)
+    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, OnVisualAdded)
+    EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, OnVisualUpdated)
     EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, OnVisualRemoved)
     EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_RETICLE_TARGET_CHANGED, OnReticleTargetChanged)
-
     EVENT_MANAGER:RegisterForEvent(TrueRessourceBars.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
     EVENT_MANAGER:RegisterForUpdate(TrueRessourceBars.name .. "Loop", TrueRessourceBars.updateInterval, MasterUpdateLoop)
 end

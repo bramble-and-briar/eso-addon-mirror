@@ -1,16 +1,17 @@
-## Title: |cA08CFFFury's Guild Toolset|r |c8A86B0v1.34.0|r
+## Title: |cA08CFFFury's Guild Toolset|r |c8A86B0v1.34.8|r
 ## Description: Officer toolkit: guild bank theft and bank-space alerts, bank-hopper report, watchlist, a log of every automatic action, member status and inactivity alerts, weekly trader sales, tax, bids, history log with export, recruiting, raffles, Discord event sign-ups and the Guild Crier menu.
 ## Author: Furyous
-## Version: 1.34.0
-## AddOnVersion: 178
+## Version: 1.34.8
+## AddOnVersion: 186
 ## APIVersion: 101051 101052
 ## SavedVariables: FuryGMT_SV
-## DependsOn: LibAddonMenu-2.0>=43 LibHistoire>=1112
+## DependsOn: LibAddonMenu-2.0>=43 LibHistoire>=1112 FurysAddonMenu>=130
 
 FurysGuildToolset.lua
 UI/Theme.lua
 Core/Util.lua
 Core/History.lua
+Core/HoleFill.lua
 Core/Actions.lua
 UI/ReportWindow.xml
 UI/ReportWindow.lua

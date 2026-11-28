@@ -136,6 +136,18 @@ function SatchelExchangeSettingsActions.Initialize()
     })
 
     panel:AddSetting({
+        type = LAS.ST_CHECKBOX,
+        label = "Stack items after opening",
+        tooltip = "When the containers are open, stack all items in your backpack (the game's Stack All), so contents that landed in a slot of their own join the stack you already hold. It also stacks when the backpack runs out of room, to free space and keep opening. Only runs when there is something to stack.",
+        getFunction = function()
+            return GetSettings().stackAfterOpening
+        end,
+        setFunction = function(value)
+            GetSettings().stackAfterOpening = value
+        end,
+    })
+
+    panel:AddSetting({
         type = LAS.ST_BUTTON,
         label = "Open all containers now",
         tooltip = "Close this menu and open every container in your backpack, one after another. The same action is the Open Containers entry on the LibRadialMenu wheel.",

@@ -1,5 +1,5 @@
 -- Compatibilidad con otros addons que tienes instalados.
-local NWUI = NWUI
+local NWUI = NWInterfaz
 local CP = {}
 NWUI.Compat = CP
 
@@ -16,13 +16,21 @@ end
 
 function CP.Init()
     local s = NWUI.sv.hud
-    if s.enabled and s.hideBanditsQuickslots and BUI and BUI.QuickSlots and BUI.QuickSlots.Update and SecurePostHook then
-        SecurePostHook(BUI.QuickSlots, "Update", HideBanditsQuickslots)
-        NWUI.On("NWUI_BUIQS", "EVENT_PLAYER_ACTIVATED", function()
-            HideBanditsQuickslots()
-            zo_callLater(HideBanditsQuickslots, 1500)
-        end)
-    end
+    -- Bandits UI y Azurah NO son dependencias: no se declaran en el manifiesto.
+    -- Por eso pueden cargarse después que este addon; se comprueban al entrar
+    -- al juego (EVENT_PLAYER_ACTIVATED), cuando ya están cargados todos.
+    NWUI.On("NWUI_BUIQS", "EVENT_PLAYER_ACTIVATED", function()
+        if not (s.enabled and s.hideBanditsQuickslots) then return end
+        -- Bandits UI es opcional: solo si está cargado
+        local bui = BUI
+        if not (bui and bui.QuickSlots) then return end
+        if not CP.buiHooked then
+            CP.buiHooked = true
+            SecurePostHook(bui.QuickSlots, "Update", HideBanditsQuickslots)
+        end
+        HideBanditsQuickslots()
+        zo_callLater(HideBanditsQuickslots, 1500)
+    end)
 
     NWUI.On("NWUI_CompatNotice", "EVENT_PLAYER_ACTIVATED", function()
         EVENT_MANAGER:UnregisterForEvent("NWUI_CompatNotice", EVENT_PLAYER_ACTIVATED)

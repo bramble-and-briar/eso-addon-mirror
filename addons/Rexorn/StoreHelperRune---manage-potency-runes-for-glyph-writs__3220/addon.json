@@ -8,16 +8,12 @@
   "category_id": "94",
   "compatibility": [
     {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
       "name": "Season One",
       "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
     }
   ],
   "content_id": "esoui:3220",
@@ -26,7 +22,7 @@
     "StoreHelperRune"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3220/",
-  "fingerprint": "78e6bee1353f48391df988d240587c91bcb59fddad4184d18aa5e860fe662e7e",
+  "fingerprint": "3a5f3ac9ca121688fe781a79267c9087cc1a09492192571cb8505146a0a6e4ea",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10985.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw10986.jpg"
@@ -37,11 +33,11 @@
   "source_id": "3220",
   "source_url": "https://www.esoui.com/downloads/info3220-StoreHelperRune-managepotencyrunesforglyphwrits.html",
   "stats": {
-    "downloads": 10523,
+    "downloads": 10752,
     "favorites": 5,
-    "monthly_downloads": 27
+    "monthly_downloads": 89
   },
   "title": "StoreHelperRune - manage potency runes for glyph writs",
-  "updated_at": 1789773303000,
-  "version": "0.23"
+  "updated_at": 1795829817000,
+  "version": "0.24"
 }

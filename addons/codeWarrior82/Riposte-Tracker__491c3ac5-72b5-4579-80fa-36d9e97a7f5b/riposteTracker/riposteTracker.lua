@@ -1,35 +1,46 @@
 local appName = "riposteTracker"
-local appVersion = 0 -- bump this on each update
-local name = "apps screen name"
-local info = "What's New:\nreason for update."
+local appVersion = 1 -- bump this on each update
+local name = "Riposte Tracker"
+local info = "What's New:\nAdded option to resize tracker visual."
 local alreadyChecked = false
 local notFoundAlreadyChecked = false
 local riposteAbilityID = 60230
 local timeRemaining = 0
 local picPath = GetAbilityIcon(riposteAbilityID)
-local iconText = zo_iconTextFormat(picPath, 80, 80, " ")
+-- [REMOVED] iconText using zo_iconTextFormat (replaced with <Texture> in XML so icon has zero font baseline padding)
 local isLoaded = false
 local isMenuOpen = false
 local trackingRiposte = false
 local riposteCp = 162
 local isEquiped = false
 
+-- [ADDED] 10 proportional size stages (1 = Smallest to 10 = Largest)
+local sizeStages = {
+    { font = "$(GP_27)", cornerFont = "$(GP_18)", icon = 36 },
+    { font = "$(GP_34)", cornerFont = "$(GP_20)", icon = 45 },
+    { font = "$(GP_36)", cornerFont = "$(GP_22)", icon = 47 },
+    { font = "$(GP_42)", cornerFont = "$(GP_25)", icon = 55 },
+    { font = "$(GP_54)", cornerFont = "$(GP_27)", icon = 71 },
+    { font = "$(GP_61)", cornerFont = "$(GP_34)", icon = 80 },
+}
+
 riposteTracker = {}
 
 riposteTracker.defaults = {
     trackRip = true,
     autoTrack = true,
-	notify = false,
-	notifyStart = true,
+    notify = false,
+    notifyStart = true,
     yAxisText = 930,
     xAxisText = 1400,
-	lastSeenVersion = 0
+    uiSize = 6, -- [ADDED] Default size stage (10 = 80x80 icon + GP_61 font)
+    lastSeenVersion = 0
 }
 
 --print message to chat box
 local function printMessage(msg)
-	local chat = LibChatMessage(appName, "MA")
-	chat:Print(msg)
+    local chat = LibChatMessage(appName, "MA")
+    chat:Print(msg)
 end
 
 --clean player names
@@ -42,10 +53,11 @@ local function isLibAvailable()
     if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" then
         return true
     else 
-		return false
+        return false
     end
 end
 
+--check champion points
 local function checkCP(id)
     for i = 1, 12 do
         local skillId = GetSlotBoundId(i, HOTBAR_CATEGORY_CHAMPION)
@@ -61,15 +73,36 @@ local function checkCP(id)
     return false
 end
 
+-- [ADDED] Dynamically scales container, texture icon, and fonts, then measures actual rendered text height to center digits
+local function updateTrackerSize(stage)
+    local s = sizeStages[stage] or sizeStages[6]
+    riptrack:SetDimensions(s.icon, s.icon)
+
+    riptrackIcon:SetTexture(picPath)
+    riptrackLabelMain:SetFont("$(GAMEPAD_BOLD_FONT)|" .. s.font .. "|soft-shadow-thick")
+    riptrackLabelCorner:SetFont("$(GAMEPAD_MEDIUM_FONT)|" .. s.cornerFont .. "|soft-shadow-thick")
+
+    --measure rendered glyph height to dynamically compensate for gamepad font ascender/descender padding
+    local prevText = riptrackLabelMain:GetText()
+    riptrackLabelMain:SetText("0")
+    local textHeight = riptrackLabelMain:GetTextHeight()
+    riptrackLabelMain:SetText(prevText)
+
+    --work out y offset based on size of icon and text
+    local dynamicOffsetY = math.floor((s.icon - textHeight) * 0.12)
+    riptrackLabelMain:ClearAnchors()
+    riptrackLabelMain:SetAnchor(CENTER, riptrack, CENTER, 0, dynamicOffsetY)
+end
+
 --when UI opens
 local function onMenuOpened()
-	isMenuOpen = true
+    isMenuOpen = true
     riptrack:SetHidden(true)
 end
 
 --when UI closes
 local function onMenuClosed()
-	isMenuOpen = false
+    isMenuOpen = false
     if riposteTracker.savedVariables.trackRip and isEquiped and riposteTracker.savedVariables.autoTrack then
         riptrack:SetHidden(false)
     elseif riposteTracker.savedVariables.trackRip and not riposteTracker.savedVariables.autoTrack then
@@ -77,6 +110,7 @@ local function onMenuClosed()
     end
 end
 
+--scene state change
 local function onSceneStateChange(scene, oldState, newState)
     if isLoaded then
         local sceneName = SCENE_MANAGER:GetCurrentScene():GetName()
@@ -89,7 +123,7 @@ local function onSceneStateChange(scene, oldState, newState)
     end
 end
 
---change archdruid anchor to move around the screen at app start
+--change icon anchor to move around the screen at app start
 local function setAnchorStartupIcon(x, y)  
     riptrack:ClearAnchors()
     riptrack:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
@@ -98,18 +132,16 @@ end
 --change icon anchor to move text around the screen
 local function setAnchorIcon(x, y)  
     riptrack:SetHidden(false)
-	zo_callLater(function () if isMenuOpen == true then riptrack:SetHidden(true) end end, 2000)
+    zo_callLater(function () if isMenuOpen == true then riptrack:SetHidden(true) end end, 2000)
     riptrack:ClearAnchors()
     riptrack:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
 end
 
---is buff active
+--check if buff is active
 local function buffActive()
 
     for i = 1, GetNumBuffs("player") do
         local buffName, timeStarted, timeEnding, _, stackCount, _, _, _, iconFilename, _, abilityId, _, _ = GetUnitBuffInfo("player", i)
-        --local buffName, startTime, endTime, buffSlot, stackCount, iconFilename, buffType, effectType, abilityType, 
-        --statusEffectType, abilityId, canClickOff, castByPlayer = GetBuffInfo("player", i)
 
         if abilityId == riposteAbilityID then
             timeRemaining = timeEnding - GetFrameTimeSeconds()
@@ -126,11 +158,8 @@ local function processBuff()
 
         trackingRiposte = true
 
-        local text = ""
-
-        text = string.format("  %d", timeRemaining)
-
-        riptrackLabelMain:SetText(text)
+        -- [CHANGED] Removed leading spaces so centered text aligns cleanly at every scale
+        riptrackLabelMain:SetText(string.format("%d", timeRemaining))
 
         zo_callLater(function() processBuff() end, 1000)
     else
@@ -152,7 +181,7 @@ local function effectReport(eventCode, changeType, effectSlot, effectName, unitT
     if changeType == 2 then
         riptrackLabelMain:SetText("")
         trackingRiposte = false
-		if isLibAvailable() and riposteTracker.savedVariables.notify then
+        if isLibAvailable() and riposteTracker.savedVariables.notify then
             LibNotify.notifyForAddonPlease(appName, riposteAbilityID, "Riposte ended")
         end	
         return
@@ -182,10 +211,10 @@ end
 local function stopTrackingAuto()
 
     if riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack then
-		if not notFoundAlreadyChecked then
+        if not notFoundAlreadyChecked then
             printMessage("Riposte CP not found")
         end
-		notFoundAlreadyChecked = true
+        notFoundAlreadyChecked = true
         alreadyChecked = false
         unRegisterAlerts()
         riptrack:SetHidden(true)
@@ -195,11 +224,11 @@ end
 --start tracking if set is not equipped
 local function startTrackingAuto()
     if riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack then 
-		if not alreadyChecked then
-			printMessage("Found Riposte CP")
-		end
-		alreadyChecked = true
-		notFoundAlreadyChecked = false
+        if not alreadyChecked then
+            printMessage("Found Riposte CP")
+        end
+        alreadyChecked = true
+        notFoundAlreadyChecked = false
         registerAlerts()
     end
 end
@@ -264,6 +293,22 @@ local function createOptions()
             end,
             default = riposteTracker.defaults.autoTrack,
         },
+        -- [ADDED] 6-stage proportional size slider options to menu
+        {
+            type = "slider",
+            name = "Tracker Size",
+            tooltip = "Adjust the overall size of the icon and timer text.",
+            min = 1, max = 6, step = 1,
+            getFunc = function()
+                return riposteTracker.savedVariables.uiSize
+            end,
+            setFunc = function(value)
+                riposteTracker.savedVariables.uiSize = value
+                updateTrackerSize(value)
+                setAnchorIcon(riposteTracker.savedVariables.xAxisText, riposteTracker.savedVariables.yAxisText)
+            end,
+            default = riposteTracker.defaults.uiSize,
+        },
         {
             type = "slider",
             name = "Icon and Text x Position",
@@ -292,7 +337,7 @@ local function createOptions()
             end,
             default = riposteTracker.defaults.yAxisText,
         },
-		{
+        {
             type = "checkbox",
             name = "Notification Start",
             tooltip = "Displays a notification and plays a sound when the Riposte buff starts.\nThe settings for the notification can be changed in the LibNotify Add-on options.",
@@ -304,7 +349,7 @@ local function createOptions()
             end,
             default = riposteTracker.defaults.notifyStart,
         },
-		{
+        {
             type = "checkbox",
             name = "Notification End",
             tooltip = "Displays a notification and plays a sound when the Riposte buff finishes.\nThe settings for the notification can be changed in the LibNotify Add-on options.",
@@ -349,37 +394,43 @@ local function onAddOnLoaded(event, name)
     --load saved variables
     riposteTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("ripAddonVars", 1, "Settings", riposteTracker.defaults, GetUnitName("player"))
 
+	-- [ADDED] Clamp saved uiSize to 1-6 in case an older saved variable held 7-10, just for first testing in first addon
+    if riposteTracker.savedVariables.uiSize > 6 then
+        riposteTracker.savedVariables.uiSize = 6
+    elseif riposteTracker.savedVariables.uiSize < 1 then
+        riposteTracker.savedVariables.uiSize = 1
+    end
+
     --setup add on menu options
     createOptions()
 
     --notify about new library
-	if not isLibAvailable() then
-		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
-		return
+    if not isLibAvailable() then
+        zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
+        return
     elseif isLibAvailable() and riposteTracker.savedVariables.trackRip then
-		--notify that add-on has been loaded
-		zo_callLater(function() printMessage("add-on loaded") end, 500)
-	end
+        --notify that add-on has been loaded
+        zo_callLater(function() printMessage("add-on loaded") end, 500)
+    end
 
     zo_callLater(function ()
         if checkCP(riposteCp) and riposteTracker.savedVariables.autoTrack and riposteTracker.savedVariables.trackRip then
             isEquiped = true
             printMessage("Found Riposte CP")
-			alreadyChecked = true
+            alreadyChecked = true
         elseif not checkCP(riposteCp) and riposteTracker.savedVariables.autoTrack and riposteTracker.savedVariables.trackRip then
             printMessage("Riposte CP not found")
-			notFoundAlreadyChecked = true
+            notFoundAlreadyChecked = true
         end
     end, 1000)
 
     --setup text field areas
     riptrack:SetMovable(true)
-    riptrackIcon:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
-    riptrackLabelMain:SetFont("$(GAMEPAD_BOLD_FONT)|$(GP_61)|soft-shadow-thick")
-    riptrackIcon:SetText(iconText)
     riptrackLabelMain:SetText("")
-    --riptrackLabelMain:SetColor(255, 255, 0, 255)
+    -- [CHANGED] Applies saved scale, sets texture icon, and dynamically centers the countdown label
+    updateTrackerSize(riposteTracker.savedVariables.uiSize)
 
+    --setup icons place on screen
     setAnchorStartupIcon(riposteTracker.savedVariables.xAxisText, riposteTracker.savedVariables.yAxisText)
 
     --register for combat alerts if tracking is enabled
@@ -392,7 +443,7 @@ local function onAddOnLoaded(event, name)
             riptrack:SetHidden(false)
         elseif riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack and not isEquiped then
             riptrack:SetHidden(true)
-        elseif not riposteTracker.trackRip.trackRip then
+        elseif not riposteTracker.savedVariables.trackRip then
             riptrack:SetHidden(true)
         end
     end, 1200)
@@ -402,9 +453,9 @@ local function onAddOnLoaded(event, name)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
-	
-	--register for activation notifications, leaving this always active
-	EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
+    
+    --register for activation notifications, leaving this always active
+    EVENT_MANAGER:RegisterForEvent(appName, EVENT_PLAYER_ACTIVATED, activated)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

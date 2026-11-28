@@ -1,0 +1,5 @@
+MyUI 1.9.35
+- Restored MyUI_AttributeWidth.lua byte-for-byte from original My_UI_PS5_Stabilitaetsfix_5Prozent.zip.
+- This restores native ESO Health, Magicka and Stamina bar width handling in gamepad as originally supplied (including its 16ms update guard).
+- Preserves 1.9.34 target frame settings: fixed 320 width, segmented inner background, and 15 UI-unit gamepad compass/bossbar gap.
+- All unrelated fixes remain unchanged.

@@ -1,5 +1,5 @@
 -- Panel de ajustes (requiere LibAddonMenu-2.0; si no está, usa /nwui).
-local NWUI = NWUI
+local NWUI = NWInterfaz
 local ST = {}
 NWUI.Settings = ST
 
@@ -86,7 +86,18 @@ function ST.Init()
             setFunc = function(v) NWUI.sv.hud.barBorder = v; Relayout() end,
         },
         check(NWUI.T("o_level"), "hud", "showLevel", Relayout),
-        slider(NWUI.T("o_levelsize"), "hud", "levelSize", 14, 44, 1, Relayout),
+        slider(NWUI.T("o_levelsize"), "hud", "levelSize", 10, 40, 1, Relayout),
+        check(NWUI.T("o_xpbar"), "hud", "showXP", Relayout),
+        check(NWUI.T("o_hpfx"), "hud", "healthEffects", function()
+            if NWUI.HUD and NWUI.HUD.UpdateHealthFX then NWUI.HUD.UpdateHealthFX() end
+        end),
+        {
+            type = "dropdown", name = NWUI.T("o_barfont"),
+            choices = { NWUI.T("barfont_nw"), NWUI.T("barfont_eso") }, choicesValues = { "nw", "eso" },
+            getFunc = function() return NWUI.sv.hud.barFont end,
+            setFunc = function(v) NWUI.sv.hud.barFont = v; Relayout() end,
+            default = "nw",
+        },
 
         { type = "header", name = NWUI.T("h_abil") },
         check(NWUI.T("o_moveab"), "hud", "moveActionBar", Relayout, true),

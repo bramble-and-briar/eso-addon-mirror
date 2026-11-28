@@ -276,6 +276,10 @@ function G.PPText(pp, ctx)
 
 	if w == "than" then return ja .. "より", "other" end
 	if w == "in" or w == "at" or w == "on" then
+		if w == "in" and np.w == "combat" and not (T.userLexicon and T.userLexicon.combat) then
+			local neg = ctx.cl and ctx.cl.vg and ctx.cl.vg.neg
+			return neg and "戦闘中は" or "戦闘中に", "time"
+		end
 		if G.IsTime(np) or (w == "at" and DigitsOnly(ja)) then
 			if w == "in" and np.count and np.time then return ja .. "後に", "time" end
 			if w == "at" and DigitsOnly(ja) then return ja .. "時に", "time" end
@@ -503,13 +507,27 @@ L.ADJ_INF = {
 }
 
 -- The entry for a verb, with the readings that need a different Japanese word in context.
-function G.VerbEntry(cl, c, form)
+function G.VerbEntry(cl, c, form, o)
 	local vg = cl.vg
 	local verb = vg.verb
 	if not verb then return nil end
 	local entry = verb.entry
 	local base = verb.base or verb.w
 	if T.userLexicon and T.userLexicon[base] then return entry end
+	-- Colloquial "u got food?" / "got any pots?" / "anyone got merchant?": possession, not "received".
+	if base == "get" and vg.past and not vg.doSupport and not vg.passive and #c.objs == 1
+		and #c.times == 0 and #c.timeAdvs == 0 and o and o.isQuestion then
+		form.past = nil
+		return { ja = "持っている", class = "1", particle = "を" }
+	end
+	-- Tank callout: "hold boss" / "hold adds" / "hold aggro" -> 引きつける
+	if base == "hold" and #c.objs == 1 and ({ boss = true, adds = true, add = true, aggro = true })[c.objs[1].w or ""] then
+		return { ja = "引きつける", class = "1", particle = "を" }
+	end
+	-- Casual "grab food/drink/potion/quest/buff" -> 取ってくる
+	if base == "grab" and #c.objs == 1 and ({ food = true, drink = true, potion = true, potions = true, pot = true, pots = true, quest = true, buff = true, buffs = true })[c.objs[1].w or ""] then
+		return { ja = "取ってくる", class = "k", particle = "を" }
+	end
 	-- leaving a person behind, not walking out of a place
 	if base == "leave" and #c.objs == 1 and c.objs[1].pron and ({ me = true, us = true, you = true, him = true, her = true, them = true })[c.objs[1].pron]
 		and not T.userLexicon.leave then
@@ -788,10 +806,14 @@ function G.ClauseCore(cl, o)
 		if adv.w == "only" then
 			-- said after the object below
 		elseif adv.aspect then
-			if kind == "imp" and (cl.let or ({ tell = true, ask = true, message = true, whisper = true, pm = true })[base or ""]) then
-				frontPhrases[#frontPhrases + 1] = "気軽に"
+			if adv.w == "just" then
+				if kind == "imp" and (cl.let or ({ tell = true, ask = true, message = true, whisper = true, pm = true })[base or ""]) then
+					frontPhrases[#frontPhrases + 1] = "気軽に"
+				else
+					frontPhrases[#frontPhrases + 1] = "ちょっと"
+				end
 			else
-				frontPhrases[#frontPhrases + 1] = "ちょっと"
+				frontPhrases[#frontPhrases + 1] = adv.ja
 			end
 		elseif adv.sentence then
 			frontPhrases[#frontPhrases + 1] = adv.ja .. "、"
@@ -937,7 +959,7 @@ function G.ClauseCore(cl, o)
 		if ctx.skipSubject and not ctx.subjectSet then subjectPhrase = "" end
 	else
 		-- ---- an ordinary verb ---------------------------------------------------------------
-		entry = G.VerbEntry(cl, c, form)
+		entry = G.VerbEntry(cl, c, form, o)
 		G.Verbal(ctx, {
 			subj = subj, drop = drop, question = question, kind = kind, style = predStyle, entry = entry, base = base,
 			timePhrases = timePhrases, placePhrases = placePhrases, otherPhrases = otherPhrases,
@@ -1814,13 +1836,20 @@ function G.Verbal(ctx, a)
 		a.objectPhrases[#a.objectPhrases + 1] = NPT(objs[2]) .. objectParticle
 	elseif #objs == 1 and not dropMe then
 		local text = NPT(objs[1])
+		local omitParticle = false
+		if objs[1].pron == "another" then
+			if base == "run" or base == "do" or base == "try" or base == "pull" then
+				text = "もう1回"
+				omitParticle = true
+			end
+		end
 		if (c.that or c.wh) and objs[1].pron then
 			-- "told me that ...": a person who is told is 私に
 			objectParticle = "に"
 		end
 		if entry and entry.insufficient then text = text:gsub("^十分な", "") end
 		if ctx.onlyFlag and not objs[1].onlyNP then text = text .. "だけ" end
-		if objs[1].neg and objs[1].pron then
+		if (objs[1].neg and objs[1].pron) or omitParticle then
 			a.objectPhrases[#a.objectPhrases + 1] = text
 		else
 			a.objectPhrases[#a.objectPhrases + 1] = text .. ((base == "ask" and objs[1].pron) and "に" or objectParticle)
@@ -1857,6 +1886,9 @@ function G.Verbal(ctx, a)
 		if frame[1] == "という" then Fail("mean") end
 	elseif c.wh then
 		local frame = L.WH_FRAMES[base]
+		if base == "know" and cl.vg and cl.vg.verb and cl.vg.verb.item and cl.vg.verb.item.fromIdk then
+			frame = { "分かる", "5" }
+		end
 		if base == "have" and objs[1] and objs[1].neg and objs[1].w == "idea" then
 			-- "I have no idea what I'm doing": 何をしているのか分かりません
 			frame = { "分かる", "5" }
@@ -1866,8 +1898,16 @@ function G.Verbal(ctx, a)
 		if not frame then Fail("wh after " .. tostring(base)) end
 		local inner = c.wh
 		if inner.inf then
-			if inner.wh ~= "how" then Fail("wh to") end
-			ctx.clauseText = G.HowTo(inner.inf, ctx) .. "を"
+			if inner.wh == "how" then
+				ctx.clauseText = G.HowTo(inner.inf, ctx) .. "を"
+			elseif inner.wh == "what" or inner.wh == "where" or inner.wh == "when" or inner.wh == "who" then
+				local whJa = inner.whEntry and inner.whEntry.ja or ({ what = "何", where = "どこ", when = "いつ", who = "誰" })[inner.wh]
+				local part = inner.wh == "what" and "を" or (inner.wh == "where" and "に" or (inner.wh == "who" and "に" or ""))
+				local body = G.InfText(inner.inf, { style = "plain", subordinate = true, noSubject = true })
+				ctx.clauseText = whJa .. part .. body .. "べきか"
+			else
+				Fail("wh to")
+			end
 		else
 			local innerCl = {}
 			for k, v in pairs(inner.clause) do innerCl[k] = v end
@@ -2069,7 +2109,7 @@ function G.Utterance(best, opts)
 		local cl = p.clause
 		-- the same person acting again is not named again
 		local drop = p.elliptical or (previous and SubjectKey(cl) ~= nil and SubjectKey(cl) == SubjectKey(previous.clause))
-		local o = { style = style, keepSubject = opts.keepSubject, noSubject = drop or nil }
+		local o = { style = style, keepSubject = opts.keepSubject, noSubject = drop or nil, isQuestion = isLast and opts.questionMark or nil }
 		local text, asked = G.Clause(cl, o)
 		if suffix == "ので、" then text = SoForm(text) end
 		if style == "te" and (text:sub(-6) == "です" or text:sub(-6) == "ます" or text:sub(-3) == "た") then
@@ -2119,8 +2159,12 @@ end
 local function UsesCyrodiilCall(items)
 	local cyro = T.cyrodiilLexicon
 	if not cyro then return false end
-	for _, item in ipairs(items) do
+	for idx, item in ipairs(items) do
 		if item.kind == "word" and item.entry then
+			local nextW = items[idx + 1] and items[idx + 1].kind == "word" and items[idx + 1].w
+			if item.w == "hold" and (nextW == "boss" or nextW == "adds" or nextW == "add" or nextW == "aggro") then
+				-- PvE tanking callout ("hold boss"), not a Cyrodiil keep defense call
+			else
 			local c = cyro[item.w] or (item.base and cyro[item.base])
 			if c then
 				local function Call(e) return e and (e.pos == "v" or e.pos == "a" or e.pos == "x" or e.pos == "adv") end
@@ -2130,6 +2174,7 @@ local function UsesCyrodiilCall(items)
 				end
 				-- the same word is also in the general dictionary: the Cyrodiil meaning wins only with priority
 				if T.cyrodiilPriority and Call(c) then return true end
+			end
 			end
 		end
 	end

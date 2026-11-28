@@ -18,9 +18,9 @@
     "StaticsLetterOpener"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4368/",
-  "fingerprint": "e53a91087633a623c6f71da69ba28f3b9e1f978b834966a36334487e5e452475",
+  "fingerprint": "7c99b9d076a95b9668a574c1dc8dc15f077e295e2e3eaca9b4d6054ddbe57d86",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw15128.png"
+    "https://cdn-eso.mmoui.com/preview/pvw18849.png"
   ],
   "platform": "pc",
   "published": true,
@@ -28,11 +28,11 @@
   "source_id": "4368",
   "source_url": "https://www.esoui.com/downloads/info4368-StaticsLetterOpener.html",
   "stats": {
-    "downloads": 237,
+    "downloads": 252,
     "favorites": 1,
-    "monthly_downloads": 12
+    "monthly_downloads": 26
   },
   "title": "Static's Letter Opener",
-  "updated_at": 1795753859000,
-  "version": "1.1.1"
+  "updated_at": 1795793798000,
+  "version": "1.2.0"
 }

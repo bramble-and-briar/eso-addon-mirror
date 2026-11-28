@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/TitoDrew/Tamriel-Coach-Claude__5130",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "TitoDrew",
+  "canonical_id": "esoui:5130",
+  "category_id": "94",
+  "compatibility": [
+    {
+      "name": "Echoes of Skyrim",
+      "version": "12.2.0"
+    },
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:5130",
+  "deleted": false,
+  "directories": [
+    "CoachClaude"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl5130/",
+  "fingerprint": "a2cc1867656eff82fb01cc9b7eb285a1e653041be156d4b9cd62563e62e7c6e0",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18875.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18876.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "5130",
+  "source_url": "https://www.esoui.com/downloads/info5130-TamrielCoachClaude.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Tamriel Coach Claude",
+  "updated_at": 1795842367000,
+  "version": "1.7.1"
+}

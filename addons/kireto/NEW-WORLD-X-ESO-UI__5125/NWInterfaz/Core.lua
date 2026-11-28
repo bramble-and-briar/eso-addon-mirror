@@ -1,4 +1,4 @@
-local NWUI = NWUI
+local NWUI = NWInterfaz
 
 local defaults = {
     positions = {},
@@ -12,11 +12,14 @@ local defaults = {
         hideDefaultBars = true,
         barWidth = 400,
         healthHeight = 28,
-        resourceHeight = 16,
+        resourceHeight = 17,
         staminaColor = "nw",
         showBarText = true,
         showLevel = true,
-        levelSize = 26,
+        levelSize = 18,
+        showXP = true,
+        healthEffects = true,
+        barFont = "nw",
         moveActionBar = true,
         flatAbilities = true,
         abilitySize = 46,
@@ -59,19 +62,29 @@ local defaults = {
     },
 }
 
-local function SafeInit(mod, label)
-    if not (mod and mod.Init) then return end
-    local ok, err = pcall(mod.Init)
-    if not ok then
-        d("|cFF6666[NW Interfaz]|r " .. NWUI.T("init_error", label, tostring(err)))
-    end
+local function InitModule(mod)
+    mod.Init()
 end
 
 local function OnLoaded(_, addonName)
     if addonName ~= NWUI.name then return end
     EVENT_MANAGER:UnregisterForEvent(NWUI.name, EVENT_ADD_ON_LOADED)
 
-    NWUI.sv = ZO_SavedVars:NewAccountWide("NWInterfaz_SV", 2, nil, defaults)
+    -- Ajustes por servidor (NA / EU / PTS). La primera vez en un servidor se
+    -- copian los ajustes que ya tenías (de versiones anteriores, sin servidor).
+    local world = GetWorldName()
+    local raw = NWInterfaz_SV
+    if type(raw) == "table" and world ~= "Default" then
+        local acct = GetDisplayName()
+        local old = raw.Default and raw.Default[acct] and raw.Default[acct]["$AccountWide"]
+        local cur = raw[world] and raw[world][acct] and raw[world][acct]["$AccountWide"]
+        if type(old) == "table" and cur == nil then
+            raw[world] = raw[world] or {}
+            raw[world][acct] = raw[world][acct] or {}
+            raw[world][acct]["$AccountWide"] = ZO_DeepTableCopy(old)
+        end
+    end
+    NWUI.sv = ZO_SavedVars:NewAccountWide("NWInterfaz_SV", 2, nil, defaults, world)
     NWUI.sv.positions = NWUI.sv.positions or {}
     -- 1.1.1: nueva disposición del equipo; se descartan posiciones viejas de esos bloques
     if (NWUI.sv.layoutRev or 0) < 3 then
@@ -108,13 +121,20 @@ local function OnLoaded(_, addonName)
         if (h.abilityGap or 0) >= 6 then h.abilityGap = 3 end
         NWUI.sv.layoutRev = 8
     end
+    -- 1.9.0: magia/aguante 17 px, placa del nivel más chica, barra de experiencia
+    if (NWUI.sv.layoutRev or 0) < 9 then
+        local h = NWUI.sv.hud
+        if (h.resourceHeight or 0) <= 16 then h.resourceHeight = 17 end
+        if (h.levelSize or 0) >= 26 then h.levelSize = 18 end
+        NWUI.sv.layoutRev = 9
+    end
 
-    SafeInit(NWUI.HUD, "HUD")
-    SafeInit(NWUI.Inventory, "inventario")
-    SafeInit(NWUI.Equipment, "equipo")
-    SafeInit(NWUI.Scenes, "escenas")
-    SafeInit(NWUI.Compat, "compatibilidad")
-    SafeInit(NWUI.Settings, "ajustes")
+    InitModule(NWUI.HUD)
+    InitModule(NWUI.Inventory)
+    InitModule(NWUI.Equipment)
+    InitModule(NWUI.Scenes)
+    InitModule(NWUI.Compat)
+    InitModule(NWUI.Settings)
 
     SLASH_COMMANDS["/nwui"] = function(arg)
         arg = zo_strlower(zo_strtrim(arg or ""))

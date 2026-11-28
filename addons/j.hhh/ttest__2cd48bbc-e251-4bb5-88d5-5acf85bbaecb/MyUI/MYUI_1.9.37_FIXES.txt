@@ -1,0 +1,7 @@
+MyUI v1.9.37
+- Restored the alternative-attribute endcap scaling fix from v1.9.34, which v1.9.36 accidentally reverted.
+- Kept the original width slider/attribute width implementation byte-identical to the first user upload.
+- Corrected native gamepad targetframe anchor offset from +15 to -3 UI units to compensate for visible top padding (~18 units in screenshot); the intended visible gap is approximately 15.
+- Preserved fixed 320 gamepad target width and inner background fix.
+- No other functional files were modified.
+- Static/code inspection only; needs in-game validation.

@@ -1,0 +1,11 @@
+## Title: |cE8C15ACoach Claude|r
+## Author: @TitoDrew
+## Version: 1.7.1
+## AddOnVersion: 9
+## APIVersion: 101051 101052
+## Description: Daily plan from your coach in chat, with approved buys made at the guild store inside your rules. Tick tasks in game; progress is read back on the next check.
+## SavedVariables: CoachClaude_SV
+
+Tasks.lua
+CoachClaude.lua
+Store.lua

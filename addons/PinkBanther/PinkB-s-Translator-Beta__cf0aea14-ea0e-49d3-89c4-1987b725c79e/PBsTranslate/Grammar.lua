@@ -474,8 +474,14 @@ local function Disambiguate(items)
 			local atStart = not previous or previous.kind == "punct"
 				or (previous.kind == "word" and CONJUNCTIONS[previous.w])
 			if item.w == "still" and entry.alts.adv and following and following.entry
-				and (following.entry.pos == "v" or following.entry.pos == "a") then
+				and (following.entry.pos == "v" or following.entry.pos == "a" or following.entry.pos == "x") then
 				wantPos = "adv"
+			elseif item.w == "bash" and entry.alts.v and following and following.kind == "word"
+				and (following.entry and (T.As(following.entry, "n") or following.entry.pos == "pn" or following.entry.pos == "det") or ARTICLES[following.w]) then
+				wantPos = "v"
+			elseif item.w == "taunt" and entry.alts.n and previous and previous.kind == "word"
+				and (previous.w == "lost" or previous.w == "no" or previous.w == "need" or previous.w == "drop" or previous.w == "dropped") then
+				wantPos = "n"
 			elseif item.altInflection == "past" and previous and previous.entry and previous.entry.pos == "n"
 				and following and ARTICLES[following.w] then
 				wantPos = "v"
@@ -2544,7 +2550,9 @@ local function HasContrast(leads, hasBut)
 	return distinct >= 2
 end
 
-local function TranslateSegment(items, stats, questionMark, keepSubject, isLast)
+local TranslateSegment
+
+local function TranslateSegmentCore(items, stats, questionMark, keepSubject, isLast)
 	local clauses = SplitClauses(items)
 	local leads, hasBut = {}, false
 	for _, clause in ipairs(clauses) do
@@ -2633,6 +2641,14 @@ local function TranslateSegment(items, stats, questionMark, keepSubject, isLast)
 	local text = table.concat(subordinate) .. table.concat(main)
 	text = text:gsub("、$", "")
 	return text, mainQuestion
+end
+
+TranslateSegment = function(items, stats, questionMark, keepSubject, isLast)
+	if T.ChatEngine and T.ChatEngine.enabled and T.ChatEngine.TranslateSegment then
+		local chatText, chatQuestion = T.ChatEngine.TranslateSegment(items, stats, questionMark, keepSubject, isLast, TranslateSegmentCore)
+		if chatText then return chatText, chatQuestion end
+	end
+	return TranslateSegmentCore(items, stats, questionMark, keepSubject, isLast)
 end
 
 local END_MARK = { ["."] = "。", ["!"] = "！", ["?"] = "？" }

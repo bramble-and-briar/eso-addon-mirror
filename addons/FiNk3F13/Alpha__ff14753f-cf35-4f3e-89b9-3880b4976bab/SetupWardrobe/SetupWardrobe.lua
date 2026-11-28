@@ -12,6 +12,7 @@ local gearReadyAt, checkedWeaponPose, sheathDeadline = 0, false, nil
 local saved, selected, flight, previousKey, attempts
 local gearBatchTried, skillBatchTried
 local hud
+local championSwap, championTarget
 local function title(index)
     return saved.names[index] or ("Setup " .. index)
 end
@@ -20,10 +21,30 @@ local function refreshHud()
     local lastName = saved.last and saved.setups[saved.last] and title(saved.last)
     local text = "|c83e4cfSetup|r  " .. (lastName or "Noch keines geladen")
     if selected then text = text .. "\n|cdec487→|r  " .. title(selected) end
+    local cpStatus=championSwap and championSwap.Status()
+    if championTarget and cpStatus then
+        text=text.."\n|cdec487"..cpStatus.." · "..title(championTarget).."|r"
+    end
     hud:SetText(text)
 end
 
 local function message(text) d("SetupWardrobe – " .. text) end
+
+local function updateChampion()
+    if not championTarget then return end
+    if IsUnitInCombat("player") or IsUnitDeadOrReincarnating("player") then
+        refreshHud()
+        return
+    end
+    local setup=saved.setups[championTarget]
+    local done,reason=championSwap.Step(setup and setup.cp)
+    if done or reason then
+        championTarget=nil
+        em:UnregisterForUpdate(NAME.."Champion")
+        if reason then message(reason) end
+    end
+    refreshHud()
+end
 
 local function item(bag, slot)
     if GetItemId(bag, slot) == 0 then return "" end
@@ -237,6 +258,12 @@ local function loadSetup(index)
             return
         end
     end
+    local valid,reason=championSwap.Validate(setup.cp)
+    if not valid then message(reason); return end
+    championTarget=index
+    championSwap.Reset()
+    em:UnregisterForUpdate(NAME.."Champion")
+    em:RegisterForUpdate(NAME.."Champion",100,updateChampion)
     selected, previousKey, attempts = index, nil, 0
     combatPaused, resumeAt = false, 0
     checkedWeaponPose, sheathDeadline = false, nil
@@ -254,13 +281,14 @@ em:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addon)
     if addon ~= NAME then return end
     em:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
     saved = ZO_SavedVars:NewCharacterIdSettings("ControllerWardrobeSaved", 1, nil, { setups = {}, names = {} })
+    championSwap=SetupWardrobeChampionSwap()
     local root = WINDOW_MANAGER:CreateTopLevelWindow(NAME .. "HUD")
-    root:SetDimensions(420, 58)
+    root:SetDimensions(540, 84)
     root:SetAnchor(BOTTOMLEFT, GuiRoot, BOTTOMLEFT, 55, -185)
     hud = WINDOW_MANAGER:CreateControl(nil, root, CT_LABEL)
     hud:SetAnchorFill(root)
     hud:SetFont("ZoFontGamepad22")
-    hud:SetMaxLineCount(2)
+    hud:SetMaxLineCount(3)
     local fragment = ZO_HUDFadeSceneFragment:New(root)
     HUD_SCENE:AddFragment(fragment)
     HUD_UI_SCENE:AddFragment(fragment)
@@ -271,6 +299,8 @@ em:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addon)
     ControllerWardrobeMenu(menu, saved, slots, bars, title, save, loadSetup, locate, refreshHud,
         function() return selected end,
         function()
+            championTarget=nil
+            em:UnregisterForUpdate(NAME.."Champion")
             stop("Ausstehender Wechsel abgebrochen.")
         end)
     SLASH_COMMANDS["/cw"] = function(text)
@@ -278,5 +308,9 @@ em:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, function(_, addon)
         if index and index == math.floor(index) and index >= 1 and index <= 4 then loadSetup(index)
         else message("/cw 1 bis /cw 4 lädt den gespeicherten Platz.") end
     end
-    em:RegisterForEvent(NAME, EVENT_PLAYER_DEACTIVATED, function() stop() end)
+    em:RegisterForEvent(NAME, EVENT_PLAYER_DEACTIVATED, function()
+        championTarget=nil
+        em:UnregisterForUpdate(NAME.."Champion")
+        stop()
+    end)
 end)

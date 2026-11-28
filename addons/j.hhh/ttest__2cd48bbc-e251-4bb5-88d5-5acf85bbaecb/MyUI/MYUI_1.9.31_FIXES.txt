@@ -1,0 +1,3 @@
+MyUI 1.9.31
+- Gamepad target frame distance under boss bar/compass changed from 76 to 45 UI units.
+- Previous fixes retained (bossbar theme fallback, group invite automation fix, alternative attribute frame fix).

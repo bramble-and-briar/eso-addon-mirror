@@ -1,5 +1,107 @@
-NW INTERFAZ  v1.8.1  ·  Addon para The Elder Scrolls Online (PC, modo teclado)
+NW INTERFAZ  v1.9.7  ·  Addon para The Elder Scrolls Online (PC, modo teclado)
 ==============================================================================
+
+NOVEDADES 1.9.7
+---------------
+  · La barra de vida muestra los efectos del juego original, con sus mismas
+    texturas y avisos: armadura rota (grietas con destello), armadura
+    aumentada (marco metálico), daño aumentado (halo dorado) o reducido
+    (sombra oscura), regeneración aumentada o reducida (flechas),
+    inquebrantable y posesión. Se dibujan solo dentro de la barra de vida, sin
+    tocar las otras barras, la de experiencia, los tamaños ni los números.
+  · Opción nueva para activarlos o desactivarlos (activados por defecto).
+
+NOVEDADES 1.9.6
+---------------
+  · Corregido: al morir, los marcos de las habilidades, de la definitiva y del
+    objeto rápido se quedaban vacíos (el juego oculta su barra mientras estás
+    muerto). Ahora siguen mostrando sus iconos y teclas hasta que revives.
+
+NOVEDADES 1.9.5
+---------------
+  · El texto que sale al morir ("Elige ubicación para revivir", la
+    recapitulación de la muerte y los tiempos de espera) ahora se puede mover
+    en el modo edición (/nwui mover), igual que las barras. Al principio sale
+    en el mismo sitio que lo pone el juego.
+
+NOVEDADES 1.9.4
+---------------
+  · Corregido: la tecla E (Usar) daba el error "Attempt to access a private
+    function 'UseItem'" al abrir contenedores, comer o usar consumibles desde
+    el inventario. Ahora funciona igual que en el juego original.
+
+NOVEDADES 1.9.3
+---------------
+  · Al pasar el ratón por un objeto del inventario, banco, banco del gremio
+    o arcón de artesanía aparecen abajo, en la barra de teclas del juego, sus
+    acciones con las teclas originales: Usar / Abrir (contenedores), Vista
+    previa, Equipar, Depositar, etc. Las pone el propio juego, igual que en
+    su inventario.
+
+NOVEDADES 1.9.2  (revisión de ESOUI)
+---------------
+  · Se quitaron todas las llamadas pcall() y las comprobaciones de que
+    existan funciones o constantes del juego: ahora se llama directamente a
+    la API, verificada contra el código fuente oficial de la interfaz de ESO
+    y su documentación (API 101051).
+  · Constantes de monedas actualizadas a sus nombres actuales
+    (CURT_TRANSMUTE_CRYSTALS, CURT_SEALS, CURT_TRADE_BARS).
+  · La letra de los números de las barras ya va incluida (NWBarras.slug).
+
+NOVEDADES 1.9.1
+---------------
+  · Números de las barras de magia, aguante y salud con la tipografía del
+    diseño nuevo (fonts/NWBarras.slug, DejaVu Sans Condensed Bold, licencia
+    libre en fonts/LICENSE_DejaVu.txt). Se puede volver a la letra del juego
+    en Ajustes.
+
+NOVEDADES 1.9.0
+---------------
+  · Barra de experiencia debajo de la salud: fina, con marco dorado del
+    mismo estilo que la placa del nivel (textures/xp_marco.dds). Muestra lo
+    que falta para el siguiente nivel o, con Campeón, para el siguiente punto.
+    El relleno se desvanece a la izquierda y es dorado en la punta; avanza
+    suavemente al ganar experiencia. Separación de 3 px arriba y abajo.
+  · Se quitó la línea dorada con rombo que había bajo el nivel.
+  · Placa del nivel más chica (34 px); el número se ajusta solo para que
+    quepa hasta 3,600 y todos los valores usan el mismo tamaño.
+  · Magia y aguante: 17 px de alto (antes 16) con número 14. Salud: 28 px.
+  · Opción nueva: mostrar u ocultar la barra de experiencia.
+  · La primera vez hay que cerrar y abrir el juego (imagen nueva).
+
+NOVEDADES 1.8.5
+---------------
+  · Bandits User Interface y Azurah ya no aparecen en el manifiesto: el
+    addon no los necesita. Si los tienes instalados, se sigue ajustando a
+    ellos (se detectan al entrar al juego). Solo LibAddonMenu-2.0, Tamriel
+    Trade Centre y TTC Simple Price quedan como opcionales.
+
+NOVEDADES 1.8.4
+---------------
+  · Rendimiento: la vista de equipo solo escucha los cambios de vida,
+    magia y aguante del propio jugador (filtro de evento), no los de todos
+    los personajes cercanos.
+
+NOVEDADES 1.8.3  (revisión de ESOUI)
+---------------
+  · Manifiesto: LibAddonMenu-2.0 queda como dependencia opcional sin
+    comprobación de versión (OptionalDependsOn no admite ">=").
+  · Variable global única: el addon ya no crea la global "NWUI" (nombre
+    corto y repetible); ahora usa solo "NWInterfaz" y cada archivo trabaja
+    con una referencia local.
+  · Ajustes por servidor (NA / EU / PTS). La primera vez que entras a cada
+    servidor se copian los ajustes que ya tenías, así no pierdes nada.
+  · Se quitaron comprobaciones innecesarias de funciones del juego que
+    siempre existen.
+
+NOVEDADES 1.8.2
+---------------
+  · Corregido el error "Attempt to access a private function
+    'QuerySkuCatalog' from insecure code" al abrir los Tomos de Tamriel (y
+    otros errores parecidos al abrir la Tienda de Coronas u otras ventanas
+    del juego). Las ventanas del addon ya no usan los fundidos animados del
+    juego, que eran los que "contaminaban" el cambio de escena; el fundido de
+    entrada ahora lo hace el addon por su cuenta.
 
 NOVEDADES 1.8.1
 ---------------

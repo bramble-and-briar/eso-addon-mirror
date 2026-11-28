@@ -7,7 +7,7 @@ local Run = {}
 GP.Run = Run
 
 local MAX_ITEMS = 40
-local MAX_SEARCH_PAGES = 3
+local MAX_SEARCH_PAGES = 5
 local READY_POLL_MS = 400
 local READY_TRIES = 12
 local SEARCH_TIMEOUT_MS = 15000
@@ -37,6 +37,15 @@ end
 
 local function run()
     return GP.sv.run
+end
+
+-- The game's price range filter. The buy run sets it to the exact price, then puts it back.
+local function setPriceFilter(low, high)
+    pcall(function() TRADING_HOUSE_SEARCH.features.priceRangeFeature:SetPriceRange(low, high) end)
+end
+
+local function clearPriceFilter()
+    setPriceFilter(nil, nil)
 end
 
 local function isSelling()
@@ -155,6 +164,7 @@ function Run.StartSelling()
 end
 
 function Run.Stop()
+    clearPriceFilter()
     if run() then run().active = false end
     state, current, sellVisit = nil, nil, false
     listingAll = false
@@ -164,6 +174,7 @@ function Run.Stop()
 end
 
 local function finish()
+    clearPriceFilter()
     local total, _, profit = counts()
     run().active = false
     state, current, sellVisit = nil, nil, false
@@ -204,6 +215,7 @@ local function whenReady(fn, tries, isReady, giveUp)
 end
 
 local function afterStop()
+    clearPriceFilter()
     state, current = nil, nil
     local following = nextItem()
     if following then
@@ -259,6 +271,11 @@ findCurrent = function()
     -- so this loads the item and runs the search directly. The game waits out its own cooldown.
     local ok = pcall(function()
         TRADING_HOUSE_SEARCH:LoadSearchItem(item.link)
+        -- Companion gear and other common names can fill many pages. Searching for the exact
+        -- price puts this listing on the first page, however many similar ones there are.
+        local low = math.floor(math.min(item.unit, item.total))
+        local high = math.ceil(math.max(item.unit, item.total))
+        setPriceFilter(low, high)
         pcall(function() GAMEPAD_TRADING_HOUSE_BROWSE:RefreshList() end)
         TRADING_HOUSE_GAMEPAD:EnterBrowseResults()
     end)
@@ -326,6 +343,7 @@ restockNext = function()
     end, SEARCH_TIMEOUT_MS)
     local ok = pcall(function()
         TRADING_HOUSE_SEARCH:LoadSearchItem(item.link)
+        clearPriceFilter()
         pcall(function() GAMEPAD_TRADING_HOUSE_BROWSE:RefreshList() end)
         TRADING_HOUSE_GAMEPAD:EnterBrowseResults()
     end)
@@ -907,6 +925,7 @@ end
 
 function Run.OnTraderClose()
     if not Run.IsActive() then return end
+    clearPriceFilter()
     if Run.IsRestocking() then return finishRestock() end
     state, current, sellVisit = nil, nil, false
     listingAll = false

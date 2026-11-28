@@ -230,7 +230,7 @@ end
 function PP.PeekSlash(val, arg2)
     local sv = Settings()
     if val == "higher" or val == "lower" or val == "height" or val == "left" or val == "right" or val == "across" then
-        PP.PeekNudge(val, tonumber(arg2 or "") or 0)
+        PP.PeekNudge(val, tonumber(arg2) or 0)
         Say("Your critter now peeks " .. PP.PeekSpotText() ..
             ". Try /critter peek higher, lower, left or right (or the buttons in /critter), or /critter peek reset.")
         return

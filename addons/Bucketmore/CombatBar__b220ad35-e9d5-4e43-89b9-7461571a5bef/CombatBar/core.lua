@@ -99,11 +99,15 @@ end
 
 -- 効果イベント(自分が発動した効果のみ。登録側でフィルタ)
 function CB.OnEffectChanged(_, change, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, _, _, _, _, _, _, unitId, abilityId)
+    -- 自分自身に付いた効果だけを扱う。敵・味方・対象に付いた効果は記録しない。
+    -- (登録側のフィルタに加えた二重の安全策)
+    if unitTag ~= "player" then return end
+
     local owner = ResolveOwner(abilityId, effectName)
     if not owner then return end
 
     local st = CB.state[owner]
-    local key = (unitTag == "player") and "p" or (unitId or unitTag)
+    local key = "p"
 
     if change == EFFECT_RESULT_FADED then
         if not st then return end
@@ -218,4 +222,28 @@ end
 function CB.GetUltValue()
     local current = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_ULTIMATE)
     return current or 0
+end
+
+-- HP・MP・STの現在値と最大値。取得できない値は nil を返す(推測で補わない)。
+local MECH =
+{
+    hp = COMBAT_MECHANIC_FLAGS_HEALTH,
+    mp = COMBAT_MECHANIC_FLAGS_MAGICKA,
+    st = COMBAT_MECHANIC_FLAGS_STAMINA,
+}
+CB.resourceMech = MECH
+
+function CB.GetResource(kind)
+    local mech = MECH[kind]
+    if not mech then return nil end
+    local ok, cur, max, effectiveMax = pcall(GetUnitPower, "player", mech)
+    if not ok or type(cur) ~= "number" then return nil end
+    local m
+    if type(effectiveMax) == "number" and effectiveMax > 0 then
+        m = effectiveMax
+    elseif type(max) == "number" and max > 0 then
+        m = max
+    end
+    if m and cur > m then m = cur end
+    return cur, m
 end

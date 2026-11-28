@@ -1,0 +1,23 @@
+## Title: |cFF69B4PB's Craft Assistant|r 0.1.6
+## Author: |cFF69B4PinkBanther|r
+## Description: Daily crafting writs without the busywork: takes the writs at the board, crafts what they ask for the moment you open the right station (style stones chosen for you), takes what you need out of the bank, hands the goods in at the crate and opens the reward boxes. A light, event-driven console take on the idea of Dolgubon's Lazy Writ Crafter, with no libraries required.
+## Version: 0.1.6
+## AddOnVersion: 7
+## APIVersion: 101050 101051
+## OptionalDependsOn: LibHarvensAddonSettings>=20106
+## SavedVariables: PBsCraftAssistant_Data
+
+Boot.lua
+lang/strings.lua
+lang/$(language).lua
+Core.lua
+Writs.lua
+Dialog.lua
+Craft.lua
+Bank.lua
+Rewards.lua
+Panel.lua
+Settings.lua
+Main.lua
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls© and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.

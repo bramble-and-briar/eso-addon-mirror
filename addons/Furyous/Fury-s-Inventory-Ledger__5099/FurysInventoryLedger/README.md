@@ -2,11 +2,14 @@
 
 **AI disclosure:** This addon's code was written with the assistance of an AI coding assistant (Claude by Anthropic), working from my designs and instructions. I test every release in game on my own characters before it goes up, and I maintain it. Please report any problem in the comments.
 
+> **New:** this addon now requires [Fury's Addons Menu](https://www.esoui.com/downloads/info5126-FurysAddonsMenu.html), a free library like LibAddonMenu-2.0. Minion 3 does not install libraries for you, so if the addon stops loading after this update, install it from the link or in Minion.
+
 Every item you own in one list: every character's bags and gear, the bank, the craft bag, house storage,
 the Furniture Vault, furniture placed in your houses, and your currencies. See it all on a summary page
 with running currency totals, copy it in game, or export it to Excel.
 
-**Requires:** LibAddonMenu-2.0 (version 43 or newer). Install it separately; without it the addon will not load.
+**Requires:** LibAddonMenu-2.0 (version 43 or newer) and [Fury's Addons Menu](https://www.esoui.com/downloads/info5126-FurysAddonsMenu.html) (version 1.3.0 or newer), which gives all of Fury's addons the Fury sidebar and `/fury`. Both are separate downloads: search for them in Minion (Minion 3 does not install libraries for you) or get them from ESOUI. Without them, this addon will not load.
+
 
 ## What it lists
 
@@ -59,7 +62,7 @@ Changes are shown in green when they went up and in rose when they went down. Go
 ## Getting it into Excel
 
 **Full file (Windows):**
-1. In game, click **Prepare the Excel file** under `/ledger settings` (or type `/ledger export`). It builds
+1. In game, click **Prepare the Excel file** on the summary (`/ledger`) or under `/ledger settings` (or type `/ledger export`). It builds
    the full list and asks before it reloads the interface, because the game only writes saved data when it
    reloads or you log out.
 2. Download the separate **Windows tools** zip (in game: **Get the Windows tools** under `/ledger settings`, or `/ledger tools`; the game asks before it opens your browser. The link is also on the addon's ESOUI page) and unzip it anywhere,
@@ -67,11 +70,11 @@ Changes are shown in green when they went up and in rose when they went down. Go
    zips may only hold addon files.
 3. Double-click `ExportToExcel.cmd`. It writes `ESO Inventory <date time>.csv` to your Desktop and opens it.
 
-**Keep the Excel file ready** (a setting, starts turned off): when on, the full list is saved every time you
-log out, switch characters or reload, so step 1 is not needed. It about doubles the size of the addon's saved file.
+**Keep the Excel file ready** (a setting, starts turned off): when on, the full list is saved again when you
+log out, switch characters or reload and anything you own changed, so step 1 is not needed. It about doubles the size of the addon's saved file.
 If you used the addon before 1.5.0 it is on for you, as before.
 
-**In game:** `/ledger copy` (or **Copy for Excel** on the summary) opens the copy window. Click **Select All**, press Ctrl+C, paste into Excel.
+**In game:** `/ledger copy` (or **Export / Copy** on the summary) opens the copy window. Click **Select All**, press Ctrl+C, paste into Excel.
 The **List** picker narrows it to this account, one character or one kind of place, and **Type** to one item type.
 Large lists are split into pages; paste each page under the last. The copy window leaves out the Item Link
 column to keep pages small.

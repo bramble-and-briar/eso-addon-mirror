@@ -109,6 +109,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's CompanionAffinity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CompanionAffinity__8524a1bc-9aef-4585-a4b5-6b2c50c1675a) | PinkBanther | Console | — |
 | [PinkB's CompanionAffinity(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CompanionAffinity-Beta__04dfa0a7-6446-437f-a0ef-ee5a17d1fd07) | PinkBanther | Console | — |
 | [PinkB's Compass](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Compass__9cf7a466-7ad1-4e05-b1d9-093450347229) | PinkBanther | Console | — |
+| [PinkB's CraftAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CraftAssistant__7108ffcd-1a85-402c-a049-0559f5e1996e) | PinkBanther | Console | — |
+| [PinkB's CraftAssistant(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CraftAssistant-Beta__489ffb90-929c-4a85-965d-4ed59891c2fd) | PinkBanther | Console | — |
 | [PinkB's CraftMaterialAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CraftMaterialAssistant__c7f082bc-03e0-4e0c-b82b-d7903e5101ad) | PinkBanther | Console | — |
 | [PinkB's CraftMaterialAssistant(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CraftMaterialAssistant-Beta__bb9043ae-169f-4492-8abb-7d3111e97820) | PinkBanther | Console | — |
 | [PinkB's CyrodiilAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CyrodiilAlert__da931320-7488-4ce0-83a2-100180a2f3f2) | PinkBanther | Console | — |
@@ -144,6 +146,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's Omikuji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Omikuji__e9774308-4827-4806-b3bd-924016769cd3) | PinkBanther | Console | — |
 | [PinkB's Omikuji(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-Omikuji-Beta__20cda1ba-c4a4-4f82-9dcb-81e274222d9e) | PinkBanther | Console | — |
 | [PinkB's OnlineStatusAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-OnlineStatusAlert__acc220d2-3d92-4f47-8eae-979714894059) | PinkBanther | Console | — |
+| [PinkB's PingAndBagSpaceIndicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-PingAndBagSpaceIndicator__adc8e0f9-5c81-472c-a933-5c62d00223f3) | PinkBanther | Console | — |
+| [PinkB's PingAndBagSpaceIndicator(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-PingAndBagSpaceIndicator-Beta__d94c866b-c164-4188-b399-38e5eb5f7ac2) | PinkBanther | Console | — |
 | [PinkB's PlayerMarkerExtension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-PlayerMarkerExtension__a5a47140-37bb-4fb8-a0be-2d8b424ad400) | PinkBanther | Console | — |
 | [PinkB's PlayerMarkerExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-PlayerMarkerExtension-Beta__a65f7431-18ba-4958-a2e4-c2b14621d1b3) | PinkBanther | Console | — |
 | [PinkB's ProcSetTimer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-ProcSetTimer__92429895-8851-446b-83ef-a1333a7ac486) | PinkBanther | Console | — |
@@ -197,7 +201,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Plunder Skull Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SandmanNinja/Plunder-Skull-Tracker__4978) | SandmanNinja | PC / Mac | 1.1.2 |
 | [Pocket Adeptus (Red Trial CP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Pocket-Adeptus-Red-Trial-CP__2057) | init3 | PC / Mac | 2.4 |
 | [Pocket Adeptus Red Trial CP - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EternalSessions6/Pocket-Adeptus-Red-Trial-CP---Updated__2782) | EternalSessions6 | PC / Mac | 1.0 |
-| [Pocket Critters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hellwuff/Pocket-Critters__5079) | Hellwuff | PC / Mac | 3.0.5 |
+| [Pocket Critters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hellwuff/Pocket-Critters__5079) | Hellwuff | PC / Mac | 3.0.6 |
 | [Pocket Money](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Pocket-Money__b2d38492-3b20-43e0-9262-af382d04fb04) | msetten | Console | — |
 | [PocketChange](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/PocketChange__1849) | Shadowfen | PC / Mac | 1.39 |
 | [PointsofColor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/PointsofColor__ffe303a8-aa0e-4c0c-a21f-62dcc0da1107) | Sharlikran | Console | — |

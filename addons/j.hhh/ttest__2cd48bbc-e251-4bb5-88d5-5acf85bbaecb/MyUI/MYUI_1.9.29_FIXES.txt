@@ -1,0 +1,8 @@
+MyUI 1.9.29 – UI error / gamepad attribute alignment fixes
+
+1) Alternative boss bar: invalid/outdated saved theme names now fall back to Plain rather than indexing nil in SetVisualSettings.
+2) Group invite: removed the unsafe TryGroupInviteByName override. Native ESO group invites stay intact in keyboard and gamepad modes.
+3) Gamepad: native player Health/Magicka/Stamina bar geometry is no longer force-resized to the keyboard bar width. This prevents mismatched frame/background/fill widths in the gamepad HUD. Keyboard-only width setting remains functional.
+4) Reduced keyboard-only width guard from every 16ms to 250ms.
+
+Installation: Replace the complete MyUI folder, restart/reload ESO. Test both HUD modes and group invites. No console runtime validation was possible here.

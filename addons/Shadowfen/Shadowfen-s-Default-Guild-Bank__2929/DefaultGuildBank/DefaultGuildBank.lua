@@ -95,6 +95,7 @@ function SGB.onGuildBankSelected(_, guildId)
 	else
 		defaultGuildId = saved.defaultGuildId
 	end	
+    if guildId == defaultGuildId then return end
 
 	local dGuildId
 	gbsession = true

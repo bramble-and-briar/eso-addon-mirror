@@ -345,7 +345,13 @@ function JHSetTrackers.UI.Draw(key)
           JHSetTrackers.UI.UpdateProcs(key)
         else
           current, max, effective = GetUnitPower("player", set.powerType)
-          set.currentValue = (current / effective) * 100
+          if set.ultimateDurationPreview then
+            set.currentValue = current or 0
+          elseif effective and effective > 0 then
+            set.currentValue = (current / effective) * 100
+          else
+            set.currentValue = 0
+          end
           JHSetTrackers.UI.UpdatePower(key)
         end
       end
@@ -713,6 +719,13 @@ function JHSetTrackers.UI.UpdatePower(setKey)
   local label = WM:GetControlByName(setKey .. "_Label")
 
   label:SetColor(unpack(JHSetTrackers.preferences.sets[setKey].colorUp))
+
+  -- A preview, not a proc timer: 1 second per 10 Ultimate points.
+  -- Show even small values (0.0), without Jorvuld's generic modifier.
+  if set.ultimateDurationPreview then
+    label:SetText(string.format("%.1f", math.max(0, set.currentValue or 0) / 10))
+    return
+  end
 
   local bonus = 1
 

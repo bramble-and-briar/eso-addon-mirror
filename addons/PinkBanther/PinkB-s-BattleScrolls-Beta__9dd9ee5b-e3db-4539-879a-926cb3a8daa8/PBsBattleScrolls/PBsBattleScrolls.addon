@@ -1,8 +1,8 @@
 ## To release a new version, edit the version in the two lines below and nothing else.
-## Title: |cFFC04DPB's Battle Scrolls|r 0.4.1
+## Title: |cFF69B4PB's Battle Scrolls|r 0.4.2
 ## Author: |cFF69B4PinkBanther|r
 ## Description: A light DPS / HPS meter for console. Shows the fight's DPS and HPS on the HUD, and breaks the last 10 fights down by skill, target, buff and set proc uptime and skills pressed on a screen of its own (Main menu > Battle Scrolls). With LibGroupBroadcast, group members who run it share their DPS and HPS: the HUD lists them and the breakdown shows your share.
-## Version: 0.4.1
+## Version: 0.4.2
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106 LibGroupBroadcast
 ## SavedVariables: PBsBattleScrolls_Data

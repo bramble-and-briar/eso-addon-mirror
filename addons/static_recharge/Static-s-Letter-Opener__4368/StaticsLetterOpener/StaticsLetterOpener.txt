@@ -1,11 +1,11 @@
 ## Title: Static's Letter Opener
 ## Author: |CFF0000Static_Recharge|r
-## Version: 1.1.1
+## Version: 1.2.0
 ## AddOnVersion: 1
 ## APIVersion: 101051
 ## SavedVariables: StaticsLetterOpenerAccountWideVars
 ## DependsOn: LibAddonMenu-2.0>=43 LibStatic>=300
-## Description: Opens master writs and survey and treasure map letters automatically
+## Description: Opens various letters and containers automatically.
 ## IsLibrary: false
 
 # This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 
